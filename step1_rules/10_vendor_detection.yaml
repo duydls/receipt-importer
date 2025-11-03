@@ -14,7 +14,7 @@ vendor_detection:
       patterns:
         - "costco"
       vendor_code: "COSTCO"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.95
     
     restaurant_depot:
@@ -23,7 +23,7 @@ vendor_detection:
         - "restaurant depot"
         - "rd_"
       vendor_code: "RD"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.95
     
     jewel:
@@ -31,21 +31,21 @@ vendor_detection:
         - "jewel"
         - "jewel-osco"
       vendor_code: "JEWEL"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.90
     
     marianos:
       patterns:
         - "mariano"
       vendor_code: "MARIANOS"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.90
     
     aldi:
       patterns:
         - "aldi"
       vendor_code: "ALDI"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.90
     
     parktoshop:
@@ -53,7 +53,7 @@ vendor_detection:
         - "parktoshop"
         - "park to shop"
       vendor_code: "PARKTOSHOP"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.85
     
     bbi:
@@ -92,7 +92,7 @@ vendor_detection:
         - "costco"
         - "costco wholesale"
       vendor_code: "COSTCO"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.85
     
     restaurant_depot:
@@ -100,7 +100,7 @@ vendor_detection:
         - "restaurant depot"
         - "rd "
       vendor_code: "RD"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.85
     
     jewel:
@@ -109,7 +109,7 @@ vendor_detection:
         - "jewel-osco"
         - "jewel osco"
       vendor_code: "JEWEL"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.80
     
     marianos:
@@ -117,14 +117,14 @@ vendor_detection:
         - "mariano"
         - "mariano's"
       vendor_code: "MARIANOS"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.80
     
     aldi:
       keywords:
         - "aldi"
       vendor_code: "ALDI"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.80
     
     parktoshop:
@@ -132,7 +132,7 @@ vendor_detection:
         - "park to shop"
         - "parktoshop"
       vendor_code: "PARKTOSHOP"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
       confidence: 0.75
     
     instacart:
@@ -147,7 +147,7 @@ vendor_detection:
   # Fallback detection
   fallback:
     default_vendor_code: "UNKNOWN"
-    default_source_type: "vendor_based"  # Default to vendor_based if can't determine
+    default_source_type: "localgrocery_based"  # Default to localgrocery_based if can't determine
   
   # Folder-based detection (for source_type only)
   folder_patterns:
@@ -157,12 +157,12 @@ vendor_detection:
         - "instarcart"
       source_type: "instacart_based"
     
-    vendor_based:
+    localgrocery_based:
       patterns:
         - "costco"
         - "rd"
         - "restaurant depot"
         - "jewel"
         - "mariano"
-      source_type: "vendor_based"
+      source_type: "localgrocery_based"
 

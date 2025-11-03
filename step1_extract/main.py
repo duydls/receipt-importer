@@ -56,7 +56,7 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         input_dir: Base input directory
         
     Returns:
-        'vendor_based', 'instacart_based', 'bbi_based', or 'amazon_based'
+        'localgrocery_based', 'instacart_based', 'bbi_based', or 'amazon_based'
     """
     try:
         rel_path = file_path.relative_to(input_dir)
@@ -75,8 +75,8 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         if 'instacart' in folder_name.lower() or 'instarcart' in folder_name.lower():
             return 'instacart_based'
         
-        # Vendor-based = Costco, Jewel-Osco, RD, others
-        return 'vendor_based'
+        # Local grocery-based = Costco, Jewel-Osco, RD, Aldi, Mariano's, Parktoshop, etc.
+        return 'localgrocery_based'
     except ValueError:
         # If can't determine relative path, check filename
         filename_lower = file_path.name.lower()
@@ -86,7 +86,7 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
             return 'amazon_based'
         if 'instacart' in filename_lower or 'uni_uni_uptown' in filename_lower:
             return 'instacart_based'
-        return 'vendor_based'
+        return 'localgrocery_based'
 
 
 def process_files(
@@ -107,7 +107,7 @@ def process_files(
         max_workers: Maximum number of parallel workers (default: 4, safe for most systems)
         
     Returns:
-        Dictionary with 'vendor_based' and 'instacart_based' keys containing extracted data
+        Dictionary with 'localgrocery_based' and 'instacart_based' keys containing extracted data
     
     Note:
         ThreadPoolExecutor is used for file-level parallelism only.
@@ -141,7 +141,7 @@ def process_files(
     
     # Group files by receipt type
     # Note: CSV files are for instacart-based and amazon-based (baseline files)
-    vendor_based_files: List[Path] = []
+    localgrocery_based_files: List[Path] = []
     instacart_based_files: List[Path] = []
     bbi_based_files: List[Path] = []
     amazon_based_files: List[Path] = []
@@ -150,8 +150,8 @@ def process_files(
     for file_list in [pdf_files, excel_files]:
         for file_path in file_list:
             receipt_type = detect_group(file_path, input_dir)
-            if receipt_type == 'vendor_based':
-                vendor_based_files.append(file_path)
+            if receipt_type == 'localgrocery_based':
+                localgrocery_based_files.append(file_path)
             elif receipt_type == 'instacart_based':
                 instacart_based_files.append(file_path)
             elif receipt_type == 'bbi_based':
@@ -166,21 +166,21 @@ def process_files(
         if receipt_type == 'instacart_based':
             instacart_based_files.append(file_path)
         else:
-            logger.warning(f"CSV file found in vendor-based location (ignoring): {file_path.relative_to(input_dir)}")
+            logger.warning(f"CSV file found in localgrocery location (ignoring): {file_path.relative_to(input_dir)}")
     
-    logger.info(f"Vendor-based files: {len(vendor_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}")
+    logger.info(f"LocalGrocery-based files: {len(localgrocery_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}")
     
-    ### Process vendor-based files
-    vendor_based_output_dir = output_base_dir / 'vendor_based'
-    vendor_based_data: Dict[str, Any] = {}
+    ### Process localgrocery-based files (Costco, RD, Aldi, Jewel-Osco, Mariano's, Parktoshop)
+    localgrocery_based_output_dir = output_base_dir / 'localgrocery_based'
+    localgrocery_based_data: Dict[str, Any] = {}
     
-    if vendor_based_files:
-        logger.info("Processing vendor-based receipts...")
+    if localgrocery_based_files:
+        logger.info("Processing localgrocery-based receipts...")
         
-        def process_vendor_based_file(file_path: Path) -> Tuple[str, Optional[Dict[str, Any]]]:
-            """Process a single vendor-based file and return (receipt_id, receipt_data)"""
+        def process_localgrocery_file(file_path: Path) -> Tuple[str, Optional[Dict[str, Any]]]:
+            """Process a single localgrocery file and return (receipt_id, receipt_data)"""
             try:
-                logger.info(f"Processing [Vendor-based]: {file_path.name}")
+                logger.info(f"Processing [LocalGrocery]: {file_path.name}")
                 
                 # Apply vendor detection FIRST (before processing)
                 # This adds detected_vendor_code which is needed for layout matching
@@ -209,10 +209,10 @@ def process_files(
                     if 'detected_vendor_code' not in receipt_data:
                         receipt_data['detected_vendor_code'] = detected_vendor_code
                     if 'detected_source_type' not in receipt_data:
-                        receipt_data['detected_source_type'] = initial_receipt_data.get('detected_source_type', 'vendor_based')
+                        receipt_data['detected_source_type'] = initial_receipt_data.get('detected_source_type', 'localgrocery_based')
                     # Add source_group and source_file if not already present
                     if 'source_group' not in receipt_data:
-                        receipt_data['source_group'] = 'vendor_based'
+                        receipt_data['source_group'] = 'localgrocery_based'
                     if 'source_file' not in receipt_data:
                         receipt_data['source_file'] = str(file_path.relative_to(input_dir))
                     item_count = len(receipt_data.get('items', []))
@@ -234,7 +234,7 @@ def process_files(
                     'vendor': None,
                     'items': [],
                     'total': 0.0,
-                    'source_group': 'vendor_based',
+                    'source_group': 'localgrocery_based',
                     'source_file': str(file_path.relative_to(input_dir)),
                     'needs_review': True,
                     'review_reasons': [f'Error processing: {str(e)}']
@@ -244,22 +244,22 @@ def process_files(
         # Process files (sequential or parallel based on use_threads flag)
         # Note: ThreadPoolExecutor is used for file-level parallelism only.
         # Each file is processed independently — no shared state or database writes occur.
-        if use_threads and len(vendor_based_files) > 1:
-            logger.info(f"Using parallel processing with {max_workers} workers for {len(vendor_based_files)} files")
+        if use_threads and len(localgrocery_based_files) > 1:
+            logger.info(f"Using parallel processing with {max_workers} workers for {len(localgrocery_based_files)} files")
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {executor.submit(process_vendor_based_file, file_path): file_path 
-                          for file_path in vendor_based_files}
+                futures = {executor.submit(process_localgrocery_file, file_path): file_path 
+                          for file_path in localgrocery_based_files}
                 for future in as_completed(futures):
                     receipt_id, receipt_data = future.result()
                     if receipt_data:
-                        vendor_based_data[receipt_id] = receipt_data
+                        localgrocery_based_data[receipt_id] = receipt_data
         else:
-            if use_threads and len(vendor_based_files) <= 1:
+            if use_threads and len(localgrocery_based_files) <= 1:
                 logger.debug("Only 1 file to process, using sequential processing")
-            for file_path in vendor_based_files:
-                receipt_id, receipt_data = process_vendor_based_file(file_path)
+            for file_path in localgrocery_based_files:
+                receipt_id, receipt_data = process_localgrocery_file(file_path)
                 if receipt_data:
-                    vendor_based_data[receipt_id] = receipt_data
+                    localgrocery_based_data[receipt_id] = receipt_data
     
     ### Process instacart-based files
     instacart_based_output_dir = output_base_dir / 'instacart_based'
@@ -344,7 +344,7 @@ def process_files(
     if bbi_based_files:
         logger.info("Processing BBI-based receipts...")
         for file_path in bbi_based_files:
-            receipt_id, receipt_data = process_vendor_based_file(file_path)
+            receipt_id, receipt_data = process_localgrocery_file(file_path)
             if receipt_data:
                 receipt_data['source_group'] = 'bbi_based'
                 bbi_based_data[receipt_id] = receipt_data
@@ -407,25 +407,25 @@ def process_files(
     
     ### Save output files and generate reports
     results: Dict[str, Dict[str, Any]] = {
-        'vendor_based': vendor_based_data,
+        'localgrocery_based': localgrocery_based_data,
         'instacart_based': instacart_based_data,
         'bbi_based': bbi_based_data,
         'amazon_based': amazon_based_data
     }
     
     # Save vendor-based output and generate report
-    if vendor_based_data:
-        vendor_based_output_dir.mkdir(parents=True, exist_ok=True)
-        output_file = vendor_based_output_dir / 'extracted_data.json'
+    if localgrocery_based_data:
+        localgrocery_based_output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = localgrocery_based_output_dir / 'extracted_data.json'
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(vendor_based_data, f, indent=2, ensure_ascii=False, default=str)
+            json.dump(localgrocery_based_data, f, indent=2, ensure_ascii=False, default=str)
         logger.info(f"Saved vendor-based data to: {output_file}")
         
         # Generate vendor-based report (preserves existing report intelligence)
         try:
             from .generate_report import generate_html_report
-            report_file = vendor_based_output_dir / 'report.html'
-            generate_html_report(vendor_based_data, report_file)
+            report_file = localgrocery_based_output_dir / 'report.html'
+            generate_html_report(localgrocery_based_data, report_file)
             logger.info(f"Generated vendor-based report: {report_file}")
         except Exception as e:
             logger.warning(f"Could not generate vendor-based report: {e}")
@@ -483,7 +483,7 @@ def process_files(
     
     # Generate combined final report at root output directory
     all_receipts: Dict[str, Any] = {}
-    all_receipts.update(vendor_based_data)
+    all_receipts.update(localgrocery_based_data)
     all_receipts.update(instacart_based_data)
     all_receipts.update(bbi_based_data)
     all_receipts.update(amazon_based_data)
@@ -508,7 +508,7 @@ def process_files(
     except Exception as e:
         logger.debug(f"Could not retrieve cache stats: {e}")
     
-    logger.info(f"\nStep 1 Complete: Extracted {len(vendor_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts")
+    logger.info(f"\nStep 1 Complete: Extracted {len(localgrocery_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts")
     
     return results
 
