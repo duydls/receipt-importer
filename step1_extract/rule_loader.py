@@ -24,12 +24,26 @@ class RuleLoader:
             rules_dir: Path to step1_rules directory
             enable_hot_reload: Enable checksum-based hot-reload (default: False)
                               Set to True only during development/testing for rule changes
+                              Can be overridden by RECEIPTS_HOT_RELOAD=1 environment variable
         """
+        import os
+        
         self.rules_dir = Path(rules_dir)
         self._rules_cache = {}
-        self._file_checksums = {} if enable_hot_reload else None  # Only track when enabled
-        self._enable_hot_reload = enable_hot_reload
+        
+        # Feature 3: Check environment variable for hot-reload toggle
+        env_hot_reload = os.getenv('RECEIPTS_HOT_RELOAD', '0') == '1'
+        self._enable_hot_reload = enable_hot_reload or env_hot_reload
+        
+        self._file_checksums = {} if self._enable_hot_reload else None  # Only track when enabled
         self._shared_rules = None  # Cache shared.yaml
+        self._file_read_count = 0  # Track I/O for testing/debugging
+        
+        # Feature 3: Log hot-reload status once on startup
+        if self._enable_hot_reload:
+            logger.info("Rule loader hot-reload: ON (dev mode - checksums enabled)")
+        else:
+            logger.info("Rule loader hot-reload: OFF (production mode - cache only)")
     
     def _calculate_file_checksum(self, file_path: Path) -> str:
         """Calculate MD5 checksum for a file"""
@@ -65,6 +79,9 @@ class RuleLoader:
         """Load a YAML file directly"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
+                self._file_read_count += 1  # Feature 3: Track I/O
+                if logger.isEnabledFor(logging.DEBUG) and self._enable_hot_reload:
+                    logger.debug(f"Reading YAML file: {file_path.name}")
                 return yaml.safe_load(f) or {}
         except Exception as e:
             logger.error(f"Error loading YAML file {file_path}: {e}")
@@ -72,6 +89,11 @@ class RuleLoader:
     
     def _load_shared_rules(self) -> Dict[str, Any]:
         """Load shared.yaml rules"""
+        # Feature 3: Fast-path when hot-reload is OFF - only check if cache exists
+        if not self._enable_hot_reload and self._shared_rules is not None:
+            return self._shared_rules
+        
+        # Hot-reload ON or first load
         if self._shared_rules is None or self._should_reload_file('shared.yaml', self.rules_dir / 'shared.yaml'):
             shared_file = self.rules_dir / 'shared.yaml'
             if shared_file.exists():
@@ -104,6 +126,19 @@ class RuleLoader:
         """
         shared_rules = self._load_shared_rules()
         return shared_rules.get('tax_exempt_vendors', [])
+    
+    def get_file_read_count(self) -> int:
+        """
+        Get the number of YAML files read from disk (for testing/debugging)
+        
+        Returns:
+            Number of file I/O operations performed
+        """
+        return self._file_read_count
+    
+    def reset_file_read_count(self):
+        """Reset the file read counter (for testing)"""
+        self._file_read_count = 0
     
     def _merge_rules(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """
