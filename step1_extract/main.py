@@ -372,6 +372,17 @@ def process_files(
         except Exception as e:
             logger.warning(f"Could not generate combined final report: {e}")
     
+    # Feature 4: Log column-mapping cache stats
+    try:
+        cache_stats = excel_processor.layout_applier.get_cache_stats()
+        if cache_stats['enabled'] and (cache_stats['hits'] > 0 or cache_stats['misses'] > 0):
+            logger.info(
+                f"Column-map cache: {cache_stats['hits']} hits, {cache_stats['misses']} misses, "
+                f"{cache_stats['time_saved_ms']:.1f} ms saved"
+            )
+    except Exception as e:
+        logger.debug(f"Could not retrieve cache stats: {e}")
+    
     logger.info(f"\nStep 1 Complete: Extracted {len(vendor_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts")
     
     return results

@@ -8,8 +8,11 @@ Supports multiple layouts per vendor with applies_to conditions.
 import re
 import logging
 import pandas as pd
+import hashlib
+import threading
+from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -63,17 +66,193 @@ class LayoutApplier:
         Args:
             rule_loader: RuleLoader instance
         """
+        import os
+        
         self.rule_loader = rule_loader
         # Remember the last matched layout name for diagnostics
         self.last_matched_layout: Optional[str] = None
         self.last_product_count: int = 0
         
         # Feature 2: Vectorized extraction toggle
-        import os
         self._vectorize_enabled = os.getenv('RECEIPTS_VECTORIZE', '1') != '0'
         if self._vectorize_enabled:
             logger.debug("Vectorized DataFrame extraction enabled")
         
+        # Feature 4: Column-mapping cache
+        self._cache_enabled = os.getenv('RECEIPTS_DISABLE_COLUMN_MAP_CACHE', '0') != '1'
+        self._column_map_cache: Dict[str, Tuple[Dict[str, str], Any]] = {}  # key -> (mapping, compiled_skip_regex)
+        self._cache_lock = threading.Lock()
+        self._cache_hits = 0
+        self._cache_misses = 0
+        self._cache_time_saved_ms = 0.0
+        
+        if self._cache_enabled:
+            logger.debug("Column-mapping cache enabled (LRU policy)")
+        
+    # ---------------- Feature 4: Column-mapping cache ----------------
+    @staticmethod
+    def _compute_layout_signature(layout: Dict[str, Any]) -> str:
+        """
+        Compute a deterministic hash of the layout's relevant mapping rules.
+        Changes to column_mappings or skip_patterns will change the signature.
+        """
+        import json
+        
+        # Extract relevant fields that affect mapping
+        relevant_fields = {
+            'column_mappings': layout.get('column_mappings', {}),
+            'skip_patterns': sorted(layout.get('skip_patterns', [])),
+            'name': layout.get('name', ''),
+        }
+        
+        # Create deterministic JSON and hash it
+        json_str = json.dumps(relevant_fields, sort_keys=True)
+        return hashlib.md5(json_str.encode()).hexdigest()[:12]
+    
+    def _make_cache_key(self, headers: List[str], layout: Dict[str, Any], vendor_code: str) -> str:
+        """
+        Create a stable cache key from normalized headers, layout signature, and vendor.
+        
+        Args:
+            headers: Original DataFrame column names
+            layout: Layout configuration dict
+            vendor_code: Vendor code
+            
+        Returns:
+            Cache key string
+        """
+        # Normalize headers: lowercase, strip whitespace, sorted for stability
+        norm_headers = tuple(sorted(str(h).strip().lower() for h in headers))
+        layout_sig = self._compute_layout_signature(layout)
+        
+        # Combine into cache key
+        key_parts = [
+            vendor_code,
+            layout_sig,
+            str(hash(norm_headers))  # Hash of normalized header tuple
+        ]
+        return '|'.join(key_parts)
+    
+    def _build_column_mapping_with_skip_regex(
+        self, 
+        headers: List[str], 
+        layout: Dict[str, Any]
+    ) -> Tuple[Dict[str, str], Optional[re.Pattern]]:
+        """
+        Build column mapping and compile skip regex pattern.
+        This is the expensive operation we want to cache.
+        
+        Returns:
+            Tuple of (column_mapping_dict, compiled_skip_regex)
+        """
+        import time
+        start = time.perf_counter()
+        
+        column_mappings = layout.get('column_mappings', {})
+        rename_map = {}
+        col_strs = [str(col).strip() for col in headers]
+        col_strs_lower = [c.lower() for c in col_strs]
+        
+        for field_name, column_name_pattern in column_mappings.items():
+            if not column_name_pattern:
+                continue
+            pattern_str = str(column_name_pattern)
+            pattern_lower = pattern_str.lower()
+            
+            matched_col = None
+            # Try exact match first
+            if pattern_str in col_strs:
+                matched_col = pattern_str
+            # Try case-insensitive match
+            elif pattern_lower in col_strs_lower:
+                matched_col = col_strs[col_strs_lower.index(pattern_lower)]
+            # Try regex match if pattern looks like regex
+            elif '\\' in pattern_str or '(' in pattern_str or pattern_str.startswith('^') or pattern_str.endswith('$'):
+                try:
+                    for col in col_strs:
+                        if re.search(pattern_str, col, re.IGNORECASE):
+                            matched_col = col
+                            break
+                except:
+                    pass
+            
+            if matched_col:
+                rename_map[matched_col] = field_name
+        
+        # Compile skip regex
+        skip_patterns = layout.get('skip_patterns', [])
+        compiled_skip_regex = None
+        if skip_patterns:
+            skip_regex = '|'.join(f'(?:{p})' for p in skip_patterns if p and p not in ['', 'nan', 'none'])
+            if skip_regex:
+                try:
+                    compiled_skip_regex = re.compile(skip_regex, re.IGNORECASE)
+                except:
+                    pass
+        
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        return rename_map, compiled_skip_regex, elapsed_ms
+    
+    def _get_column_mapping_cached(
+        self, 
+        headers: List[str], 
+        layout: Dict[str, Any], 
+        vendor_code: str
+    ) -> Tuple[Dict[str, str], Optional[re.Pattern]]:
+        """
+        Get column mapping with caching.
+        
+        Returns:
+            Tuple of (column_mapping_dict, compiled_skip_regex)
+        """
+        if not self._cache_enabled:
+            # Cache disabled - build directly
+            mapping, skip_regex, _ = self._build_column_mapping_with_skip_regex(headers, layout)
+            return mapping, skip_regex
+        
+        # Generate cache key
+        cache_key = self._make_cache_key(headers, layout, vendor_code)
+        
+        # Check cache (thread-safe)
+        with self._cache_lock:
+            if cache_key in self._column_map_cache:
+                self._cache_hits += 1
+                cached_mapping, cached_skip_regex, build_time_ms = self._column_map_cache[cache_key]
+                self._cache_time_saved_ms += build_time_ms
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Column-map cache HIT for {vendor_code}/{layout.get('name', 'unnamed')}")
+                return cached_mapping, cached_skip_regex
+        
+        # Cache miss - build mapping
+        self._cache_misses += 1
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Column-map cache MISS for {vendor_code}/{layout.get('name', 'unnamed')}")
+        
+        mapping, skip_regex, build_time_ms = self._build_column_mapping_with_skip_regex(headers, layout)
+        
+        # Store in cache (thread-safe, with simple LRU via size limit)
+        with self._cache_lock:
+            # Simple LRU: if cache is too large, clear oldest entries
+            if len(self._column_map_cache) >= 256:
+                # Remove oldest 25% of entries
+                to_remove = list(self._column_map_cache.keys())[:64]
+                for key in to_remove:
+                    del self._column_map_cache[key]
+            
+            self._column_map_cache[cache_key] = (mapping, skip_regex, build_time_ms)
+        
+        return mapping, skip_regex
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics for logging/monitoring"""
+        return {
+            'hits': self._cache_hits,
+            'misses': self._cache_misses,
+            'time_saved_ms': round(self._cache_time_saved_ms, 2),
+            'cache_size': len(self._column_map_cache),
+            'enabled': self._cache_enabled
+        }
+    
     # ---------------- helpers: header & number normalization ----------------
     @staticmethod
     def _norm_header_text(headers: List[str]) -> List[str]:
@@ -405,37 +584,10 @@ class LayoutApplier:
         if df.empty:
             return []
         
-        # Build column mapping
-        column_mappings = layout.get('column_mappings', {})
-        rename_map = {}
-        col_strs = [str(col).strip() for col in df.columns]  # Pre-compute once
-        col_strs_lower = [c.lower() for c in col_strs]  # Pre-compute lowercase
-        
-        for field_name, column_name_pattern in column_mappings.items():
-            if not column_name_pattern:
-                continue
-            pattern_str = str(column_name_pattern)
-            pattern_lower = pattern_str.lower()
-            
-            matched_col = None
-            # Try exact match first
-            if pattern_str in col_strs:
-                matched_col = pattern_str
-            # Try case-insensitive match
-            elif pattern_lower in col_strs_lower:
-                matched_col = col_strs[col_strs_lower.index(pattern_lower)]
-            # Try regex match if pattern looks like regex
-            elif '\\' in pattern_str or '(' in pattern_str or pattern_str.startswith('^') or pattern_str.endswith('$'):
-                try:
-                    for col in col_strs:
-                        if re.search(pattern_str, col, re.IGNORECASE):
-                            matched_col = col
-                            break
-                except:
-                    pass
-            
-            if matched_col:
-                rename_map[matched_col] = field_name
+        # Feature 4: Get column mapping from cache
+        rename_map, compiled_skip_regex = self._get_column_mapping_cached(
+            list(df.columns), layout, vendor_code
+        )
         
         # Rename columns (pandas is efficient with this)
         work_df = df.rename(columns=rename_map)
@@ -448,17 +600,13 @@ class LayoutApplier:
         # Fill NaN in product_name with empty string for pattern matching
         work_df['product_name'] = work_df['product_name'].fillna('').astype(str).str.strip()
         
-        # Apply skip patterns (remove rows that match any skip pattern)
-        skip_patterns = layout.get('skip_patterns', [])
-        if skip_patterns:
-            # Build OR-joined case-insensitive regex
-            skip_regex = '|'.join(f'(?:{p})' for p in skip_patterns if p and p not in ['', 'nan', 'none'])
-            if skip_regex:
-                try:
-                    skip_mask = work_df['product_name'].str.contains(skip_regex, case=False, regex=True, na=False)
-                    work_df = work_df[~skip_mask]
-                except Exception as e:
-                    logger.debug(f"Skip pattern error (falling back): {e}")
+        # Apply skip patterns using cached compiled regex
+        if compiled_skip_regex:
+            try:
+                skip_mask = work_df['product_name'].str.contains(compiled_skip_regex, na=False)
+                work_df = work_df[~skip_mask]
+            except Exception as e:
+                logger.debug(f"Skip pattern error (falling back): {e}")
         
         # Detect control lines: ^(subtotal|tax|total|items\s*sold)\b
         control_pattern = r'\b(subtotal|tax|total|items\s*sold)\b'

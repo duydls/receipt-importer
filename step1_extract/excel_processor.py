@@ -82,6 +82,10 @@ class ExcelProcessor:
         # (This preserves all existing Excel logic exactly)
         from .receipt_processor import ReceiptProcessor
         self._legacy_processor = ReceiptProcessor(config=config)
+        
+        # Feature 4: Create layout applier once for caching
+        from .layout_applier import LayoutApplier
+        self.layout_applier = LayoutApplier(rule_loader)
 
         # Debug controls via env vars
         self._debug = os.getenv("RECEIPTS_DEBUG", "0") == "1"
@@ -268,7 +272,7 @@ class ExcelProcessor:
 
                     # Try to apply layout rules
                     from .layout_applier import LayoutApplier
-                    layout_applier = LayoutApplier(self.rule_loader)
+                    layout_applier = self.layout_applier  # Feature 4: Use instance for caching
                     
                     receipt_data = {
                         'filename': file_path.name.strip(),
