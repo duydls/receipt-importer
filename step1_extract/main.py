@@ -349,26 +349,61 @@ def process_files(
                 receipt_data['source_group'] = 'bbi_based'
                 bbi_based_data[receipt_id] = receipt_data
     
-    ### Process Amazon-based files (placeholder - needs full implementation)
+    ### Process Amazon-based files (CSV-first approach)
     amazon_based_output_dir = output_base_dir / 'amazon_based'
     amazon_based_data: Dict[str, Any] = {}
     
     if amazon_based_files:
-        logger.info("Processing Amazon-based receipts...")
-        logger.warning("Amazon processing not yet fully implemented. PDFs will be processed as basic receipts.")
-        logger.warning("See docs/AMAZON_IMPLEMENTATION_PLAN.md for implementation details.")
-        for file_path in amazon_based_files:
-            if file_path.suffix.lower() == '.pdf':
+        logger.info("Processing Amazon-based receipts (CSV-first)...")
+        
+        from .amazon_csv_processor import AmazonCSVProcessor
+        amazon_processor = AmazonCSVProcessor(rule_loader)
+        
+        # Find Amazon CSV
+        csv_path = amazon_processor.find_amazon_csv(input_dir)
+        if not csv_path:
+            logger.warning("No Amazon CSV found. PDFs will not be processed.")
+        else:
+            # Load and group CSV by Order ID
+            orders_data = amazon_processor.load_and_parse_csv(csv_path)
+            logger.info(f"Found {len(orders_data)} orders in Amazon CSV")
+            
+            # Build Order ID → PDF path mapping
+            pdf_map = {}
+            for file_path in amazon_based_files:
+                if file_path.suffix.lower() == '.pdf':
+                    order_id = amazon_processor.extract_order_id_from_pdf(file_path)
+                    if order_id:
+                        pdf_map[order_id] = file_path
+            
+            logger.info(f"Found {len(pdf_map)} Amazon PDFs with Order IDs")
+            
+            # Process each order from CSV
+            for order_id, csv_rows in orders_data.items():
                 try:
-                    receipt_data = pdf_processor.process_file(file_path)
+                    pdf_path = pdf_map.get(order_id)
+                    receipt_data = amazon_processor.process_order(order_id, csv_rows, pdf_path)
+                    
                     if receipt_data:
-                        receipt_id = receipt_data.get('order_id') or file_path.stem
-                        receipt_data['source_group'] = 'amazon_based'
-                        receipt_data['needs_review'] = True
-                        receipt_data['review_reasons'] = receipt_data.get('review_reasons', []) + ['Amazon CSV matching not yet implemented']
-                        amazon_based_data[receipt_id] = receipt_data
+                        # Add source file
+                        if pdf_path:
+                            receipt_data['source_file'] = str(pdf_path.relative_to(input_dir))
+                        else:
+                            receipt_data['source_file'] = f"CSV: {csv_path.name}"
+                            receipt_data['needs_review'] = True
+                            if 'No PDF found for order' not in receipt_data['review_reasons']:
+                                receipt_data['review_reasons'].append('No PDF found for order')
+                        
+                        # Apply UoM extraction
+                        from .uom_extractor import UoMExtractor
+                        uom_extractor = UoMExtractor(rule_loader)
+                        receipt_data['items'] = uom_extractor.extract_uom_from_items(receipt_data['items'])
+                        
+                        amazon_based_data[order_id] = receipt_data
+                        logger.info(f"  ✓ Processed Amazon order {order_id}: {len([i for i in receipt_data['items'] if not i.get('is_fee')])} items, ${receipt_data.get('total', 0):.2f}")
+                    
                 except Exception as e:
-                    logger.error(f"Error processing Amazon PDF {file_path.name}: {e}")
+                    logger.error(f"Error processing Amazon order {order_id}: {e}", exc_info=True)
     
     ### Save output files and generate reports
     results: Dict[str, Dict[str, Any]] = {

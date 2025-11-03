@@ -437,6 +437,16 @@ class RuleLoader:
         rules = self.load_rule_file_by_name('25_instacart_csv.yaml')
         return rules.get('instacart_csv', {})
     
+    def get_amazon_csv_rules(self) -> Dict[str, Any]:
+        """
+        Get Amazon CSV processing rules from 28_amazon_csv.yaml
+        
+        Returns:
+            Amazon CSV configuration dictionary
+        """
+        rules = self.load_rule_file_by_name('28_amazon_csv.yaml')
+        return rules.get('amazon_csv_rules', {})
+    
     def get_multiline_config(self, vendor_code: Optional[str] = None, layout_name: Optional[str] = None) -> Dict[str, Any]:
         """
         Get multiline merging configuration based on vendor code and layout name
