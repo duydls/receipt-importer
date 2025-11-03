@@ -1,0 +1,240 @@
+# Amazon Source Mapping
+# Maps Amazon item titles, categories, and seller info to L2 categories
+
+category_maps_amazon:
+  description: >
+    Ordered rules for classifying Amazon items based on title, category, group, and seller.
+    Rules are evaluated in priority order (higher priority wins).
+  
+  rules:
+    # ===== PACKAGING =====
+    
+    - match:
+        item_title_regex: '(?i)\b(cup|cups)\b'
+      map_to_l2: C20  # Cups & Lids
+      priority: 95
+      notes: Cups
+    
+    - match:
+        item_title_regex: '(?i)\b(lid|lids)\b'
+      map_to_l2: C20  # Cups & Lids
+      priority: 95
+      notes: Lids
+    
+    - match:
+        item_title_regex: '(?i)\b(straw|straws)\b'
+      map_to_l2: C22  # Utensils & Misc Packaging
+      priority: 95
+      notes: Straws
+    
+    - match:
+        item_title_regex: '(?i)\b(bag|bags)\b'
+      map_to_l2: C21  # Bags & Trays
+      priority: 90
+      notes: Bags
+    
+    - match:
+        item_title_regex: '(?i)\b(tray|trays)\b'
+      map_to_l2: C21  # Bags & Trays
+      priority: 90
+      notes: Trays
+    
+    - match:
+        item_title_regex: '(?i)\b(sleeve|sleeves)\b'
+      map_to_l2: C20  # Cups & Lids
+      priority: 90
+      notes: Cup sleeves
+    
+    - match:
+        item_title_regex: '(?i)\b(label|labels|sticker|stickers|barcode)\b'
+      map_to_l2: C23  # Labels & Stickers
+      priority: 95
+      notes: Labels and stickers
+    
+    - match:
+        item_title_regex: '(?i)\b(utensil|fork|spoon|knife|stirrer)\b'
+      map_to_l2: C22  # Utensils & Misc Packaging
+      priority: 90
+      notes: Utensils
+    
+    # ===== TEA & COFFEE =====
+    
+    - match:
+        item_title_regex: '(?i)\b(tea|green tea|black tea|oolong|matcha|chai)\b'
+      map_to_l2: C01  # Tea & Coffee
+      priority: 95
+      notes: Tea products
+    
+    - match:
+        item_title_regex: '(?i)\b(coffee|espresso|beans)\b'
+      map_to_l2: C01  # Tea & Coffee
+      priority: 95
+      notes: Coffee products
+    
+    # ===== SYRUPS =====
+    
+    - match:
+        item_title_regex: '(?i)\b(syrup|syrups|torani|monin)\b'
+      map_to_l2: C02  # Syrups
+      priority: 95
+      notes: Syrups
+    
+    # ===== TOPPINGS & JELLIES =====
+    
+    - match:
+        item_title_regex: '(?i)\b(tapioca|boba|pearl|popping|crystal|lychee jelly|grass jelly|coconut jelly|aloe)\b'
+      map_to_l2: C08  # Toppings & Jellies
+      priority: 100
+      notes: Bubble tea toppings
+    
+    # ===== DAIRY =====
+    
+    - match:
+        item_title_regex: '(?i)\b(milk|coconut milk|oat milk|almond milk|soy milk)\b'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 90
+      notes: Milk products
+    
+    - match:
+        item_title_regex: '(?i)\b(cream|creamer|half-and-half|half & half)\b'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 90
+      notes: Cream products
+    
+    # ===== SWEETENERS =====
+    
+    - match:
+        item_title_regex: '(?i)\b(sugar|brown sugar|honey|agave|stevia)\b'
+      map_to_l2: C05  # Sweeteners/Sugar
+      priority: 90
+      notes: Sweeteners
+    
+    # ===== NON-FOOD CONSUMABLES =====
+    
+    - match:
+        item_title_regex: '(?i)\b(napkin|napkins|paper towel)\b'
+      map_to_l2: C30  # Napkins & Paper Products
+      priority: 90
+      notes: Napkins and paper towels
+    
+    - match:
+        item_title_regex: '(?i)\b(glove|gloves)\b'
+      map_to_l2: C31  # Gloves & Food Service Supplies
+      priority: 90
+      notes: Gloves
+    
+    - match:
+        item_title_regex: '(?i)\b(foil|aluminum foil|plastic wrap|film)\b'
+      map_to_l2: C31  # Gloves & Food Service Supplies
+      priority: 85
+      notes: Foil and wrap
+    
+    - match:
+        item_title_regex: '(?i)\b(filter|filters)\b'
+      map_to_l2: C32  # Filters & Disposables
+      priority: 90
+      notes: Filters
+    
+    # ===== CLEANING =====
+    
+    - match:
+        item_title_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant|bleach|soap)\b'
+      map_to_l2: C50  # Cleaning & Chemicals
+      priority: 90
+      notes: Cleaning chemicals
+    
+    - match:
+        item_title_regex: '(?i)\b(mop|broom|brush|sponge)\b'
+      map_to_l2: C50  # Cleaning & Chemicals
+      priority: 85
+      notes: Cleaning tools
+    
+    - match:
+        item_title_regex: '(?i)\b(trash bag|garbage bag)\b'
+      map_to_l2: C50  # Cleaning & Chemicals
+      priority: 90
+      notes: Trash bags
+    
+    # ===== SMALLWARES & EQUIPMENT =====
+    
+    - match:
+        item_title_regex: '(?i)\b(container|storage|organizer|rack|holder)\b'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 80
+      notes: Storage and organization
+    
+    - match:
+        item_title_regex: '(?i)\b(equipment|tool|utensil|appliance)\b'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 75
+      notes: Equipment and tools
+    
+    # ===== OFFICE =====
+    
+    - match:
+        item_title_regex: '(?i)\b(paper|pen|marker|tape|stapler|folder|file|printer)\b'
+      map_to_l2: C60  # Office/Admin
+      priority: 80
+      notes: Office supplies
+    
+    # ===== FEES (Amazon-specific) =====
+    
+    - match:
+        is_fee: true
+        text_contains: ['shipping', 'freight']
+      map_to_l2: C80  # Shipping/Delivery
+      priority: 100
+      notes: Shipping charges
+    
+    - match:
+        is_fee: true
+        text_contains: ['tax']
+      map_to_l2: C70  # Taxes & Fees
+      priority: 100
+      notes: Tax fees
+    
+    - match:
+        is_fee: true
+        text_contains: ['promotion', 'promo', 'discount']
+      map_to_l2: C95  # Discounts/Promos
+      priority: 100
+      notes: Promotions and discounts
+    
+    - match:
+        is_fee: true
+        text_contains: ['handling', 'recycling', 'postal', 'fee']
+      map_to_l2: C70  # Taxes & Fees
+      priority: 95
+      notes: Other fees
+    
+    # ===== CATEGORY-BASED FALLBACKS =====
+    
+    - match:
+        category: 'Kitchen & Dining'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 50
+      notes: Kitchen category fallback
+    
+    - match:
+        category: 'Office Products'
+      map_to_l2: C60  # Office/Admin
+      priority: 50
+      notes: Office category fallback
+    
+    # ===== DEFAULT FALLBACK =====
+    
+    - match:
+        default: true
+      map_to_l2: C99  # Unknown
+      priority: 0
+      notes: Fallback for unmatched items
+
+notes:
+  - Rules are evaluated in priority order (highest first)
+  - item_title_regex matches against product Title (case-insensitive)
+  - text_contains is for fee items (product_name field)
+  - category matches against Amazon-Internal Product Category
+  - group and seller can be used for additional filtering
+  - is_fee=true applies only to fee items (not products)
+  - If no rule matches, item falls through to keyword/heuristic matching
+

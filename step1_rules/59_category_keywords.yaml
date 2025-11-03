@@ -1,0 +1,234 @@
+# Global Category Keywords and Pipeline Settings
+# Keyword rules and heuristics that apply across all sources
+
+category_keywords:
+  description: >
+    Global keyword matching rules and heuristic classifiers.
+    Applied after source-specific mappings but before fallback.
+  
+  # Pipeline execution order
+  pipeline_order:
+    - source_map        # Source-specific rules (Instacart/Amazon)
+    - vendor_overrides  # Vendor-specific hints from L2 catalog
+    - keywords          # Global keyword rules (this file)
+    - heuristics        # Smart classifiers (fruit/packaging/topping)
+    - overrides         # Tax/discount/shipping overrides (from L1)
+    - fallback          # C99 Unknown
+  
+  # Global keyword rules (ordered by priority)
+  keyword_rules:
+    # Packaging
+    - include_regex: '(?i)\b(cup|cups|tumbler)\b'
+      map_to_l2: C20
+      priority: 90
+      hints: ['Cups & Lids']
+    
+    - include_regex: '(?i)\b(lid|lids|cover)\b'
+      map_to_l2: C20
+      priority: 90
+      hints: ['Cups & Lids']
+    
+    - include_regex: '(?i)\b(straw|straws)\b'
+      map_to_l2: C22
+      priority: 90
+      hints: ['Utensils & Misc Packaging - Straws']
+    
+    - include_regex: '(?i)\b(bag|bags|tote)\b'
+      exclude_regex: '(?i)\b(tea bag|trash bag|garbage bag)\b'
+      map_to_l2: C21
+      priority: 85
+      hints: ['Bags & Trays - Exclude tea bags and trash bags']
+    
+    - include_regex: '(?i)\b(label|labels|sticker|stickers)\b'
+      map_to_l2: C23
+      priority: 90
+      hints: ['Labels & Stickers']
+    
+    # Tea & Coffee
+    - include_regex: '(?i)\b(tea|green tea|black tea|oolong|matcha|chai)\b'
+      map_to_l2: C01
+      priority: 90
+      hints: ['Tea & Coffee']
+    
+    - include_regex: '(?i)\b(coffee|espresso|beans|ground coffee)\b'
+      map_to_l2: C01
+      priority: 90
+      hints: ['Tea & Coffee']
+    
+    # Syrups
+    - include_regex: '(?i)\b(syrup|syrups|torani|monin)\b'
+      map_to_l2: C02
+      priority: 90
+      hints: ['Syrups']
+    
+    # Toppings
+    - include_regex: '(?i)\b(tapioca|boba|pearl|popping|crystal)\b'
+      map_to_l2: C08
+      priority: 95
+      hints: ['Toppings & Jellies']
+    
+    - include_regex: '(?i)\b(lychee jelly|grass jelly|coconut jelly|aloe)\b'
+      map_to_l2: C08
+      priority: 95
+      hints: ['Toppings & Jellies']
+    
+    # Dairy
+    - include_regex: '(?i)\b(milk|whole milk|skim|2%|oat milk|almond milk)\b'
+      map_to_l2: C04
+      priority: 85
+      hints: ['Dairy & Milk']
+    
+    - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half)\b'
+      map_to_l2: C04
+      priority: 85
+      hints: ['Dairy & Milk']
+    
+    # Cleaning
+    - include_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant)\b'
+      map_to_l2: C50
+      priority: 85
+      hints: ['Cleaning & Chemicals']
+    
+    - include_regex: '(?i)\b(trash bag|garbage bag)\b'
+      map_to_l2: C50
+      priority: 90
+      hints: ['Cleaning & Chemicals - Trash bags']
+  
+  # Heuristic classifiers (smart pattern detection)
+  heuristics:
+    # Fruit classifier
+    fruit:
+      description: >
+        Detects fruit items and classifies as Fresh/Frozen based on context.
+      tokens:
+        - apple
+        - banana
+        - strawberry
+        - strawberries
+        - blueberry
+        - blueberries
+        - raspberry
+        - raspberries
+        - blackberry
+        - blackberries
+        - mango
+        - pineapple
+        - orange
+        - grape
+        - grapes
+        - peach
+        - pear
+        - plum
+        - lemon
+        - lime
+        - kiwi
+        - melon
+        - watermelon
+        - cantaloupe
+      freezer_markers:
+        - frozen
+        - freeze-dried
+        - freeze dried
+        - '°F'
+        - '-°F'
+      map_to_l2_fresh: C09   # Fresh Fruit
+      map_to_l2_frozen: C10  # Frozen Fruit
+      confidence: 0.85
+    
+    # Packaging classifier
+    packaging:
+      description: >
+        Detects packaging materials based on common keywords.
+      tokens:
+        - cup
+        - lid
+        - straw
+        - sleeve
+        - bag
+        - tray
+        - box
+        - container
+        - utensil
+        - fork
+        - spoon
+        - knife
+        - stirrer
+        - napkin
+        - label
+        - sticker
+      map_to_l2: C20  # Default to Cups & Lids (refined by other rules)
+      confidence: 0.80
+    
+    # Topping classifier
+    topping:
+      description: >
+        Detects bubble tea toppings and add-ins.
+      tokens:
+        - tapioca
+        - boba
+        - pearl
+        - jelly
+        - popping
+        - crystal
+        - lychee
+        - grass
+        - coconut jelly
+        - aloe
+      map_to_l2: C08  # Toppings & Jellies
+      confidence: 0.90
+    
+    # Dairy classifier
+    dairy:
+      description: >
+        Detects dairy and milk products.
+      tokens:
+        - milk
+        - cream
+        - half-and-half
+        - half & half
+        - dairy
+        - creamer
+      map_to_l2: C04  # Dairy & Milk
+      confidence: 0.85
+    
+    # Cleaning classifier
+    cleaning:
+      description: >
+        Detects cleaning and janitorial supplies.
+      tokens:
+        - clean
+        - detergent
+        - sanitizer
+        - disinfectant
+        - bleach
+        - mop
+        - broom
+        - brush
+        - trash
+        - garbage
+      map_to_l2: C50  # Cleaning & Chemicals
+      confidence: 0.80
+  
+  # Fallback settings
+  fallback_l2: C99  # Unknown category
+  
+  # Default confidence by stage
+  default_confidence:
+    source_map: 0.95       # High confidence for source-specific rules
+    vendor_overrides: 0.90  # High confidence for vendor hints
+    keywords: 0.80          # Medium-high for keyword matches
+    heuristics: 0.70        # Medium for smart classifiers
+    overrides: 1.00         # Absolute confidence for tax/discount/shipping
+    fallback: 0.20          # Low confidence for unmapped items
+  
+  # Review threshold
+  review_threshold: 0.60  # Items below this confidence need review
+
+notes:
+  - keyword_rules are evaluated in priority order
+  - exclude_regex can be used to filter out false positives
+  - heuristics provide smart classification based on multiple tokens
+  - fruit heuristic checks for freezer_markers to distinguish Fresh vs Frozen
+  - All patterns are case-insensitive
+  - Confidence scores help identify items needing manual review
+

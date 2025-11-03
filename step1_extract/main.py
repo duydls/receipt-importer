@@ -405,6 +405,42 @@ def process_files(
                 except Exception as e:
                     logger.error(f"Error processing Amazon order {order_id}: {e}", exc_info=True)
     
+    ### Apply Category Classification (Feature 14)
+    logger.info("Applying category classification to all items...")
+    from .category_classifier import CategoryClassifier
+    category_classifier = CategoryClassifier(rule_loader)
+    
+    # Classify items in each receipt type
+    for source_type, receipts_data in [
+        ('localgrocery_based', localgrocery_based_data),
+        ('instacart_based', instacart_based_data),
+        ('bbi_based', bbi_based_data),
+        ('amazon_based', amazon_based_data)
+    ]:
+        if not receipts_data:
+            continue
+        
+        for receipt_id, receipt_data in receipts_data.items():
+            try:
+                items = receipt_data.get('items', [])
+                vendor_code = receipt_data.get('vendor_code') or receipt_data.get('detected_vendor_code')
+                
+                # Classify items
+                classified_items = category_classifier.classify_items(items, source_type, vendor_code)
+                receipt_data['items'] = classified_items
+                
+                # Add summary stats
+                total_items = len([i for i in classified_items if not i.get('is_fee')])
+                needs_review_count = sum(1 for i in classified_items if i.get('needs_category_review') and not i.get('is_fee'))
+                
+                if total_items > 0:
+                    logger.debug(f"Classified {total_items} items in {receipt_id}: {needs_review_count} need review")
+            
+            except Exception as e:
+                logger.warning(f"Failed to classify items in {receipt_id}: {e}")
+    
+    logger.info("Category classification complete")
+    
     ### Save output files and generate reports
     results: Dict[str, Dict[str, Any]] = {
         'localgrocery_based': localgrocery_based_data,

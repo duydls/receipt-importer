@@ -1,0 +1,258 @@
+# Level 1 (L1) Accounting Categories
+# High-level categories for financial reporting and P&L statements
+
+categories_l1:
+  description: >
+    Master list of L1 accounting categories.
+    These roll up L2 operational categories for financial reporting.
+  
+  l1_categories:
+    - id: A01
+      name: COGS–Ingredients
+      description: Cost of goods sold for food and beverage ingredients
+      examples:
+        - Tea, coffee, matcha
+        - Syrups, flavorings, jam, purée
+        - Dairy, milk, cream
+        - Sweeteners, sugar
+        - Toppings, tapioca pearls, boba, jellies
+        - Fresh/frozen/canned fruit
+        - Fresh/frozen vegetables
+        - Grains, starches
+    
+    - id: A02
+      name: COGS–Packaging
+      description: Cost of goods sold for packaging materials
+      examples:
+        - Cups, lids, sleeves
+        - Bags, trays, boxes
+        - Straws, utensils
+        - Napkins (customer-facing)
+        - Labels, stickers
+    
+    - id: A03
+      name: COGS–Non-food Consumables
+      description: Non-food items consumed in service (gloves, towels, etc.)
+      examples:
+        - Gloves (food service)
+        - Paper towels (service area)
+        - Foil, plastic wrap
+        - Filters (coffee, tea)
+    
+    - id: A04
+      name: Smallwares/Equipment
+      description: Small equipment and tools (below capitalization threshold)
+      examples:
+        - Kitchen utensils, tools
+        - Small appliances under $500
+        - Storage containers
+        - Prep equipment
+      threshold: 500.00  # USD
+    
+    - id: A05
+      name: Cleaning/Janitorial
+      description: Cleaning supplies and janitorial items
+      examples:
+        - Detergents, sanitizers
+        - Cleaning chemicals
+        - Mops, brooms, brushes
+        - Trash bags
+        - Gloves (cleaning)
+    
+    - id: A06
+      name: Office/Admin
+      description: Office supplies and administrative items
+      examples:
+        - Paper, pens, printer supplies
+        - Tape, scissors, staplers
+        - Filing/organization
+        - Computer accessories
+    
+    - id: A07
+      name: Taxes & Fees
+      description: Sales tax, regulatory fees, and government charges
+      examples:
+        - Sales tax
+        - State/local taxes
+        - Regulatory fees
+        - Licensing fees
+    
+    - id: A08
+      name: Shipping/Delivery
+      description: Shipping charges and delivery fees
+      examples:
+        - Shipping charges
+        - Freight
+        - Delivery fees
+        - Handling fees
+    
+    - id: A09
+      name: Tips/Gratuities
+      description: Tips and gratuities (Instacart shopper tips, etc.)
+      examples:
+        - Instacart shopper tip
+        - Delivery driver tip
+    
+    - id: A10
+      name: Licenses/Services
+      description: Business licenses, subscriptions, and professional services
+      examples:
+        - Software subscriptions
+        - Professional services
+        - Maintenance contracts
+    
+    - id: A11
+      name: Repairs/Maintenance
+      description: Equipment repairs and facility maintenance
+      examples:
+        - Equipment repair
+        - Facility maintenance
+        - Replacement parts
+    
+    - id: A12
+      name: Marketing
+      description: Marketing and promotional expenses
+      examples:
+        - Promotional materials
+        - Advertising
+        - Marketing supplies
+    
+    - id: A13
+      name: Utilities
+      description: Utilities and facility costs
+      examples:
+        - Water, gas, electric (if on receipts)
+        - Facility services
+    
+    - id: A99
+      name: Other/Unmapped
+      description: Items that don't fit other categories or need review
+      examples:
+        - Unclassified items
+        - Items needing manual review
+
+# L2 → L1 Mapping
+# Central place to define how L2 operational categories roll up to L1 accounting categories
+l2_to_l1_map:
+  # Ingredients (A01)
+  C01: A01  # Tea & Coffee
+  C02: A01  # Syrups
+  C03: A01  # Jam/Purée
+  C04: A01  # Dairy & Milk
+  C05: A01  # Sweeteners/Sugar
+  C06: A01  # Creamer & Powders
+  C07: A01  # Grains & Starches
+  C08: A01  # Toppings & Jellies
+  C09: A01  # Fresh Fruit
+  C10: A01  # Frozen Fruit
+  C11: A01  # Canned/Processed Fruit
+  C12: A01  # Fresh Vegetables
+  C13: A01  # Frozen Vegetables
+  C14: A01  # Meat & Seafood
+  C15: A01  # Other Ingredients
+  
+  # Packaging (A02)
+  C20: A02  # Cups & Lids
+  C21: A02  # Bags & Trays
+  C22: A02  # Utensils & Misc Packaging
+  C23: A02  # Labels & Stickers
+  
+  # Non-food Consumables (A03)
+  C30: A03  # Napkins & Paper Products (service)
+  C31: A03  # Gloves & Food Service Supplies
+  C32: A03  # Filters & Disposables
+  
+  # Smallwares/Equipment (A04)
+  C40: A04  # Smallwares & Equipment
+  
+  # Cleaning (A05)
+  C50: A05  # Cleaning & Chemicals
+  
+  # Office (A06)
+  C60: A06  # Office/Admin
+  
+  # Taxes (A07)
+  C70: A07  # Taxes & Fees
+  
+  # Shipping (A08)
+  C80: A08  # Shipping/Delivery
+  
+  # Tips (A09)
+  C85: A09  # Tips/Gratuities
+  
+  # Services (A10)
+  C90: A10  # Licenses/Services
+  
+  # Repairs (A11)
+  C91: A11  # Repairs/Maintenance
+  
+  # Marketing (A12)
+  C92: A12  # Marketing
+  
+  # Discounts/Promos (map to A01 - reduces COGS)
+  C95: A01  # Discounts/Promos
+  
+  # Unknown (A99)
+  C99: A99  # Unknown
+
+# Special Overrides
+# These patterns force specific L1 categories regardless of other rules
+
+tax_overrides:
+  description: >
+    Regex patterns that force L1=A07 (Taxes & Fees).
+    Applied to product_name and fee item names.
+  map_to_l2: C70  # Taxes & Fees
+  patterns:
+    - '(?i)\btax\b'
+    - '(?i)\btaxes\b'
+    - '(?i)sales\s+tax'
+    - '(?i)state\s+tax'
+    - '(?i)local\s+tax'
+    - '(?i)item\s+tax'
+    - '(?i)shipping\s+tax'
+    - '(?i)gift\s+wrap\s+tax'
+    - '(?i)\bvat\b'
+
+discount_overrides:
+  description: >
+    Regex patterns that identify discounts/promotions.
+    Maps to L2=C95 (Discounts/Promos) which rolls up via l2_to_l1_map.
+  map_to_l2: C95  # Discounts/Promos
+  patterns:
+    - '(?i)\bdiscount\b'
+    - '(?i)\bpromo\b'
+    - '(?i)promotion'
+    - '(?i)item\s+promo'
+    - '(?i)ship\s+promo'
+    - '(?i)coupon'
+    - '(?i)rebate'
+  # Discount items typically have negative total_price
+
+shipping_overrides:
+  description: >
+    Regex patterns that force L1=A08 (Shipping/Delivery).
+  map_to_l2: C80  # Shipping/Delivery
+  patterns:
+    - '(?i)shipping'
+    - '(?i)freight'
+    - '(?i)delivery'
+    - '(?i)handling'
+    - '(?i)postal\s+fee'
+
+tip_overrides:
+  description: >
+    Regex patterns that force L1=A09 (Tips/Gratuities).
+  map_to_l2: C85  # Tips/Gratuities
+  patterns:
+    - '(?i)\btip\b'
+    - '(?i)gratuity'
+    - '(?i)shopper\s+tip'
+    - '(?i)driver\s+tip'
+
+notes:
+  - L1 categories are stable and rarely change
+  - L2→L1 mapping can be adjusted in l2_to_l1_map
+  - Overrides are applied last and take precedence over all other rules
+  - For unmapped items, use L2=C99 → L1=A99
+

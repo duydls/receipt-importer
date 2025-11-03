@@ -1,0 +1,238 @@
+# Instacart Source Mapping
+# Maps Instacart department/category/aisle to L2 categories
+
+category_maps_instacart:
+  description: >
+    Ordered rules for classifying Instacart items based on department, category_path, aisle, and text patterns.
+    Rules are evaluated in priority order (higher priority wins).
+  
+  rules:
+    # ===== PRODUCE - FRUITS =====
+    
+    - match:
+        department: 'produce'
+        text_contains: ['frozen', 'freeze-dried', 'freeze dried']
+      map_to_l2: C10  # Frozen Fruit
+      priority: 100
+      notes: Frozen fruit from produce section
+    
+    - match:
+        department: 'produce'
+        category_path: 'fruit'
+      map_to_l2: C09  # Fresh Fruit
+      priority: 90
+      notes: Fresh fruit from produce department
+    
+    - match:
+        department: 'produce'
+        aisle: 'fruit'
+      map_to_l2: C09  # Fresh Fruit
+      priority: 85
+      notes: Fresh fruit aisle
+    
+    - match:
+        department: 'produce'
+        text_contains: ['strawberry', 'strawberries', 'blueberry', 'blueberries', 'raspberry', 'raspberries', 'blackberry', 'blackberries', 'mango', 'pineapple', 'banana', 'apple', 'orange', 'grape', 'peach', 'pear', 'plum', 'lemon', 'lime', 'kiwi', 'melon']
+      map_to_l2: C09  # Fresh Fruit
+      priority: 80
+      notes: Common fresh fruits
+    
+    # ===== PRODUCE - VEGETABLES =====
+    
+    - match:
+        department: 'produce'
+        category_path: 'vegetable'
+      map_to_l2: C12  # Fresh Vegetables
+      priority: 90
+      notes: Fresh vegetables from produce department
+    
+    - match:
+        department: 'produce'
+        aisle: 'vegetable'
+      map_to_l2: C12  # Fresh Vegetables
+      priority: 85
+      notes: Fresh vegetable aisle
+    
+    - match:
+        department: 'produce'
+        text_contains: ['lettuce', 'spinach', 'tomato', 'cucumber', 'carrot', 'celery', 'onion', 'pepper', 'broccoli', 'cauliflower', 'cabbage', 'kale', 'chard']
+      map_to_l2: C12  # Fresh Vegetables
+      priority: 80
+      notes: Common fresh vegetables
+    
+    # ===== FROZEN =====
+    
+    - match:
+        department: 'frozen'
+        text_contains: ['strawberry', 'strawberries', 'blueberry', 'blueberries', 'mango', 'pineapple', 'mixed berry', 'fruit', 'berry']
+      map_to_l2: C10  # Frozen Fruit
+      priority: 95
+      notes: Frozen fruit department
+    
+    - match:
+        department: 'frozen'
+        text_contains: ['vegetable', 'peas', 'corn', 'broccoli', 'mixed veg', 'stir fry']
+      map_to_l2: C13  # Frozen Vegetables
+      priority: 95
+      notes: Frozen vegetables
+    
+    # ===== DAIRY =====
+    
+    - match:
+        department: 'dairy'
+        text_contains: ['milk', 'whole milk', 'skim milk', '2%', 'oat milk', 'almond milk', 'soy milk']
+      map_to_l2: C04  # Dairy & Milk
+      priority: 95
+      notes: Milk products
+    
+    - match:
+        department: 'dairy'
+        text_contains: ['cream', 'heavy cream', 'light cream', 'half-and-half', 'half & half', 'whipping cream']
+      map_to_l2: C04  # Dairy & Milk
+      priority: 95
+      notes: Cream products
+    
+    - match:
+        department: 'dairy'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 70
+      notes: Default for dairy department
+    
+    # ===== BEVERAGES =====
+    
+    - match:
+        department: 'beverages'
+        text_contains: ['tea', 'coffee', 'matcha', 'chai']
+      map_to_l2: C01  # Tea & Coffee
+      priority: 95
+      notes: Tea and coffee beverages
+    
+    # ===== PANTRY / GROCERY =====
+    
+    - match:
+        aisle: 'coffee & tea'
+      map_to_l2: C01  # Tea & Coffee
+      priority: 90
+      notes: Coffee and tea aisle
+    
+    - match:
+        text_contains: ['syrup', 'torani', 'monin', 'flavor syrup']
+      map_to_l2: C02  # Syrups
+      priority: 95
+      notes: Flavoring syrups
+    
+    - match:
+        text_contains: ['jam', 'jelly', 'preserve', 'marmalade']
+      map_to_l2: C03  # Jam/Purée
+      priority: 90
+      notes: Jams and preserves
+    
+    - match:
+        text_contains: ['sugar', 'brown sugar', 'white sugar', 'cane sugar', 'honey', 'agave', 'stevia']
+      map_to_l2: C05  # Sweeteners/Sugar
+      priority: 90
+      notes: Sweeteners
+    
+    - match:
+        text_contains: ['tapioca', 'boba', 'pearl', 'popping', 'crystal boba', 'lychee jelly', 'grass jelly', 'coconut jelly', 'aloe']
+      map_to_l2: C08  # Toppings & Jellies
+      priority: 100
+      notes: Bubble tea toppings
+    
+    - match:
+        text_contains: ['tapioca starch', 'flour', 'cornstarch', 'rice']
+      map_to_l2: C07  # Grains & Starches
+      priority: 90
+      notes: Grains and starches
+    
+    # ===== CANNED / PROCESSED =====
+    
+    - match:
+        text_contains: ['canned', 'jarred']
+        and_contains: ['fruit', 'peach', 'pear', 'pineapple', 'cocktail']
+      map_to_l2: C11  # Canned/Processed Fruit
+      priority: 90
+      notes: Canned fruit
+    
+    # ===== MEAT & SEAFOOD =====
+    
+    - match:
+        department: 'meat & seafood'
+      map_to_l2: C14  # Meat & Seafood
+      priority: 90
+      notes: Meat and seafood department
+    
+    - match:
+        text_contains: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'shrimp', 'tuna']
+      map_to_l2: C14  # Meat & Seafood
+      priority: 85
+      notes: Meat and seafood items
+    
+    # ===== CLEANING =====
+    
+    - match:
+        department: 'cleaning products'
+      map_to_l2: C50  # Cleaning & Chemicals
+      priority: 90
+      notes: Cleaning department
+    
+    - match:
+        text_contains: ['cleaner', 'detergent', 'sanitizer', 'disinfectant', 'bleach', 'soap', 'trash bag', 'garbage bag']
+      map_to_l2: C50  # Cleaning & Chemicals
+      priority: 85
+      notes: Cleaning products
+    
+    # ===== PAPER PRODUCTS =====
+    
+    - match:
+        text_contains: ['paper towel', 'napkin', 'tissue']
+      map_to_l2: C30  # Napkins & Paper Products
+      priority: 85
+      notes: Paper products
+    
+    # ===== FEES (Instacart-specific) =====
+    
+    - match:
+        is_fee: true
+        text_contains: ['tip', 'gratuity', 'shopper tip']
+      map_to_l2: C85  # Tips/Gratuities
+      priority: 100
+      notes: Shopper tip
+    
+    - match:
+        is_fee: true
+        text_contains: ['service fee', 'instacart fee']
+      map_to_l2: C80  # Shipping/Delivery
+      priority: 100
+      notes: Instacart service fee (treat as delivery)
+    
+    - match:
+        is_fee: true
+        text_contains: ['tax', 'sales tax']
+      map_to_l2: C70  # Taxes & Fees
+      priority: 100
+      notes: Tax fees
+    
+    - match:
+        is_fee: true
+        text_contains: ['delivery', 'shipping']
+      map_to_l2: C80  # Shipping/Delivery
+      priority: 100
+      notes: Delivery fee
+    
+    # ===== DEFAULT FALLBACK =====
+    
+    - match:
+        default: true
+      map_to_l2: C99  # Unknown
+      priority: 0
+      notes: Fallback for unmatched items
+
+notes:
+  - Rules are evaluated in priority order (highest first)
+  - text_contains matches against product_name (case-insensitive)
+  - and_contains requires ALL patterns to be present
+  - department and aisle match against Instacart metadata
+  - is_fee=true applies only to fee items (not products)
+  - If no rule matches, item falls through to keyword/heuristic matching
+
