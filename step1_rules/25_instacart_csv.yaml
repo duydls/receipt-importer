@@ -1,0 +1,22 @@
+# Instacart CSV matching configuration
+# Defines CSV file names and column name mappings for matching receipt items to CSV baseline
+
+instacart_csv:
+  # CSV file names to look for in the receipt folder
+  files:
+    - "order_item_summary_report.csv"
+    - "order_summary_report.csv"
+    - "order_summary_report 3.csv"  # Legacy variant name
+  
+  # Column name mappings (list of possible column names in order of preference)
+  id_fields:
+    order_id: ["Order ID", "order_id", "OrderID"]
+    item_name: ["Item Name", "Item", "item_name", "Product Name"]
+    size: ["Size", "Variant", "size", "Product Size"]
+    qty: ["Quantity", "Qty", "Picked Quantity", "quantity", "PickedQty"]
+    uom: ["Cost Unit", "Unit", "UoM", "uom"]
+    brand_name: ["Brand Name", "Brand", "brand_name", "BrandName"]
+  
+  # Matching threshold for fuzzy matching (0.0 to 1.0)
+  match_threshold: 0.78
+

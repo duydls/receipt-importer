@@ -1,0 +1,70 @@
+# Vendor Alias Rules
+# Normalize vendor names before fuzzy/database matching
+# Makes vendor naming consistent across Step 1 → Step 2
+
+meta:
+  description: "Vendor name alias normalization rules"
+  version: "1.0"
+
+vendor_aliases:
+  # Costco aliases
+  - match:
+      - "costco"
+      - "costco wholesale"
+      - "ic-costco"
+      - "ic costco business center"
+      - "costco business center"
+    set:
+      vendor_code: "COSTCO"
+      normalized_name: "Costco"
+  
+  # Restaurant Depot aliases
+  - match:
+      - "restaurant depot"
+      - "rd"
+      - "jetro"
+      - "r d"
+      - "restaurantdepot"
+    set:
+      vendor_code: "RD"
+      normalized_name: "Restaurant Depot"
+  
+  # Jewel/Mariano's aliases
+  - match:
+      - "jewel"
+      - "jewel-osco"
+      - "jewel osco"
+      - "jewelosco"
+      - "jewelosco"
+      - "marianos"
+      - "mariano's"
+      - "mariano"
+    set:
+      vendor_code: "JEWEL"
+      normalized_name: "Jewel-Osco"
+  
+  # ALDI aliases
+  - match:
+      - "aldi"
+      - "aldie"
+    set:
+      vendor_code: "ALDI"
+      normalized_name: "ALDI"
+  
+  # Park to Shop aliases
+  - match:
+      - "parktoshop"
+      - "park to shop"
+      - "parktoshop"
+    set:
+      vendor_code: "PARKTOSHOP"
+      normalized_name: "Park to Shop"
+  
+  # Instacart aliases
+  - match:
+      - "instacart"
+      - "ic-*"
+    set:
+      vendor_code: "INSTACART"
+      normalized_name: "Instacart"
+

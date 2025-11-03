@@ -1,0 +1,85 @@
+uom_extraction:
+  description: >
+    Extract raw unit/size text from receipt lines.
+    Stores raw text into raw_uom_text / raw_size_text fields.
+    Does NOT normalize to Odoo UoMs - that is Step 2's job.
+  
+  # Fields to extract
+  extraction_fields:
+    raw_uom_text: "Raw unit of measure text from receipt"
+    raw_size_text: "Raw size/weight text from receipt"
+  
+  # Source fields (where to look for UoM/size)
+  source_fields:
+    # Excel columns that may contain UoM/size info
+    excel_columns:
+      - "Size"
+      - "UOM"
+      - "Unit"
+      - "Quantity Unit"
+      - "Cost Unit"
+    
+    # PDF text patterns
+    pdf_patterns:
+      # Pattern: product name may contain size (e.g., "MILK 1 GAL", "STRAWBRY 3 LB")
+      product_name_pattern: r'(\d+\s*(?:LB|OZ|GAL|QT|PC|PKG|PK|CT|EA|EACH|UNIT|UNITS))'
+      # Pattern: separate size line (e.g., "SIZE: 1 GAL")
+      size_line_pattern: r'(?:SIZE|Size|size):\s*(.+?)'
+      # Pattern: quantity with unit (e.g., "QTY: 3 LB")
+      qty_unit_pattern: r'(?:QTY|Qty|qty):\s*\d+\s*(.+)'
+  
+  # Extraction rules
+  extraction_rules:
+    # Priority order for extraction
+    priority:
+      1: "excel_column"  # First check Excel columns if available
+      2: "product_name"  # Then extract from product name
+      3: "separate_size_line"  # Then check for separate size lines
+      4: "qty_unit_pattern"  # Finally check quantity unit patterns
+    
+    # Excel column extraction
+    excel_column:
+      # If Size column exists, extract as raw_size_text
+      # If UOM/Unit column exists, extract as raw_uom_text
+      map_columns:
+        "Size": "raw_size_text"
+        "UOM": "raw_uom_text"
+        "Unit": "raw_uom_text"
+        "Quantity Unit": "raw_uom_text"
+        "Cost Unit": "raw_uom_text"
+    
+    # Product name extraction
+    product_name:
+      # Extract size/unit from product name if present
+      # Pattern: "PRODUCT NAME 3 LB" -> raw_size_text: "3 LB"
+      # Keep original product name unchanged
+      extract_pattern: r'(\d+\s*(?:LB|OZ|GAL|QT|PC|PKG|PK|CT|EA|EACH|UNIT|UNITS|KG|G))'
+      field_mapping: "raw_size_text"  # Extract as raw_size_text
+    
+    # Separate size line (for PDFs)
+    separate_size_line:
+      # Look for lines containing "SIZE:" followed by size text
+      pattern: r'(?:SIZE|Size|size):\s*(.+?)(?:\n|$)'
+      field_mapping: "raw_size_text"
+    
+    # Quantity unit pattern
+    qty_unit_pattern:
+      # Look for "QTY: 3 LB" patterns
+      pattern: r'(?:QTY|Qty|qty):\s*\d+\s*(.+)'
+      field_mapping: "raw_uom_text"
+  
+  # Post-extraction (preserve original text, no normalization)
+  post_extraction:
+    # Trim whitespace only
+    trim_whitespace: true
+    # Keep original case (don't lowercase)
+    preserve_case: true
+    # Don't normalize units (Step 2 will handle that)
+    normalize_units: false
+  
+  # Field preservation
+  preserve_original_fields:
+    # Keep original fields if they exist
+    # e.g., if 'purchase_uom' exists in source, keep it but also add raw_uom_text
+    keep_source_fields: true
+

@@ -1,0 +1,25 @@
+uom_mapping:
+  description: >
+    Enforce that receipt UoM belongs to the same category as the product’s default UoM.
+
+  input: output/step2_output/_stage_usage.json
+
+  receipt_uom_field: receipt_uom_raw
+
+  normalize:
+    lowercase: true
+    strip_spaces: true
+    alias:
+      unit: ["unit", "units", "each", "piece", "pcs", "pc"]
+      lb: ["lb", "lbs", "pound", "pounds"]
+      kg: ["kg", "kgs", "kilogram", "kilograms"]
+      oz: ["oz", "ounce", "ounces"]
+
+  must_share_category_with: product_uom_id
+
+  if_category_mismatch:
+    use: product_uom_id
+    set_flag: true
+    add_review_reason: "UoM category mismatch; fallback to product default UoM"
+
+  output: output/step2_output/_stage_uom.json

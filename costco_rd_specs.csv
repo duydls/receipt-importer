@@ -1,0 +1,4 @@
+vendor,item_name,upc,item_number,title,price,brand,size,url,specs_json,source
+Costco,LIMES,,3923,LIMES,$7.99,,5 lbs bag,https://www.costco.com/.product.3923.html,"{""Size"": ""5 lbs bag"", ""Store"": ""Costco""}",knowledge_base
+Costco,WATERMELON,,4032,,,,,,,
+Costco,ORG STRAWBRY,,512515,ORG STRAWBRY,$8.99,,2 lbs carton,https://www.costco.com/.product.512515.html,"{""Size"": ""2 lbs carton"", ""Store"": ""Costco""}",knowledge_base

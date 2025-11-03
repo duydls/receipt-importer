@@ -1,0 +1,181 @@
+# Costco layout rules
+# Multiple layouts that apply based on file extension, header text, or content
+costco_layouts:
+  - name: "Costco Excel v_txn_upc_amt"
+    parsed_by: "costco_excel_v1"
+    applies_to:
+      vendor_code: ["COSTCO"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains:
+        - "Item Description"
+        - "Extended Amount"           # may be "Extended Amount (USD)"
+    required_columns:
+      - "Item Description"
+      - "Extended Amount"
+    optional_columns:
+      - "Transaction Date"
+      - "UPC"
+      - "Item Number"
+    column_mappings:
+      product_name: "Item Description"
+      upc: "UPC"
+      item_number: "Item Number"
+      order_date: "Transaction Date"
+      total_price: "Extended Amount (USD)"
+    normalization:
+      trim_whitespace: true
+      clean_citations: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"
+
+  - name: "Standard Costco Receipt"
+    parsed_by: "costco_excel_v1"
+    applies_to:
+      vendor_code: ["COSTCO"]
+      file_ext: [".xlsx", ".xls"]
+      # Be permissive: only require the product column to exist
+      header_contains: ["Item Description"]
+    required_columns:
+      - "Item Description"
+      - "Extended Amount (USD)"
+    optional_columns:
+      - "Item Number"
+      - "UPC"
+      - "Store Name"
+      - "Transaction Date"
+    column_mappings:
+      product_name: "Item Description"
+      item_number: "Item Number"  # Optional
+      upc: "UPC"  # Optional
+      unit_price: null  # Not in this format
+      quantity: null  # Not in this format
+      # Exact header used in provided files
+      total_price: "Extended Amount (USD)"
+      store_name: "Store Name"  # Optional
+      transaction_date: "Transaction Date"  # Optional
+    normalization:
+      clean_citations: true  # Remove [cite: ...] markers
+      trim_whitespace: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "nan"
+      - "none"
+  
+  - name: "Costco Detailed Receipt"
+    parsed_by: "costco_excel_v2"
+    applies_to:
+      vendor_code: ["COSTCO"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains: ["Item Name"]
+    required_columns:
+      - "Item Name"
+    optional_columns:
+      - "Item Code"
+      - "Unit Price"
+      - "Ordered Quantity"
+      - "Quantity"
+      - "Size"
+    column_mappings:
+      product_name: "Item Name"
+      item_code: "Item Code"  # Optional
+      unit_price: "Unit Price"
+      quantity: "Ordered Quantity"
+      total_price: "Total Price"
+      uom: "Size"  # Optional
+    normalization:
+      clean_citations: true
+      trim_whitespace: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "nan"
+      - "none"
+  
+  - name: "Costco Key-Value Format"
+    parsed_by: "costco_excel_keyvalue_v1"
+    applies_to:
+      vendor_code: ["COSTCO"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains: ["Field", "Detail"]
+    required_columns:
+      - "Field"
+      - "Detail"
+    column_mappings:
+      field: "Field"
+      detail: "Detail"
+    # Note: Parsed as key-value pairs, not tabular
+    normalization:
+      trim_whitespace: true
+    skip_patterns: []
+  
+  - name: "Costco PDF Multiline"
+    parsed_by: "costco_pdf_multiline_v1"
+    applies_to:
+      vendor_code: ["COSTCO"]
+      file_ext: [".pdf"]
+      text_contains: ["COSTCO WHOLESALE"]
+    # PDF parsing uses line patterns instead of column mappings
+    line_patterns:
+      # Item code on its own line (standalone)
+      - type: "item_code_standalone"
+        regex: "^\\d{1,10}\\s*$"
+        description: "Item code on its own line (1-10 digits)"
+      
+      # Item code + product + price on same line
+      - type: "item_code_product_price"
+        regex: "^(\\d{1,10})\\s+(.+?)\\s+(\\d+\\.\\d{2})\\s*N?\\s*$"
+        groups:
+          - item_code
+          - product_name
+          - price
+        description: "Item code, product name, and price on same line"
+      
+      # Product + price on same line
+      - type: "product_price"
+        regex: "^(.+?)\\s+(\\d+\\.\\d{2})\\s*N?\\s*$"
+        groups:
+          - product_name
+          - price
+        conditions:
+          - "length > 5"
+          - "not starts with '\\d{1,10}\\s+'"
+        description: "Product name and price on same line"
+      
+      # Price-only line (following product on previous line(s))
+      - type: "price_only"
+        regex: "(\\d+\\.\\d{2})\\s*N?\\s*$"
+        groups:
+          - price
+        conditions:
+          - "length <= 12"
+        description: "Price on its own line (following product)"
+        max_lookback_lines: 5
+      
+      # Summary section keywords
+      - type: "summary_start"
+        regex: ".*"
+        keywords: ["SUBTOTAL", "TAX", "TOTAL"]
+        description: "Summary section starts here"
+    
+    # Enable multiline merging (item code on one line, product/price on next lines)
+    merge_multiline: true
+    max_merge_distance: 10  # Maximum lines between item code and product/price
+    
+    # Summary keywords
+    summary_keywords:
+      - "SUBTOTAL"
+      - "TAX"
+      - "TOTAL"
+      - "CHANGE"
+      - "AMOUNT"
+      - "MEMBER"
+      - "APPROVED"
+      - "PURCHASE"
+      - "TOTAL NUMBER OF ITEMS"
+    
+    normalization:
+      trim_whitespace: true
+      clean_citations: true

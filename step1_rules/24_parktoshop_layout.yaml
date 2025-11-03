@@ -1,0 +1,53 @@
+# Parktoshop layout rules
+# Multiple layouts that apply based on file extension, header text, or content
+parktoshop_layouts:
+  # Variant A: With QTY
+  - name: "Parktoshop Excel v_qty_total"
+    parsed_by: "parktoshop_excel_v1"
+    applies_to:
+      vendor_code: ["PARKTOSHOP"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains:
+        - "Item Description"
+        - "Extended Amount"
+    required_columns:
+      - "Item Description"
+      - "Extended Amount (USD)"
+    optional_columns:
+      - "QTY"
+      - "Item Number"
+      - "Transaction Date"
+    column_mappings:
+      product_name: "Item Description"
+      quantity: "QTY"
+      total_price: 'Extended Amount \(USD\)'
+      item_number: "Item Number"
+      transaction_date: "Transaction Date"
+    normalization:
+      trim_whitespace: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"
+
+  # Variant B: No QTY column
+  - name: "Parktoshop Excel v_total_only"
+    parsed_by: "parktoshop_excel_v2"
+    applies_to:
+      vendor_code: ["PARKTOSHOP"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains:
+        - "Item Description"
+        - "Extended Amount"
+    required_columns:
+      - "Item Description"
+      - "Extended Amount (USD)"
+    column_mappings:
+      product_name: "Item Description"
+      total_price: 'Extended Amount \(USD\)'
+    normalization:
+      trim_whitespace: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"

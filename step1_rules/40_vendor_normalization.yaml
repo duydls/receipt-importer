@@ -1,0 +1,133 @@
+# Vendor Normalization Rules
+# Extracts vendor-specific logic from vendor_matcher.py to make it rule-driven
+
+meta:
+  description: "Vendor name normalization and matching rules"
+  version: "1.0"
+
+# Filename extraction patterns
+filename_patterns:
+  # Pattern 1: Name before underscore/dash, followed by date/numbers
+  # Examples: "Costco_0907" -> "Costco", "Jewel-Osco_0903" -> "Jewel-Osco"
+  - pattern: "^([A-Za-z][A-Za-z\\s\\-]+?)[_-]\\d"
+    description: "Vendor name before date/number separator"
+  
+  # Pattern 2: Date/number prefix, then vendor name
+  # Example: "0915_marianos " -> "Mariano's"
+  - pattern: "^\\d+[_-](.+)"
+    description: "Date prefix followed by vendor name"
+  
+  # Pattern 3: Just name (if no separator with numbers)
+  # Example: "aldi" -> "ALDI"
+  - pattern: "^[A-Za-z]+$"
+    description: "Plain vendor name (no separators)"
+    conditions:
+      - "not contains '[_-]\\d'"
+
+# Vendor name normalization mappings
+name_normalizations:
+  # Common variations and their normalized forms
+  marianos:
+    - "marianos"
+    - "mariano"
+    normalized: "Mariano's"
+  
+  parktoshop:
+    - "parktoshop"
+    - "park to shop"
+    normalized: "Park to Shop"
+  
+  restaurant_depot:
+    - "rd"
+    - "r d"
+    - "restaurant depot"
+    - "restaurantdept"
+    normalized: "Restaurant Depot"
+  
+  aldi:
+    - "aldi"
+    normalized: "ALDI"
+  
+  costco:
+    - "costco"
+    normalized: "Costco"
+  
+  jewel_osco:
+    - "jewel"
+    - "jewelosco"
+    conditions:
+      - "contains 'osco'"
+    normalized: "Jewel-Osco"
+
+# Vendor alias mappings (for database matching)
+vendor_aliases:
+  # Known vendor name variations mapped to database names
+  # Format: extracted_name -> database_name (or null to keep as-is)
+  variations:
+    - extracted: "IC-Costco Business Center"
+      database: "IC-Costco Bussiness"  # Database has typo
+    - extracted: "Costco Business Center"
+      database: "IC-Costco Bussiness"
+    - extracted: "Jewel-osco"
+      database: "IC-Jewel-Osco"
+    - extracted: "Jewel Osco"
+      database: "IC-Jewel-Osco"
+    - extracted: "RD"
+      database: null  # Will be normalized to 'Restaurant Depot' and kept if not in DB
+    - extracted: "rd"
+      database: null
+    - extracted: "R D"
+      database: null
+    - extracted: "Restaurant Depot"
+      database: null  # If not in DB, will be kept as-is
+
+# Database matching rules
+database_matching:
+  # Fuzzy matching thresholds
+  fuzzy_threshold: 0.65
+  normalized_threshold: 0.65
+  
+  # IC- prefix handling
+  ic_prefix:
+    enabled: true
+    remove_for_comparison: true
+  
+  # Abbreviation matching rules
+  abbreviation_matching:
+    enabled: true
+    min_length: 1
+    max_length: 3
+    position_bonus:
+      start_position: 0.2
+      other_position: 0.1
+    acronym_matching: true  # Match first letters of words (e.g., "rd" -> "Restaurant Depot")
+  
+  # Normalized matching (remove spaces, special chars)
+  normalized_matching:
+    enabled: true
+    remove_chars: "[^a-z0-9]"
+  
+  # Partial matching rules
+  partial_matching:
+    enabled: true
+    boost_factor: 0.9
+
+# Capitalization rules
+capitalization:
+  # Keep these in uppercase (acronyms)
+  uppercase_acronyms:
+    - "ALDI"
+    - "RD"
+    - "IC-"
+  
+  # Title case these
+  title_case:
+    enabled: true
+    min_length: 4  # Only title case if longer than this
+
+# Instacart vendor matching
+instacart_matching:
+  # Format for Instacart vendors: IC-{store_name}
+  prefix: "IC-"
+  enabled: true
+

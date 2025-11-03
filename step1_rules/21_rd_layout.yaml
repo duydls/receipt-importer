@@ -1,0 +1,152 @@
+# Restaurant Depot layout rules
+# Multiple layouts that apply based on file extension, header text, or content
+rd_layouts:
+  # Variant A: Require Item Description + Extended Amount (USD), with qty/unit optional
+  - name: "RD Excel v_qty_unit_total"
+    parsed_by: "rd_excel_v1"
+    applies_to:
+      vendor_code: ["RD", "RESTAURANT_DEPOT"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains:
+        - "Item Description"
+        - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?"
+    required_columns:
+      - "Item Description"
+      - "Extended Amount (USD)"
+    optional_columns:
+      - "QTY"
+      - "Unit Price"
+      - "Item Number"
+      - "UPC"
+      - "Transaction Date"
+    column_mappings:
+      product_name: "Item Description"
+      quantity: "^(QTY|Qty|Quantity)$"
+      unit_price: "^(Unit\\s*Price|Price|UnitPrice)$"
+      total_price: "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?|Total\\s*Price"
+      item_number: "^(Item\\s*Number|Item\\s*#|Item\\s*No\\.?|Item#|SKU)$"
+      upc: "^(UPC|Barcode)$"
+      transaction_date: "^(Transaction\\s*Date|Date|Trans\\s*Date|TransactionDate)$"
+    normalization:
+      trim_whitespace: true
+      preserve_case: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"
+      - "PREVIOUS BALANCE"
+
+  # Variant B: No qty/unit, still extract name + total
+  - name: "RD Excel v_total_only"
+    parsed_by: "rd_excel_v2"
+    applies_to:
+      vendor_code: ["RD", "RESTAURANT_DEPOT"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains:
+        - "Item Description"
+        - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?"
+    required_columns:
+      - "Item Description"
+      - "Extended Amount (USD)"
+    optional_columns:
+      - "Item Number"
+      - "UPC"
+      - "Transaction Date"
+    column_mappings:
+      product_name: "Item Description"
+      total_price: "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?|Total\\s*Price"
+      item_number: "^(Item\\s*Number|Item\\s*#|Item\\s*No\\.?|Item#|SKU)$"
+      upc: "^(UPC|Barcode)$"
+      transaction_date: "^(Transaction\\s*Date|Date|Trans\\s*Date|TransactionDate)$"
+    normalization:
+      trim_whitespace: true
+      preserve_case: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"
+      - "PREVIOUS BALANCE"
+
+  # CSV variant: make it as tolerant as Excel
+  - name: "RD CSV Report (Extended Format)"
+    parsed_by: "rd_excel_v2_csv"
+    applies_to:
+      vendor_code: ["RD", "RESTAURANT_DEPOT"]
+      file_ext: [".csv", ".CSV"]
+      header_contains:
+        - "Item Description"
+        - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?"
+    required_columns:
+      - "Item Description"
+      - "Extended Amount (USD)"
+    optional_columns:
+      - "QTY"
+      - "Unit Price"
+      - "UPC"
+      - "Item Number"
+      - "Transaction Date"
+    column_mappings:
+      product_name: "Item Description"
+      quantity: "^(QTY|Qty|Quantity)$"
+      unit_price: "^(Unit\\s*Price|Price|UnitPrice)$"
+      total_price: "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?|Total\\s*Price"
+      upc: "^(UPC|Barcode)$"
+      item_number: "^(Item\\s*Number|Item\\s*#|Item\\s*No\\.?|Item#|SKU)$"
+      transaction_date: "^(Transaction\\s*Date|Date|Trans\\s*Date|TransactionDate)$"
+    normalization:
+      trim_whitespace: true
+      preserve_case: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"
+      - "PREVIOUS BALANCE"
+      - ""
+      - "nan"
+  
+  - name: "RD PDF Receipt"
+    parsed_by: "rd_pdf_v1"
+    applies_to:
+      vendor_code: ["RD", "RESTAURANT_DEPOT"]
+      file_ext: [".pdf"]
+      text_contains: ["UPC", "Item", "Description"]
+    # PDF parsing uses line patterns instead of column mappings
+    line_patterns:
+      # Main RD item pattern: UPC Item_Number Item_Description Unit_Price Qty U(T) Ext_Amount
+      - type: "rd_item"
+        regex: "(\\d{5,13})\\s+(\\d{5,13})\\s+([A-Z][A-Z0-9\\s/]+?)\\s+(\\d+\\.\\d{2})\\s+(\\d+(?:\\.\\d+)?)\\s+[UC]\\(T\\)\\s+(\\d+\\.\\d{2})"
+        flags: "IGNORECASE"
+        groups:
+          - first_number  # Could be UPC or item_number
+          - second_number  # Could be UPC or item_number
+          - description
+          - unit_price
+          - quantity
+          - ext_amount
+        description: "RD item line with UPC, item number, description, prices"
+      
+      # Header detection
+      - type: "header"
+        keywords: ["UPC", "Item", "Description"]
+        description: "RD receipt header line"
+    
+    # Number identification rules
+    number_identification:
+      upc:
+        min_digits: 10
+        max_digits: 13
+      item_number:
+        min_digits: 5
+        max_digits: 10
+    
+    # Skip patterns for summary lines
+    skip_patterns:
+      - "PREVIOUS BALANCE"
+      - "SUBTOTAL"
+      - "TOTAL"
+      - "TAX"
+      - "TRANSACTION"
+    
+    normalization:
+      trim_whitespace: true
+      preserve_case: true

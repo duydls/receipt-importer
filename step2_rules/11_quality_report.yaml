@@ -1,0 +1,95 @@
+quality_report:
+  description: >
+    Build a human-readable QA report so the user can see which lines
+    are ready for Step 3 and which lines require fixing in Odoo.
+
+  input: output/step2_output/_stage_validated.json
+
+  views:
+    - name: "ready"
+      title: "Lines ready for Step 3"
+      filter:
+        needs_review: false
+      columns:
+        - source_file
+        - vendor_code
+        - canonical_product_key
+        - product_id
+        - product_name
+        - final_uom_id
+        - quantity
+        - unit_price
+        - line_total
+    - name: "need_review"
+      title: "Lines requiring review"
+      filter:
+        needs_review: true
+      group_by:
+        - review_reasons
+        - vendor_code
+      columns:
+        - source_file
+        - vendor_code
+        - canonical_product_key
+        - product_id
+        - product_name
+        - product_categ_name
+        - inferred_role
+        - final_uom_id
+        - quantity
+        - unit_price
+        - uom_conflict
+        - bom_protected
+        - review_reasons
+    - name: "bom_protected"
+      title: "BoM-protected lines"
+      filter:
+        bom_protected: true
+      columns:
+        - source_file
+        - canonical_product_key
+        - product_id
+        - product_name
+        - review_reasons
+
+  html:
+    path: output/step2_output/step2_quality_report.html
+    show_summary: true
+    summary_sections:
+      - title: "Totals"
+        metrics:
+          - name: "Total lines"
+            expr: "count(*)"
+          - name: "Lines OK"
+            expr: "count_if(needs_review=false)"
+          - name: "Lines need review"
+            expr: "count_if(needs_review=true)"
+          - name: "BoM-protected lines"
+            expr: "count_if(bom_protected=true)"
+      - title: "By vendor"
+        group_by: vendor_code
+        metrics:
+          - name: "Lines"
+            expr: "count(*)"
+          - name: "Need review"
+            expr: "count_if(needs_review=true)"
+
+  csv:
+    path: output/step2_output/step2_quality_report.csv
+    columns:
+      - source_file
+      - source_type
+      - vendor_code
+      - canonical_product_key
+      - product_id
+      - product_name
+      - product_categ_name
+      - inferred_role
+      - final_uom_id
+      - quantity
+      - unit_price
+      - line_total
+      - uom_conflict
+      - bom_protected
+      - needs_review
+      - review_reasons

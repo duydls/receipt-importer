@@ -1,0 +1,72 @@
+product_canonicalization:
+  description: >
+    Turn messy receipt item names into a small, stable set of canonical products.
+
+  input: output/step2_output/_stage_vendor.json
+
+  normalize:
+    lowercase: true
+    strip_punctuation: true
+    remove_store_words:
+      - "costco"
+      - "jewel"
+      - "jewel-osco"
+      - "marianos"
+      - "aldi"
+      - "instacart"
+      - "restaurant depot"
+      - "uni uni uptown"
+    remove_brand_words:
+      - "kirkland"
+      - "organic valley"
+      - "horizon"
+      - "jewel"
+    collapse_spaces: true
+
+  category_rules:
+    - name: "whole_milk"
+      keywords: ["whole milk", "vitamin d milk", "milk whole", "milk 3.25%"]
+      canonical_name: "Whole Milk"
+    - name: "2percent_milk"
+      keywords: ["2% milk", "reduced fat milk"]
+      canonical_name: "2% Milk"
+    - name: "heavy_cream"
+      keywords: ["heavy cream", "whipping cream"]
+      canonical_name: "Heavy Cream"
+    - name: "frozen_strawberry"
+      keywords: ["frozen strawberry", "strawberries frozen"]
+      canonical_name: "Frozen Strawberry"
+    - name: "frozen_mango"
+      keywords: ["frozen mango", "mango chunks"]
+      canonical_name: "Frozen Mango"
+
+  size_rules:
+    - match: ["1 gallon", "1 gal", "gal", "gallon", "128 fl oz", "128oz"]
+      canonical_size: "1 gal"
+      canonical_uom: "gal"
+    - match: ["half gallon", "1/2 gallon", "64 fl oz", "64oz"]
+      canonical_size: "0.5 gal"
+      canonical_uom: "gal"
+    - match: ["32 fl oz", "32oz", "1 qt", "quart"]
+      canonical_size: "1 qt"
+      canonical_uom: "qt"
+    - match: ["2 lb", "2lbs", "2 lbs", "32 oz bag"]
+      canonical_size: "2 lb"
+      canonical_uom: "lb"
+
+  vendor_specific_canonical_map:
+    # RD frozen/fried short codes
+    RD:
+      "chx nugget btrd ty": "rd_chicken_nugget_breaded_tyson"
+      "ff bigc 1/2 crinkl 6/": "rd_fries_crinkle_bigc_6bag"
+      "ff bigc 3/8 strght 6/": "rd_fries_straight_bigc_6bag"
+      "fz mozz stx it brd": "rd_mozzarella_sticks_breaded"
+      "ff bigc 1 2 crinkl 6": "rd_fries_crinkle_bigc_6bag"
+      "ff bigc 3 8 strght 6": "rd_fries_straight_bigc_6bag"
+
+  compose:
+    pattern: "{{ canonical_name }} {{ canonical_size }}"
+    fallback_pattern: "{{ canonical_name }}"
+    output_field: canonical_product_key
+
+  output: output/step2_output/_stage_canonical.json

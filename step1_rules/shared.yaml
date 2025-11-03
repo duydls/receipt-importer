@@ -1,0 +1,142 @@
+version: 1.0
+currency_symbol: "$"
+
+# Feature flags
+flags:
+  enable_legacy_parsers: true  # Set to false to disable legacy fallback (default: true)
+
+# Tax-exempt vendors (company has tax-exempt status at these vendors)
+# Tax should be $0.00 or very close to $0.00 for these vendors
+# If tax > $1.00, receipt will be flagged for review
+tax_exempt_vendors:
+  - "COSTCO"
+  - "INSTACART"
+  - "PARKTOSHOP"
+
+uom_aliases:
+  lb: ["lb", "lbs", "pound", "pounds"]
+  oz: ["oz", "ounce", "ounces"]
+  gal: ["gal", "gallon", "gallons"]
+  ct: ["ct", "count", "pkg"]
+  ea: ["each", "ea", "item"]
+
+fees:
+  bag_fee: ["bag fee", "checkout bag"]
+  tip: ["tip", "driver tip", "grocery tip"]
+  service_fee: ["service fee", "delivery fee", "instacart service fee"]
+  tax: ["tax", "sales tax"]
+
+validation:
+  subtotal_tolerance: 0.02
+  total_tolerance: 0.05
+  required_fields: ["vendor", "order_date", "subtotal", "total"]
+
+output_fields:
+  - vendor
+  - order_date
+  - items
+  - subtotal
+  - total
+  - source_group
+  - source_file
+
+# Instacart CSV matching rules
+instacart_csv_match:
+  enabled: true
+  detect_by_prefix: "receipt_instacart"
+  alt_pattern: "Uni_Uni_Uptown_\\d{4}-\\d{2}-\\d{2}_\\d+\\.pdf"
+  order_id_regex: "_\\d{17,}\\.pdf$"
+  csv_sources:
+    - "order_item_summary_report.csv"
+    - "order_summary_report 3.csv"
+  match:
+    strategy: "order_id + fuzzy item_name"
+    threshold: 0.85
+  override_fields:
+    - "size"
+    - "uom"
+    - "quantity"
+    - "brand_name"
+  output_flags:
+    csv_linked_field: "csv_linked"
+    csv_linked_value: true
+  log_messages:
+    linked: "[INFO] CSV baseline matched for {desc} in order {order_id}"
+    missing: "[WARN] No CSV entry for {desc} in {order_id}"
+  # Vendor names that should use CSV matching
+  vendors:
+    - "Instacart"
+    - "IC-*"  # IC- prefixed vendors
+
+# AI line interpreter settings
+ai_line_interpreter:
+  enabled: true
+  backend: "ollama"  # Options: ollama, transformers
+  model_name: "llama3.2:1b"  # For ollama; for transformers use model path
+  use_for_vendors:
+    - "Restaurant Depot"
+    - "Mariano"
+    - "Mariano's"
+  max_retries: 2
+  temperature: 0.1  # Low temperature for consistency
+  ollama_base_url: "http://localhost:11434"
+  # Heuristics for when to use AI
+  heuristics:
+    has_numbers: true
+    has_letters: true
+    price_patterns:
+      - "\\$\\d+\\.\\d{2}"
+      - "\\d+\\.\\d{2}\\s*$"
+      - "U\\(T\\)"
+      - "C\\(T\\)"
+    # Use AI if line has numbers and letters but no clear price pattern
+    use_if_no_price_pattern: true
+
+# AI fallback configuration (vendor-based control)
+ai_fallback:
+  # Vendors that should use AI fallback (check vendor code)
+  enabled_for_vendors: ["RD", "JEWEL"]
+  # Maximum number of lines to process with AI (for full receipt parsing)
+  max_lines: 50
+  # Model to use (can be "local" or specific model name)
+  model: "local"
+
+# Group 1 vendor detection (exclude from Instacart CSV matching)
+group1_vendors:
+  - "costco"
+  - "restaurant depot"
+  - "restaurantdepot"
+  - "rd"
+  - "jewel"
+  - "jewelosco"
+  - "jewel osco"
+  - "mariano"
+  - "marianos"
+  - "aldi"
+  - "others"
+
+# Multiline merging rules (for PDF receipts with wrapped lines)
+multiline_rules:
+  # Default configuration
+  default:
+    enabled: true
+    joiner: " "
+    max_lines: 2
+  
+  # Costco PDF specific configuration
+  costco_pdf:
+    enabled: true
+    joiner: " "
+    max_lines: 3
+  
+  # RD PDF specific configuration (RD receipts typically don't wrap)
+  rd_pdf:
+    enabled: false
+    joiner: " "
+    max_lines: 2
+  
+  # Jewel/Mariano's PDF configuration
+  jewel_pdf:
+    enabled: true
+    joiner: " "
+    max_lines: 2

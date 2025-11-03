@@ -1,0 +1,34 @@
+bom_protection:
+  description: >
+    Protect existing MRP BoMs from being broken by auto-mapping.
+
+  input: output/step2_output/_stage_enriched.json
+  connection: use_config
+  read_only: true
+
+  db_queries:
+    bom_headers: |
+      SELECT id AS bom_id, product_id
+      FROM mrp_bom;
+    bom_lines: |
+      SELECT product_id AS component_product_id
+      FROM mrp_bom_line;
+
+  rules:
+    - name: keep_bom_bound
+      when:
+        this.product_id IN (products_used_in_bom)
+      action:
+        bom_protected: true
+
+    - name: prevent_replacement
+      when:
+        this.original_matched_product_id IN (products_used_in_bom)
+        AND this.product_id != this.original_matched_product_id
+      action:
+        force_product_id: original_matched_product_id
+        bom_protected: true
+        needs_review: true
+        add_reason: "Product is used in existing BoM; mapping tried to replace it."
+
+  output: output/step2_output/_stage_bom.json

@@ -1,0 +1,40 @@
+outputs:
+  mapped_items:
+    path: output/step2_output/mapped_items.json
+    schema:
+      required:
+        - product_id
+        - product_name
+        - final_uom_id
+        - quantity
+        - unit_price
+        - vendor_code
+      optional:
+        - vendor_name
+        - canonical_product_key
+        - line_total
+        - company_id
+        - currency_id
+        - source_type
+        - source_file
+        - product_categ_id
+        - product_categ_name
+        - purchase_ok
+        - sale_ok
+        - product_type
+        - inferred_role
+        - bom_protected
+        - uom_conflict
+        - needs_review
+        - review_reasons
+        - original_item_name
+        - receipt_uom_raw
+        - receipt_uom_id
+        - receipt_uom_category_id
+        - receipt_uom_category_name
+        - product_uom_category_id
+        - product_uom_category_name
+        - uom_category_mismatch
+        - raw_product_name
+
+  input: output/step2_output/_stage_validated.json

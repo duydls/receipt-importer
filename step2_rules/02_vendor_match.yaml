@@ -1,0 +1,63 @@
+vendor_match:
+  description: >
+    Normalize vendors. We do NOT split by store location.
+    We only distinguish Instacart-Costco vs normal Costco.
+
+  input: output/step2_output/_stage_inputs.json
+
+  rules:
+    - name: instacart_costco
+      when_any:
+        - source_type == "instacart_based"
+        - receipt_text ILIKE "%instacart%"
+        - source_file ILIKE "%instacart%"
+      and_also:
+        - receipt_text ILIKE "%costco%"
+      set:
+        vendor_code: "IC-COSTCO"
+        vendor_name: "IC-Costco"
+        vendor_confidence: 1.0
+
+    - name: costco
+      when_any:
+        - detected_vendor_name ILIKE "%costco%"
+        - receipt_text ILIKE "%costco%"
+        - source_file ILIKE "%costco%"
+      set:
+        vendor_code: "COSTCO"
+        vendor_name: "Costco"
+        vendor_confidence: 0.95
+
+    - name: rd
+      when_any:
+        - detected_vendor_name ILIKE "%restaurant depot%"
+        - receipt_text ILIKE "%restaurant depot%"
+        - source_file ILIKE "%RD_%"
+      set:
+        vendor_code: "RD"
+        vendor_name: "Restaurant Depot"
+        vendor_confidence: 0.95
+
+    - name: jewel
+      when_any:
+        - detected_vendor_name ILIKE "%jewel%"
+        - receipt_text ILIKE "%jewel%"
+      set:
+        vendor_code: "JEWEL"
+        vendor_name: "Jewel-Osco"
+        vendor_confidence: 0.9
+
+    - name: instacart_other
+      when:
+        source_type == "instacart_based"
+      set:
+        vendor_code: "IC-OTHER"
+        vendor_name: "Instacart (Other)"
+        vendor_confidence: 0.6
+        needs_review: true
+        review_reasons:
+          - "Instacart order without clear underlying store"
+
+  no_store_level_split: true
+
+  output: output/step2_output/_stage_vendor.json

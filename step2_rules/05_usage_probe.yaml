@@ -1,0 +1,64 @@
+usage_probe:
+  description: >
+    Probe real usage in Sales, Inventory, and Manufacturing to detect misclassified products.
+
+  input: output/step2_output/_stage_db.json
+  connection: use_config
+  read_only: true
+
+  time_window:
+    days_back: 180
+
+  queries:
+    sales_usage: |
+      SELECT
+        sol.product_id,
+        COUNT(*) AS so_line_count,
+        SUM(sol.product_uom_qty) AS so_qty
+      FROM sale_order_line sol
+      JOIN sale_order so ON sol.order_id = so.id
+      WHERE so.date_order >= (NOW() - INTERVAL '180 day')
+      GROUP BY sol.product_id;
+    inventory_usage: |
+      SELECT
+        sm.product_id,
+        COUNT(*) AS move_count,
+        SUM(sm.product_uom_qty) AS move_qty
+      FROM stock_move sm
+      WHERE sm.state = 'done'
+        AND sm.date >= (NOW() - INTERVAL '180 day')
+      GROUP BY sm.product_id;
+    manufacturing_usage: |
+      SELECT
+        mbl.product_id,
+        COUNT(*) AS bom_line_count
+      FROM mrp_bom_line mbl
+      GROUP BY mbl.product_id;
+
+  infer_role:
+    - name: bom_component
+      when:
+        bom_line_count: "> 0"
+      set:
+        inferred_role: "bom_component"
+        inferred_should_be_purchasable: true
+    - name: actually_sold
+      when:
+        so_line_count: "> 0"
+      set:
+        inferred_role: "salable"
+    - name: actually_moved
+      when:
+        move_count: "> 0"
+      set:
+        inferred_role: "inventory"
+
+  compare_with_template:
+    - if inferred_role == "bom_component" and purchase_ok == false:
+        mark_review: true
+        add_reason: "Product is used in BoM but purchase_ok=false - fix in Odoo."
+    - if inferred_role == "salable" and sale_ok == false:
+        mark_review: true
+        add_reason: "Product is sold but sale_ok=false - fix in Odoo."
+
+  output: output/step2_output/_stage_usage.json

@@ -1,0 +1,177 @@
+# Text-Based Parsing Rules
+# Extracts vendor-specific text parsing logic from costco_parser.py and rd_parser.py
+
+meta:
+  description: "Text-based receipt parsing rules for PDF receipts (Costco, RD, etc.)"
+  version: "1.0"
+
+# Costco text parsing rules
+costco_parsing:
+  # Summary section detection
+  summary_keywords:
+    - "SUBTOTAL"
+    - "TAX"
+    - "TOTAL"
+    - "CHANGE"
+    - "AMOUNT"
+    - "MEMBER"
+    - "APPROVED"
+    - "PURCHASE"
+    - "TOTAL NUMBER OF ITEMS"
+  
+  # Item code patterns
+  item_code_patterns:
+    # Standalone item code (1-10 digits)
+    - pattern: "^\\d{1,10}\\s*$"
+      description: "Standalone item code on its own line"
+    
+    # Item code + product + price on same line
+    - pattern: "^(\\d{1,10})\\s+(.+?)\\s+(\\d+\\.\\d{2})\\s*N?\\s*$"
+      description: "Item code, product name, and price on same line"
+      groups:
+        - item_code
+        - product_name
+        - price
+  
+  # Product/price matching patterns
+  product_price_patterns:
+    # Product + price on same line
+    - pattern: "^(.+?)\\s+(\\d+\\.\\d{2})\\s*N?\\s*$"
+      description: "Product name and price on same line"
+      conditions:
+        - "length > 5"
+        - "not starts with '\\d{1,10}\\s+'"
+      groups:
+        - product_name
+        - price
+    
+    # Price-only line
+    - pattern: "^(\\d+\\.\\d{2})\\s*N?\\s*$"
+      description: "Price on its own line (following product)"
+      groups:
+        - price
+  
+  # Product line parsing (extract size/UoM)
+  product_parsing:
+    size_patterns:
+      # Pattern: "PRODUCT 3.0 LB." or "PRODUCT 6 LB"
+      - pattern: "(.+?)\\s+(\\d+(?:\\.\\d+)?)\\s*(LB|LBS|OZ|OZS|CT|PACK|PK|QT|QTS|GAL|GALS|EA|EACH|KG)\\s*$"
+        flags: "IGNORECASE"
+        groups:
+          - product_name
+          - size
+          - uom
+      
+      # Pattern: "PRODUCT 3LB" (no space)
+      - pattern: "(.+?)\\s+(\\d+(?:\\.\\d+)?)(LB|LBS|OZ|OZS|CT|PACK|PK|QT|QTS|GAL|GALS|EA|EACH|KG)\\s*$"
+        flags: "IGNORECASE"
+        groups:
+          - product_name
+          - size
+          - uom
+  
+  # Distance matching (for priority-based matching)
+  distance_matching:
+    enabled: true
+    max_distance: 10  # Maximum line distance for matching
+    priority: "closest_first"  # Match closest product/price to item code
+
+# Restaurant Depot (RD) text parsing rules
+rd_parsing:
+  # Header detection
+  header_keywords:
+    - "UPC"
+    - "Item"
+    - "Description"
+  
+  # Item pattern (UPC Item_Number Item_Description Unit_Price Qty U(T) Ext_Amount)
+  item_pattern:
+    pattern: "(\\d{5,13})\\s+(\\d{5,13})\\s+([A-Z][A-Z0-9\\s/]+?)\\s+(\\d+\\.\\d{2})\\s+(\\d+(?:\\.\\d+)?)\\s+[UC]\\(T\\)\\s+(\\d+\\.\\d{2})"
+    flags: "IGNORECASE"
+    groups:
+      - first_number  # Could be UPC or item_number
+      - second_number  # Could be UPC or item_number
+      - description
+      - unit_price
+      - quantity
+      - ext_amount
+  
+  # UPC vs Item Number determination
+  number_identification:
+    upc:
+      min_digits: 10
+      max_digits: 13
+    item_number:
+      min_digits: 5
+      max_digits: 10
+  
+  # Skip patterns (summary lines to ignore)
+  skip_patterns:
+    - "PREVIOUS BALANCE"
+    - "SUBTOTAL"
+    - "TOTAL"
+    - "TAX"
+    - "TRANSACTION"
+  
+  # Description parsing (extract product name, size, UoM)
+  description_parsing:
+    size_patterns:
+      # Pattern: "PRODUCT 10 LB"
+      - pattern: "(.+?)\\s+(\\d+(?:\\.\\d+)?)\\s*(LB|LBS|OZ|OZS|CT|PACK|PK|QT|QTS|GAL|GALS|EA|EACH|KG)\\s*$"
+        flags: "IGNORECASE"
+        groups:
+          - product_name
+          - size
+          - uom
+      
+      # Pattern: "PRODUCT 10LB" (no space)
+      - pattern: "(.+?)\\s+(\\d+(?:\\.\\d+)?)(LB|LBS|OZ|OZS|CT|PACK|PK|QT|QTS|GAL|GALS|EA|EACH|KG)\\s*$"
+        flags: "IGNORECASE"
+        groups:
+          - product_name
+          - size
+          - uom
+      
+      # Pattern: "PRODUCT 10 LB X 2 CT" (pack format)
+      - pattern: "(.+?)\\s+(\\d+(?:\\.\\d+)?)\\s*(/|X|x)\\s*(\\d+)\\s*(CT|PACK|PK)\\s*$"
+        flags: "IGNORECASE"
+        groups:
+          - product_name
+          - size_qty
+          - separator
+          - pack_count
+          - pack_uom
+        format: "{size_qty} {pack_uom} X {pack_count} CT"
+        final_uom: "CT"
+  
+  # UoM normalization
+  uom_normalization:
+    LB: "LB"
+    LBS: "LB"
+    OZ: "OZ"
+    OZS: "OZ"
+    CT: "CT"
+    PACK: "CT"
+    PK: "CT"
+    QT: "QT"
+    QTS: "QT"
+    GAL: "GAL"
+    GALS: "GAL"
+    EA: "EACH"
+    EACH: "EACH"
+    KG: "KG"
+    default: "EACH"
+
+# Common parsing settings
+common_settings:
+  # Address filtering
+  address_filtering:
+    enabled: true
+    module: "step1_extract.address_filter"
+  
+  # Line distance for matching
+  max_line_distance: 10
+  
+  # Case sensitivity
+  case_sensitive: false
+

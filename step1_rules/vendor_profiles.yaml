@@ -1,0 +1,20 @@
+# Vendor Profiles Configuration
+# Enables product enrichment from Costco and Restaurant Depot websites
+
+costco:
+  enabled: true
+  detect_by_filename: ["costco"]
+  # Product enrichment: searches Costco.com by product name
+  # - Always fetches fresh prices (prices fluctuate daily)
+  # - Caches non-price fields (name, URL, size)
+  # Cache location: data/vendor_cache/costco_cache.json
+
+restaurant_depot:
+  enabled: true
+  detect_by_filename: ["rd", "restaurant depot", "restaurantdepot"]
+  location: "Chicago, IL"  # All RD purchases are from Chicago-area stores
+  # Product enrichment: searches RestaurantDepot.com by product name
+  # - Caches everything including prices (monthly TTL)
+  # - Prices are stable for months
+  # Cache location: data/vendor_cache/rd_chicago_cache.json
+

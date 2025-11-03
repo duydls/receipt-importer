@@ -1,0 +1,27 @@
+enrichment:
+  description: >
+    Add small defaults and recompute line_total if needed.
+
+  input: output/step2_output/_stage_uom.json
+
+  unit_price:
+    prefer_order:
+      - baseline_unit_price
+      - unit_price
+
+  quantity:
+    prefer_order:
+      - baseline_qty
+      - quantity
+
+  line_total:
+    recompute_if_missing: true
+    formula: "unit_price * quantity"
+
+  defaults:
+    company_id: 1
+    currency_id: 1
+
+  preserve_original_fields: true
+
+  output: output/step2_output/_stage_enriched.json

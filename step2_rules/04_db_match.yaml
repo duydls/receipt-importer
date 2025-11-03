@@ -1,0 +1,74 @@
+db_match:
+  description: >
+    Match canonical products to real Odoo products using live DB.
+
+  connection: use_config
+  read_only: true
+  input: output/step2_output/_stage_canonical.json
+
+  queries:
+    products: |
+      SELECT
+        p.id AS product_id,
+        pt.name AS product_name,
+        p.default_code,
+        p.barcode,
+        pt.uom_id AS product_uom_id,
+        pt.purchase_ok,
+        pt.sale_ok,
+        pt.type AS product_type,
+        pt.categ_id AS product_categ_id
+      FROM product_product p
+      JOIN product_template pt ON p.product_tmpl_id = pt.id;
+    categories: |
+      SELECT
+        c.id   AS categ_id,
+        c.name AS categ_name,
+        c.parent_id,
+        c.property_account_expense_categ_id AS expense_account_id,
+        c.property_account_income_categ_id  AS income_account_id
+      FROM product_category c;
+    uoms: |
+      SELECT u.id,
+             u.name,
+             u.category_id,
+             c.name AS category_name,
+             u.factor,
+             u.uom_type
+      FROM uom_uom u
+      LEFT JOIN uom_category c ON u.category_id = c.id;
+    vendors: |
+      SELECT id AS vendor_id, name AS vendor_name
+      FROM res_partner
+      WHERE supplier_rank > 0;
+
+  product_match_order:
+    - if_has_odoo_product_id_from_local: use_local
+    - by_canonical_key
+    - by_barcode
+    - by_default_code
+    - by_name_similarity
+
+  name_similarity_threshold: 0.80
+
+  purchase_priority:
+    enabled: true
+    rules:
+      - prefer_if: purchase_ok = true
+      - else_if: sale_ok = true
+        set_flag: true
+        review_reason: "Product matched but not marked as purchasable (purchase_ok=false)"
+      - else:
+        set_flag: true
+        review_reason: "No purchasable variant found; please check Odoo product template"
+
+  post_match_category_check:
+    enabled: true
+    if_category_has_expense_account:
+      mark_review: true
+      add_reason: "Product category looks expense-like. Confirm it should be used in purchase."
+    if_category_is_salable_like_and_purchase_ok_is_false:
+      mark_review: true
+      add_reason: "Product is inventory/salable category but purchase_ok is false."
+
+  output: output/step2_output/_stage_db.json

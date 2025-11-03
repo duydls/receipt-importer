@@ -1,0 +1,40 @@
+inherits: shared.yaml
+group: group2
+sources:
+  - "*.pdf"
+  - "*.csv"
+
+# Fields to preserve when falling back to legacy processing
+preserve_fields:
+  - detected_vendor_code
+  - detected_source_type
+  - source_file
+
+# Legacy parsed_by marker
+parsed_by: "legacy_group2_pdf"
+
+vendors:
+  Instacart:
+    identifier: "instacart"
+    csv_match:
+      baseline_columns:
+        product_name: "Item Name"
+        brand_name: "Brand Name"
+        quantity: "Ordered Quantity"
+        unit_price: "Unit Price"
+        total_price: "Total Price"
+      match_threshold: 0.8
+    pdf_patterns:
+      line_regex: "(?P<product>[A-Za-z0-9-\\s]+)\\s+(?P<qty>\\d+)\\s*x\\s*\\$(?P<unit_price>[\\d\\.]+)"
+      subtotal_regex: "Subtotal\\s*\\$?(?P<subtotal>[\\d\\.]+)"
+      total_regex: "Total\\s*\\$?(?P<total>[\\d\\.]+)"
+
+ai_fallback:
+  enabled: true
+  model: "ollama:llama3"
+  confidence_threshold: 0.6
+  fields: ["product_name", "qty", "unit_price", "uom"]
+
+validation_rules:
+  - rule: "sum(items.total_price) ≈ subtotal"
+  - rule: "subtotal + sum(fees) ≈ total"

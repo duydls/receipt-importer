@@ -1,0 +1,31 @@
+validation:
+  description: >
+    Final checks. We do NOT drop lines; we only mark them for review.
+
+  input: output/step2_output/_stage_bom.json
+
+  must_have_for_step3:
+    - product_id
+    - final_uom_id
+    - quantity
+    - unit_price
+    - vendor_code
+
+  checks:
+    - if product_id is null:
+        mark_review: true
+        add_reason: "No product_id matched."
+    - if final_uom_id is null:
+        mark_review: true
+        add_reason: "No UoM could be mapped."
+    - if quantity <= 0:
+        mark_review: true
+        add_reason: "Quantity is zero or negative."
+    - if vendor_code is null:
+        mark_review: true
+        add_reason: "Vendor could not be resolved."
+    - if uom_conflict == true:
+        mark_review: true
+        add_reason: "UoM category mismatch (fallback applied)."
+
+  output: output/step2_output/_stage_validated.json

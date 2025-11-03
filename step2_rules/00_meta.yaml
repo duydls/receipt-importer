@@ -1,0 +1,33 @@
+version: 3.0
+description: >
+  Step 2 performs READ-ONLY mapping and normalization.
+  It consumes Step 1 outputs (vendor-based + instacart-based),
+  canonicalizes product names/sizes, matches to the live Odoo database,
+  normalizes vendors (IC-Costco vs Costco), enforces UoM-category consistency,
+  protects existing MRP BoMs, and flags misclassified products.
+  Step 2 does NOT generate or execute SQL. Step 3 will do that.
+
+mode:
+  db_access: read_only
+  generate_sql: false
+
+sources:
+  vendor_based: output/vendor_based/extracted_data.json
+  instacart_based: output/instacart_based/extracted_data.json
+
+targets:
+  mapped_items: output/step2_output/mapped_items.json
+  review_report: output/step2_output/step2_review.html
+
+processing_order:
+  - 01_inputs.yaml
+  - 02_vendor_match.yaml
+  - 03_product_canonicalization.yaml
+  - 04_db_match.yaml
+  - 05_usage_probe.yaml
+  - 06_uom.yaml
+  - 07_enrichment.yaml
+  - 08_bom_protection.yaml
+  - 09_validation.yaml
+  - 10_outputs.yaml
+  - 11_quality_report.yaml

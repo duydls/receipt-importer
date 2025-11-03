@@ -1,0 +1,13 @@
+inputs:
+  combine: true
+  sources:
+    - output/vendor_based/extracted_data.json
+    - output/instacart_based/extracted_data.json
+  normalize_fields:
+    qty: quantity
+    qty_purchased: quantity
+    amount: line_total
+    price: unit_price
+  add_metadata:
+    source_step: "step1"
+  output: output/step2_output/_stage_inputs.json

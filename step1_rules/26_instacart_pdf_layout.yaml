@@ -1,0 +1,123 @@
+# Instacart PDF layout rules
+# Multiple layouts that apply based on file extension, header text, or content
+instacart_pdf_layouts:
+  - name: "Standard Instacart PDF Receipt"
+    parsed_by: "instacart_pdf_v1"
+    applies_to:
+      vendor_code: ["INSTACART", "IC-*"]
+      file_ext: [".pdf"]
+      text_contains: []  # Instacart PDFs have varied content, match by vendor code and file extension
+    # PDF parsing uses line patterns instead of column mappings
+    line_patterns:
+      # Order ID pattern (17-digit number)
+      - type: "order_id"
+        regex: "\\b\\d{17}\\b"
+        description: "Instacart order ID (17 digits)"
+        extract_to: "order_id"
+      
+      # Date patterns (various formats)
+      - type: "order_date"
+        regex: "(\\d{1,2})[/-](\\d{1,2})[/-](\\d{2,4})"
+        groups:
+          - month
+          - day
+          - year
+        description: "Order date in MM/DD/YYYY or similar format"
+        extract_to: "order_date"
+      
+      # Item line pattern: Product name with optional quantity and price
+      - type: "item_line"
+        regex: "^(.+?)\\s+(\\d+(?:\\.\\d+)?)\\s*x\\s*\\$?(\\d+\\.\\d{2})\\s*$"
+        groups:
+          - product_name
+          - quantity
+          - price
+        description: "Item line with product, quantity, and price (e.g., 'Product Name 2 x $5.99')"
+      
+      # Item line pattern: Product name and price (single quantity implied)
+      - type: "item_line_simple"
+        regex: "^(.+?)\\s+\\$?(\\d+\\.\\d{2})\\s*$"
+        groups:
+          - product_name
+          - price
+        description: "Item line with product and price (quantity = 1)"
+        conditions:
+          - "length > 5"
+          - "not matches summary patterns"
+      
+      # Item line pattern: Multiline (product on one line, price on next)
+      - type: "item_price_only"
+        regex: "^\\$?(\\d+\\.\\d{2})\\s*$"
+        groups:
+          - price
+        description: "Price on its own line (following product on previous line)"
+        max_lookback_lines: 3
+      
+      # Summary section keywords
+      - type: "summary_start"
+        regex: ".*"
+        keywords: ["Subtotal", "Tax", "Total", "Bag Fee", "Tip", "Service Fee", "Delivery Fee"]
+        description: "Summary section starts here"
+    
+    # Enable multiline merging (product on one line, price on next)
+    merge_multiline: true
+    max_merge_distance: 5  # Maximum lines between product and price
+    
+    # Summary keywords (for detecting summary section)
+    summary_keywords:
+      - "Subtotal"
+      - "Tax"
+      - "Sales Tax"
+      - "Total"
+      - "Bag Fee"
+      - "Checkout Bag"
+      - "Tip"
+      - "Grocery Tip"
+      - "Delivery Tip"
+      - "Service Fee"
+      - "Instacart Service Fee"
+      - "Delivery Fee"
+      - "Environmental Fee"
+      - "CRV"
+      - "Deposit"
+      - "Delivery discount"
+      - "Scheduled delivery discount"
+    
+    # Fee extraction patterns (for identifying fees separately)
+    fee_patterns:
+      bag_fee:
+        - "(?:Checkout\\s+)?Bag\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Bag\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Bags?[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+      tip:
+        - "Grocery\\s+Tip[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Delivery\\s+Tip[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Tip[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+      service_fee:
+        - "Instacart\\s+Service\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Service\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Delivery\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+      environmental_fee:
+        - "Environmental\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "Enviro\\s+Fee[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+      crv:
+        - "CRV[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+        - "California\\s+Redemption\\s+Value[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+      deposit:
+        - "Deposit[:\\s]+(?:\\$?\\s*)?(\\d+\\.\\d{2})"
+    
+    # Order ID extraction (for CSV matching)
+    order_id_pattern: "\\b\\d{17}\\b"
+    
+    normalization:
+      trim_whitespace: true
+      clean_citations: false  # Instacart PDFs typically don't have citation markers
+    
+    skip_patterns:
+      - "Order from"
+      - "Delivered to"
+      - "Delivery address"
+      - "Thank you"
+      - "Receipt"
+      - "Instacart"
+
