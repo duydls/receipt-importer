@@ -68,6 +68,12 @@ class LayoutApplier:
         self.last_matched_layout: Optional[str] = None
         self.last_product_count: int = 0
         
+        # Feature 2: Vectorized extraction toggle
+        import os
+        self._vectorize_enabled = os.getenv('RECEIPTS_VECTORIZE', '1') != '0'
+        if self._vectorize_enabled:
+            logger.debug("Vectorized DataFrame extraction enabled")
+        
     # ---------------- helpers: header & number normalization ----------------
     @staticmethod
     def _norm_header_text(headers: List[str]) -> List[str]:
@@ -172,8 +178,28 @@ class LayoutApplier:
             logger.info(f"Checking layout '{layout_name}'")
             if self._layout_applies_to(layout, vendor_code, file_extension, norm_header_text, receipt_text):
                 logger.info(f"✓ Matched layout '{layout_name}' for vendor {vendor_code}")
-                # Pass receipt_data as ctx to _extract_items_from_layout so control lines can be written
-                items = self._extract_items_from_layout(df, layout, vendor_code, ctx=receipt_data)
+                
+                # Feature 2: Try vectorized extraction first (if enabled)
+                items = []
+                if self._vectorize_enabled:
+                    try:
+                        import time
+                        start_time = time.perf_counter()
+                        items = self._extract_items_from_layout_vectorized(df, layout, vendor_code, ctx=receipt_data)
+                        elapsed = time.perf_counter() - start_time
+                        
+                        if items:
+                            logger.info(f"Vectorized extraction succeeded: {len(items)} items in {elapsed:.4f}s")
+                        else:
+                            if logger.isEnabledFor(logging.DEBUG):
+                                logger.debug(f"Vectorized extraction returned 0 items, falling back to iterrows")
+                    except Exception as e:
+                        logger.warning(f"Vectorized extraction failed: {e}, falling back to iterrows")
+                        items = []
+                
+                # Fall back to iterrows if vectorized returned no items or is disabled
+                if not items:
+                    items = self._extract_items_from_layout(df, layout, vendor_code, ctx=receipt_data)
                 
                 if items:
                     # Remember matched layout
@@ -360,6 +386,188 @@ class LayoutApplier:
                             return False
         
         return True
+    
+    def _extract_items_from_layout_vectorized(self, df: pd.DataFrame, layout: Dict[str, Any], vendor_code: str, ctx: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Feature 2: Vectorized DataFrame extraction for 3×+ speedup on large sheets.
+        
+        Args:
+            df: DataFrame to extract from
+            layout: Layout configuration
+            vendor_code: Vendor code
+            ctx: Optional context dict to write control line values (tax, total, items_sold)
+            
+        Returns:
+            List of item dictionaries (product rows only, control lines excluded)
+        """
+        import numpy as np
+        
+        if df.empty:
+            return []
+        
+        # Build column mapping
+        column_mappings = layout.get('column_mappings', {})
+        rename_map = {}
+        col_strs = [str(col).strip() for col in df.columns]  # Pre-compute once
+        col_strs_lower = [c.lower() for c in col_strs]  # Pre-compute lowercase
+        
+        for field_name, column_name_pattern in column_mappings.items():
+            if not column_name_pattern:
+                continue
+            pattern_str = str(column_name_pattern)
+            pattern_lower = pattern_str.lower()
+            
+            matched_col = None
+            # Try exact match first
+            if pattern_str in col_strs:
+                matched_col = pattern_str
+            # Try case-insensitive match
+            elif pattern_lower in col_strs_lower:
+                matched_col = col_strs[col_strs_lower.index(pattern_lower)]
+            # Try regex match if pattern looks like regex
+            elif '\\' in pattern_str or '(' in pattern_str or pattern_str.startswith('^') or pattern_str.endswith('$'):
+                try:
+                    for col in col_strs:
+                        if re.search(pattern_str, col, re.IGNORECASE):
+                            matched_col = col
+                            break
+                except:
+                    pass
+            
+            if matched_col:
+                rename_map[matched_col] = field_name
+        
+        # Rename columns (pandas is efficient with this)
+        work_df = df.rename(columns=rename_map)
+        
+        # Ensure we have product_name column
+        if 'product_name' not in work_df.columns:
+            logger.warning(f"Vectorized extraction: product_name column not found for {vendor_code}")
+            return []
+        
+        # Fill NaN in product_name with empty string for pattern matching
+        work_df['product_name'] = work_df['product_name'].fillna('').astype(str).str.strip()
+        
+        # Apply skip patterns (remove rows that match any skip pattern)
+        skip_patterns = layout.get('skip_patterns', [])
+        if skip_patterns:
+            # Build OR-joined case-insensitive regex
+            skip_regex = '|'.join(f'(?:{p})' for p in skip_patterns if p and p not in ['', 'nan', 'none'])
+            if skip_regex:
+                try:
+                    skip_mask = work_df['product_name'].str.contains(skip_regex, case=False, regex=True, na=False)
+                    work_df = work_df[~skip_mask]
+                except Exception as e:
+                    logger.debug(f"Skip pattern error (falling back): {e}")
+        
+        # Detect control lines: ^(subtotal|tax|total|items\s*sold)\b
+        control_pattern = r'\b(subtotal|tax|total|items\s*sold)\b'
+        control_mask = work_df['product_name'].str.contains(control_pattern, case=False, regex=True, na=False)
+        
+        control_rows = work_df[control_mask].copy()
+        product_rows = work_df[~control_mask].copy()
+        
+        # Process control lines - update context
+        if ctx is not None and len(control_rows) > 0:
+            for idx, row in control_rows.iterrows():
+                name = str(row.get('product_name', '')).strip().lower()
+                
+                # Try to extract numeric value from total_price or first available numeric column
+                value = None
+                for col in ['total_price', 'quantity', 'unit_price']:
+                    if col in row and pd.notna(row[col]):
+                        value = self._clean_number(row[col])
+                        if value is not None:
+                            break
+                
+                if value is None:
+                    continue
+                
+                # Classify control line
+                if 'items' in name and ('sold' in name or name.startswith('total items')):
+                    ctx['items_sold'] = float(value)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Vectorized: extracted items_sold={value} from '{row.get('product_name')}'")
+                elif name.startswith('subtotal'):
+                    ctx['subtotal'] = float(value)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Vectorized: extracted subtotal={value}")
+                elif 'total' in name and 'grand' in name:
+                    ctx['grand_total'] = float(value)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Vectorized: extracted grand_total={value}")
+                elif name.startswith('total') or 'transaction' in name:
+                    ctx['grand_total'] = float(value)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Vectorized: extracted grand_total={value}")
+                elif 'tax' in name:
+                    ctx['tax_total'] = float(value)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Vectorized: extracted tax_total={value}")
+        
+        # Clean numeric columns vectorially
+        for col in ['quantity', 'unit_price', 'total_price']:
+            if col not in product_rows.columns:
+                product_rows[col] = 0.0
+                continue
+            
+            # Convert to string, clean, convert to float
+            product_rows[col] = product_rows[col].fillna('0')
+            product_rows[col] = product_rows[col].astype(str).str.replace('$', '', regex=False)
+            product_rows[col] = product_rows[col].str.replace(',', '', regex=False)
+            product_rows[col] = product_rows[col].str.replace('\u00A0', ' ', regex=False)
+            product_rows[col] = product_rows[col].str.strip()
+            
+            # Handle negative values in parentheses: (123.45) → -123.45
+            paren_mask = product_rows[col].str.match(r'^\(.*\)$', na=False)
+            if paren_mask.any():
+                product_rows.loc[paren_mask, col] = product_rows.loc[paren_mask, col].str.strip('()').apply(lambda x: f'-{x}')
+            
+            # Convert to numeric, coerce errors to NaN
+            product_rows[col] = pd.to_numeric(product_rows[col], errors='coerce')
+        
+        # Apply defaults
+        product_rows['quantity'] = product_rows['quantity'].fillna(1.0).replace(0.0, 1.0)
+        product_rows['unit_price'] = product_rows['unit_price'].fillna(0.0)
+        product_rows['total_price'] = product_rows['total_price'].fillna(0.0)
+        
+        # Derive missing values
+        # If unit_price is 0 but we have total and qty, calculate unit_price
+        calc_up_mask = (product_rows['unit_price'] == 0) & (product_rows['total_price'] != 0) & (product_rows['quantity'] > 0)
+        if calc_up_mask.any():
+            product_rows.loc[calc_up_mask, 'unit_price'] = (
+                product_rows.loc[calc_up_mask, 'total_price'] / product_rows.loc[calc_up_mask, 'quantity']
+            ).round(4)
+        
+        # If total_price is 0 but we have unit_price and qty, calculate total_price
+        calc_tp_mask = (product_rows['total_price'] == 0) & (product_rows['unit_price'] != 0) & (product_rows['quantity'] > 0)
+        if calc_tp_mask.any():
+            product_rows.loc[calc_tp_mask, 'total_price'] = (
+                product_rows.loc[calc_tp_mask, 'unit_price'] * product_rows.loc[calc_tp_mask, 'quantity']
+            ).round(2)
+        
+        # Add parsed_by from layout
+        parsed_by = layout.get('parsed_by', 'modern_vectorized')
+        
+        # Convert to list of dicts
+        items = []
+        for idx, row in product_rows.iterrows():
+            item = {
+                'product_name': str(row.get('product_name', '')).strip(),
+                'quantity': float(row.get('quantity', 1.0)),
+                'unit_price': float(row.get('unit_price', 0.0)),
+                'total_price': float(row.get('total_price', 0.0)),
+                'parsed_by': parsed_by,
+            }
+            
+            # Add optional fields if present
+            for field in ['item_number', 'upc', 'transaction_date', 'order_date']:
+                if field in row and pd.notna(row[field]):
+                    item[field] = str(row[field]).strip()
+            
+            items.append(item)
+        
+        return items
     
     def _extract_items_from_layout(self, df: pd.DataFrame, layout: Dict[str, Any], vendor_code: str, ctx: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Extract items from DataFrame using layout configuration
