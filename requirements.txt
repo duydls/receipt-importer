@@ -1,33 +1,69 @@
 # Receipt Importer Requirements
+# Rule-driven receipt processing system
 
-# PDF Processing (choose one or both)
-PyPDF2>=3.0.0
-PyMuPDF>=1.23.0  # Alternative PDF library (faster, better extraction)
-pdfplumber>=0.11.0  # PDF text extraction for Costco receipts (preferred - better layout preservation)
-pdfminer.six>=20220524  # PDF text extraction fallback (if pdfplumber unavailable)
+# ============================================================================
+# CORE DEPENDENCIES (Required)
+# ============================================================================
 
-# Image processing (if needed for future enhancements)
-Pillow>=10.0.0       # Image processing library
+# YAML parsing for rule files (Step 1 configuration)
+PyYAML>=6.0.1
 
-# YAML parsing for rule files
-PyYAML>=6.0
+# Excel file processing (Costco, RD, Jewel-Osco, Aldi, BBI, etc.)
+pandas>=2.0.0
+openpyxl>=3.1.0
 
-# Standard libraries (usually included with Python)
-# json, logging, pathlib, datetime, re, typing - all built-in
+# PDF Processing (multiple libraries for fallback)
+PyPDF2>=3.0.1
+PyMuPDF>=1.23.0
+pdfplumber>=0.10.0
+pdfminer.six>=20221105
 
-# Web scraping for vendor profiles (Costco, Restaurant Depot online database lookup)
-requests>=2.25.1      # HTTP requests to vendor websites
-beautifulsoup4>=4.9.3  # HTML parsing for product information
+# Web scraping for vendor knowledge base lookup
+requests>=2.31.0
+beautifulsoup4>=4.12.0
 
-# Excel file processing (for Costco receipts converted to Excel)
-pandas>=1.3.0        # Data manipulation and Excel reading
-openpyxl>=3.0.0      # Excel file support for pandas
+# ============================================================================
+# DATABASE (Step 2 & 3)
+# ============================================================================
 
-# Database connectivity (for Step 2 and Step 3 - Odoo database operations)
-psycopg2-binary==2.9.9  # PostgreSQL adapter for Python (Odoo uses PostgreSQL)
-# Note: Version 2.9.9 works with Python 3.8 on macOS. If 2.9.10 causes import errors, use 2.9.9
+# PostgreSQL adapter for Odoo database operations
+psycopg2-binary>=2.9.9
 
-# AI/LLM Support (optional - for local LLM fallback parsing)
-# Note: Supports Ollama (local) and Transformers (local Hugging Face models)
-# OpenAI and Gemini APIs have been removed - use local LLMs instead
+# ============================================================================
+# OPTIONAL DEPENDENCIES
+# ============================================================================
+
+# PDF Generation (auto-convert HTML reports to PDF)
+playwright>=1.40.0
+# After install, run: playwright install chromium
+
+# Image processing (future enhancements)
+Pillow>=10.2.0
+
+# ============================================================================
+# PYTHON VERSION
+# ============================================================================
+
+# Requires: Python 3.8+
+# Tested on: Python 3.8, 3.9, 3.10, 3.11
+
+# ============================================================================
+# INSTALLATION
+# ============================================================================
+
+# Basic install:
+#   pip install -r requirements.txt
+
+# With PDF generation support:
+#   pip install -r requirements.txt
+#   playwright install chromium
+
+# ============================================================================
+# NOTES
+# ============================================================================
+
+# - All rule logic is in YAML files (step1_rules/)
+# - No AI/LLM dependencies (100% rule-based)
+# - PDF generation is optional (HTML reports always generated)
+# - macOS users: If psycopg2-binary 2.9.10+ fails, use 2.9.9
 

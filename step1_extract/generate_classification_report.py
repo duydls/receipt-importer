@@ -29,7 +29,7 @@ def generate_classification_report(
     """
     logger.info("Generating category classification report...")
     
-    # Collect all items across all receipts
+    # Collect all items across all receipts (including fees)
     all_items = []
     for receipt_id, receipt_data in all_receipts_data.items():
         items = receipt_data.get('items', [])
@@ -37,12 +37,12 @@ def generate_classification_report(
         source_type = receipt_data.get('source_type', 'unknown')
         
         for item in items:
-            if not item.get('is_fee', False):  # Exclude fee items
-                item_copy = item.copy()
-                item_copy['_receipt_id'] = receipt_id
-                item_copy['_vendor_code'] = vendor_code
-                item_copy['_source_type'] = source_type
-                all_items.append(item_copy)
+            # Include ALL items (products AND fees)
+            item_copy = item.copy()
+            item_copy['_receipt_id'] = receipt_id
+            item_copy['_vendor_code'] = vendor_code
+            item_copy['_source_type'] = source_type
+            all_items.append(item_copy)
     
     # Calculate statistics
     stats = _calculate_statistics(all_items)
