@@ -56,6 +56,15 @@ vendor_detection:
       source_type: "vendor_based"
       confidence: 0.85
     
+    bbi:
+      patterns:
+        - "bbi"
+        - "_bbi_"
+        - "uni_il_ut"
+      vendor_code: "BBI"
+      source_type: "vendor_based"
+      confidence: 0.95
+    
     instacart:
       patterns:
         - "instacart"

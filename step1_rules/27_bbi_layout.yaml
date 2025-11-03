@@ -1,0 +1,52 @@
+# BBI Layout Rules
+# Vendor: BBI (Bubble Tea Ingredients supplier)
+# File format: Excel (.xlsx)
+
+bbi_layouts:
+  - name: "BBI Excel Standard"
+    parsed_by: "bbi_excel_v1"
+    applies_to:
+      vendor_code: ["BBI"]
+      file_ext: [".xlsx", ".xls"]
+      header_contains:
+        - "Description"
+        - "Line Total"
+    
+    required_columns:
+      - "Description"
+      - "Line Total"
+    
+    optional_columns:
+      - "Qty"
+      - "Item #"
+      - "Unit"
+      - "Price"
+      - "Discount (UoM 推测)"
+    
+    column_mappings:
+      product_name: "Description"
+      quantity: "Qty"
+      item_number: "Item #"
+      unit_price: "Price"
+      total_price: "Line Total"
+      raw_uom_text: "Discount (UoM 推测)"  # This seems to contain size/UoM info
+    
+    normalization:
+      trim_whitespace: true
+      preserve_case: true
+    
+    # Skip patterns - avoid adding control keywords like TOTAL, TAX, SUBTOTAL
+    # These will be handled by control line extraction in layout_applier
+    skip_patterns:
+      - "^\\s*$"  # Empty rows
+      - "^nan$"
+      - "^none$"
+      - "^\\d{2}\\.\\d{2}\\.\\d{4}$"  # Date rows like "09.01.2025"
+      - "^\\d{1,2}/\\d{1,2}/\\d{4}$"  # Date rows like "9/1/2025"
+    
+    notes:
+      - "BBI files have a date row after header that should be skipped"
+      - "The 'Discount (UoM 推测)' column contains size/UoM information"
+      - "Unit column contains '$' symbol which should be stripped"
+      - "Some items may have NaN for item_number"
+

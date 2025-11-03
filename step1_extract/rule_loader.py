@@ -394,6 +394,7 @@ class RuleLoader:
             'ALDI': '23_aldi_layout.yaml',
             'PARKTOSHOP': '24_parktoshop_layout.yaml',
             'INSTACART': '26_instacart_pdf_layout.yaml',
+            'BBI': '27_bbi_layout.yaml',
         }
         
         # Normalize vendor code
