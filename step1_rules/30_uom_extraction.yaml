@@ -55,15 +55,15 @@ uom_extraction:
       # Amazon-specific patterns: "Pack of 12", "6-Count", "3 Pack", "24 Rolls", "Case of 6"
       # Keep original product name unchanged
       extract_patterns:
-        - r'(\d+\s*(?:LB|OZ|GAL|QT|PC|PKG|PK|CT|EA|EACH|UNIT|UNITS|KG|G))'  # Standard units
-        - r'Pack\s+of\s+(\d+)'  # Amazon: "Pack of 12"
-        - r'(\d+)-(?:Count|ct|CT)'  # Amazon: "12-Count", "6-ct"
-        - r'(\d+)\s+(?:Pack|pk|PK|packs?)'  # Amazon: "3 Pack", "6 pk"
-        - r'(\d+)\s+(?:Rolls?|rolls?)'  # Amazon: "24 Rolls"
-        - r'Case\s+of\s+(\d+)'  # Amazon: "Case of 6"
-        - r'(\d+)\s+(?:Gallon|Qt|Pt|quart|pint)'  # Amazon: "1 Gallon", "2 Qt"
-        - r'Refill\s+(\d+)\s+ct'  # Amazon: "Refill 100 ct"
-        - r'(\d+)\s+(?:pairs?|pair)'  # Amazon: "3 pairs", "1 pair"
+        - '(\d+\s*(?:LB|OZ|GAL|QT|PC|PKG|PK|CT|EA|EACH|UNIT|UNITS|KG|G))'  # Standard units
+        - 'Pack\s+of\s+(\d+)'  # Amazon: "Pack of 12"
+        - '(\d+)[\s-]?(?:Count|count|ct|CT)'  # Amazon: "12-Count", "42 Count", "6-ct"
+        - '(\d+)\s+(?:Pack|pk|PK|packs?)'  # Amazon: "3 Pack", "6 pk"
+        - '(\d+)\s+(?:Rolls?|rolls?)'  # Amazon: "24 Rolls"
+        - 'Case\s+of\s+(\d+)'  # Amazon: "Case of 6"
+        - '(\d+)\s+(?:Gallon|Qt|Pt|quart|pint)'  # Amazon: "1 Gallon", "2 Qt"
+        - 'Refill\s+(\d+)\s+ct'  # Amazon: "Refill 100 ct"
+        - '(\d+)\s+(?:pairs?|pair)'  # Amazon: "3 pairs", "1 pair"
       field_mapping: "raw_size_text"  # Extract as raw_size_text
     
     # Separate size line (for PDFs)

@@ -103,23 +103,36 @@ class UoMExtractor:
             item['raw_uom_text'] = str(item['purchase_uom'])
     
     def _extract_from_product_name(self, item: Dict[str, Any], extraction_rules_config: Dict[str, Any]) -> None:
-        """Extract size/UoM from product name"""
+        """Extract size/UoM from product name using multiple patterns"""
         product_name_config = extraction_rules_config.get('product_name', {})
-        extract_pattern = product_name_config.get('extract_pattern', r'(\d+\s*(?:LB|OZ|GAL|QT|PC|PKG|PK|CT|EA|EACH|UNIT|UNITS|KG|G))')
+        
+        # Support both extract_pattern (single) and extract_patterns (list)
+        patterns = product_name_config.get('extract_patterns')
+        if not patterns:
+            # Fallback to single pattern for backward compatibility
+            single_pattern = product_name_config.get('extract_pattern', r'(\d+\s*(?:LB|OZ|GAL|QT|PC|PKG|PK|CT|EA|EACH|UNIT|UNITS|KG|G))')
+            patterns = [single_pattern]
+        
         field_mapping = product_name_config.get('field_mapping', 'raw_size_text')
         
         product_name = item.get('product_name', '')
         if not product_name:
             return
         
-        # Try to extract size/UoM pattern from product name
-        match = re.search(extract_pattern, product_name, re.IGNORECASE)
-        if match:
-            extracted_text = match.group(1).strip()
-            if field_mapping == 'raw_size_text' and not item.get('raw_size_text'):
-                item['raw_size_text'] = extracted_text
-                logger.debug(f"Extracted raw_size_text from product name '{product_name}': {extracted_text}")
-            elif field_mapping == 'raw_uom_text' and not item.get('raw_uom_text'):
-                item['raw_uom_text'] = extracted_text
-                logger.debug(f"Extracted raw_uom_text from product name '{product_name}': {extracted_text}")
+        # Try each pattern in order until one matches
+        for extract_pattern in patterns:
+            match = re.search(extract_pattern, product_name, re.IGNORECASE)
+            if match:
+                # Extract the captured group (the number/size/count)
+                extracted_text = match.group(1).strip()
+                
+                # Store in the appropriate field
+                if field_mapping == 'raw_size_text' and not item.get('raw_size_text'):
+                    item['raw_size_text'] = extracted_text
+                    logger.debug(f"Extracted raw_size_text from '{product_name}': {extracted_text}")
+                    break
+                elif field_mapping == 'raw_uom_text' and not item.get('raw_uom_text'):
+                    item['raw_uom_text'] = extracted_text
+                    logger.debug(f"Extracted raw_uom_text from '{product_name}': {extracted_text}")
+                    break
 
