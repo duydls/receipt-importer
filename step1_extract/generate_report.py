@@ -512,7 +512,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         for item in items:
             product_name = item.get('product_name', 'Unknown Product')
             quantity = item.get('quantity', 0)
-            purchase_uom = item.get('purchase_uom', 'unknown')
+            # Use purchase_uom if available, otherwise fallback to raw_uom_text from Excel
+            purchase_uom = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
             unit_price = item.get('unit_price', 0)
             total_price = item.get('total_price', 0)
             
