@@ -78,10 +78,10 @@ category_keywords:
       priority: 85
       hints: ['Dairy & Milk']
     
-    - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half)\b'
+    - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half|heavy whip|whipping cream)\b'
       map_to_l2: C04
       priority: 85
-      hints: ['Dairy & Milk']
+      hints: ['Dairy & Milk - Including heavy cream/whipping cream (Aldi "Heavy Whip")']
     
     # Sweeteners & Sugar
     - include_regex: '(?i)\b(sugar|granulated sugar|cane sugar|brown sugar)\b'
@@ -93,6 +93,18 @@ category_keywords:
       map_to_l2: C05
       priority: 85
       hints: ['Sweeteners/Sugar']
+    
+    # Grains & Starches
+    - include_regex: '(?i)\b(panko|breadcrumb|bread crumb|coating)\b'
+      map_to_l2: C07
+      priority: 90
+      hints: ['Grains & Starches - Panko, breadcrumbs, coatings (RD)']
+    
+    # Frozen Snacks / Appetizers (RD-specific)
+    - include_regex: '(?i)(MOZZ\s+STX|MOZZARELLA\s+STICK|CHEESE\s+STICK)'
+      map_to_l2: C33
+      priority: 95
+      hints: ['Retail Snacks & Beverages - Frozen appetizers like mozzarella sticks']
     
     # Protein / Meat (RD-specific patterns)
     - include_regex: '(?i)(^CHX\b|^CHIX\b|NUGGET|BREAST|WING|THIGH|DRUMSTICK)'
@@ -111,6 +123,12 @@ category_keywords:
       map_to_l2: C15
       priority: 90
       hints: ['Other Ingredients - Oils and shortening (RD)']
+    
+    # Fresh Vegetables (Parktoshop and others)
+    - include_regex: '(?i)\b(green onion|scallion|onion|basil|cilantro|parsley|herb|lettuce|spinach|kale)\b'
+      map_to_l2: C12
+      priority: 85
+      hints: ['Fresh Vegetables - Including herbs (Parktoshop "GREEN ONION", "BASIL LEAVE")']
     
     # Cleaning
     - include_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant)\b'
@@ -187,8 +205,16 @@ category_keywords:
         - 'MILK\b'
         - 'BUTTER\b'
         - 'CHEESE\b'
-        - 'MOZZ\b'          # Mozzarella
         - 'CHDR\b'          # Cheddar
+      
+      frozen_snack_patterns:
+        - 'MOZZ\s+STX'      # Mozzarella Sticks
+        - 'CHEESE\s+STX'    # Cheese Sticks
+      
+      coating_patterns:
+        - 'PANKO\b'         # Panko breadcrumbs
+        - 'BREADCRUMB'
+        - 'COATING'
       
       descriptor_abbreviations:
         BNLS: 'Boneless'
@@ -202,9 +228,12 @@ category_keywords:
         - 'Pattern matching is case-insensitive'
         - 'Use these patterns for CLASSIFICATION, not full expansion'
         - 'Full product details should come from knowledge base'
-        - 'Example: "CHX NUGGET BTRD" → Classify as Meat/Seafood (C14)'
-        - 'Example: "FF CRINKL" → Classify as Frozen Vegetables (C13)'
-        - 'Example: "OIL SHRT" → Classify as Other Ingredients (C15)'
+        - 'Example: "CHX NUGGET BTRD TY" → Classify as Meat/Seafood (C14)'
+        - 'Example: "FF CRINKL 6/5LB" → Classify as Frozen Vegetables (C13)'
+        - 'Example: "OIL SHRT CRM" → Classify as Other Ingredients (C15)'
+        - 'Example: "FZ MOZZ STX IT BRD" → Classify as Retail Snacks (C33)'
+        - 'Example: "PANKO PLAIN CQ" → Classify as Grains & Starches (C07)'
+        - 'Example: "CREAM JF 36% UHT" → Classify as Dairy & Milk (C04)'
   
   # Heuristic classifiers (smart pattern detection)
   heuristics:
