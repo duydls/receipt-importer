@@ -39,10 +39,31 @@ category_keywords:
       priority: 85
       hints: ['Bags & Trays - Exclude tea bags and trash bags']
     
+    - include_regex: '(?i)(aluminum\s+tray|food\s+tray|serving\s+tray)'
+      map_to_l2: C21
+      priority: 90
+      hints: ['Bags & Trays - BBI "Aluminum Tray No Charge"']
+    
+    - include_regex: '(?i)(chopsticks|utensil|fork|spoon|knife)'
+      map_to_l2: C22
+      priority: 90
+      hints: ['Utensils & Misc Packaging - BBI "Chopsticks No Charge"']
+    
     - include_regex: '(?i)\b(label|labels|sticker|stickers)\b'
       map_to_l2: C23
       priority: 90
       hints: ['Labels & Stickers']
+    
+    - include_regex: '(?i)(décor\s+paper|decorative\s+paper|packing\s+paper)'
+      map_to_l2: C22
+      priority: 85
+      hints: ['Utensils & Misc Packaging - BBI "Uni Décor Paper" for packing']
+    
+    # Uniforms & Apparel (Non-COGS)
+    - include_regex: '(?i)\b(uni\s+cap|uni\s+hoodie|uniform|cap|hoodie|apron|shirt)\b'
+      map_to_l2: C60
+      priority: 90
+      hints: ['Office/Admin - BBI "Uni Cap", "Uni Hoodie" (uniform expenses)']
     
     # Tea & Coffee
     - include_regex: '(?i)\b(tea|green tea|black tea|oolong|matcha|chai)\b'
@@ -61,7 +82,13 @@ category_keywords:
       priority: 90
       hints: ['Syrups']
     
-    # Toppings
+    # Jams & Preserves
+    - include_regex: '(?i)^Jam\b.*\b(passion|mango|strawberry|peach|fruit)'
+      map_to_l2: C03
+      priority: 95
+      hints: ['Jam/Purée - BBI "Jam Passion fruit", "Jam Mango"']
+    
+    # Toppings & Mochi
     - include_regex: '(?i)\b(tapioca|boba|pearl|popping|crystal)\b'
       map_to_l2: C08
       priority: 95
@@ -71,6 +98,17 @@ category_keywords:
       map_to_l2: C08
       priority: 95
       hints: ['Toppings & Jellies']
+    
+    - include_regex: '(?i)(powder\s+mochi|mochi\s+powder|mochi\b)'
+      map_to_l2: C08
+      priority: 90
+      hints: ['Toppings & Jellies - BBI "Powder Mochi"']
+    
+    # Taro & Sweet Ingredients
+    - include_regex: '(?i)\b(taro|ube)\b'
+      map_to_l2: C08
+      priority: 85
+      hints: ['Toppings & Jellies - BBI "Can Taro Mocha"']
     
     # Dairy
     - include_regex: '(?i)\b(milk|whole milk|skim|2%|oat milk|almond milk)\b'
@@ -99,6 +137,23 @@ category_keywords:
       map_to_l2: C07
       priority: 90
       hints: ['Grains & Starches - Panko, breadcrumbs, coatings (RD)']
+    
+    - include_regex: '(?i)(powder\s+.*\s+starch|starch\s+powder|potato\s+starch|corn\s+starch|tapioca\s+starch)'
+      map_to_l2: C07
+      priority: 90
+      hints: ['Grains & Starches - BBI "Powder Sweet Potato Starch"']
+    
+    # Seasonings & Marinades
+    - include_regex: '(?i)(marinade|seasoning|spice|powder.*marinade)'
+      map_to_l2: C03
+      priority: 90
+      hints: ['Jam/Purée/Sauce - BBI "Powder Chicken Marinade" (seasonings)']
+    
+    # Cheese Products
+    - include_regex: '(?i)(cheese\s+powder|powder\s+cheese|cheese\s+float)'
+      map_to_l2: C06
+      priority: 90
+      hints: ['Creamer & Powders - BBI "Powder Cheese Float"']
     
     # Frozen Snacks / Appetizers (RD-specific)
     - include_regex: '(?i)(MOZZ\s+STX|MOZZARELLA\s+STICK|CHEESE\s+STICK)'
@@ -234,6 +289,37 @@ category_keywords:
         - 'Example: "FZ MOZZ STX IT BRD" → Classify as Retail Snacks (C33)'
         - 'Example: "PANKO PLAIN CQ" → Classify as Grains & Starches (C07)'
         - 'Example: "CREAM JF 36% UHT" → Classify as Dairy & Milk (C04)'
+    
+    bbi:
+      description: >
+        BBI (bubble tea ingredient supplier) uses descriptive product names with prefixes.
+        These patterns help classify bubble tea ingredients and related products.
+      
+      prefix_patterns:
+        - 'Powder\b'      # Various powders (marinade, starch, cheese, mochi)
+        - 'Jam\b'         # Fruit jams
+        - 'Can\b'         # Canned products
+        - 'Uni\b'         # Uniform items
+      
+      product_categories:
+        marinades: ['Powder Chicken Marinade', 'Powder Beef Marinade']
+        starches: ['Powder Sweet Potato Starch', 'Tapioca Starch']
+        jams: ['Jam Passion fruit', 'Jam Mango', 'Jam Strawberry']
+        cheese_products: ['Powder Cheese Float']
+        toppings: ['Powder Mochi', 'Can Taro Mocha']
+        uniforms: ['Uni Cap', 'Uni Hoodie']
+        packaging: ['Uni Décor Paper', 'Aluminum Tray', 'Chopsticks']
+      
+      notes:
+        - '"No Charge" should be filtered from product names (see text cleaning rules)'
+        - 'Pattern matching is case-insensitive'
+        - 'Example: "Powder Chicken Marinade" → C03 Jam/Purée/Sauce (seasonings)'
+        - 'Example: "Powder Sweet Potato Starch" → C07 Grains & Starches'
+        - 'Example: "Jam Passion fruit" → C03 Jam/Purée'
+        - 'Example: "Powder Mochi" → C08 Toppings & Jellies'
+        - 'Example: "Can Taro Mocha" → C08 Toppings & Jellies'
+        - 'Example: "Uni Cap" → C60 Office/Admin (uniform)'
+        - 'Example: "Aluminum Tray No Charge" → C21 Bags & Trays'
   
   # Heuristic classifiers (smart pattern detection)
   heuristics:
