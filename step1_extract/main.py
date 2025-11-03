@@ -56,13 +56,22 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         input_dir: Base input directory
         
     Returns:
-        'vendor_based' or 'instacart_based'
+        'vendor_based', 'instacart_based', 'bbi_based', or 'amazon_based'
     """
     try:
         rel_path = file_path.relative_to(input_dir)
         folder_name = str(rel_path.parent) if rel_path.parent != Path('.') else ''
+        filename_lower = file_path.name.lower()
         
-        # Instacart-based = Instacart only
+        # BBI-based = BBI folder or BBI filename patterns
+        if 'bbi' in folder_name.lower() or 'uni_il_ut' in filename_lower:
+            return 'bbi_based'
+        
+        # Amazon-based = AMAZON folder or Amazon order ID pattern
+        if 'amazon' in folder_name.lower() or 'orders_from_' in filename_lower:
+            return 'amazon_based'
+        
+        # Instacart-based = Instacart folder
         if 'instacart' in folder_name.lower() or 'instarcart' in folder_name.lower():
             return 'instacart_based'
         
@@ -71,6 +80,10 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
     except ValueError:
         # If can't determine relative path, check filename
         filename_lower = file_path.name.lower()
+        if 'bbi' in filename_lower or 'uni_il_ut' in filename_lower:
+            return 'bbi_based'
+        if 'amazon' in filename_lower or 'orders_from_' in filename_lower:
+            return 'amazon_based'
         if 'instacart' in filename_lower or 'uni_uni_uptown' in filename_lower:
             return 'instacart_based'
         return 'vendor_based'
@@ -127,9 +140,11 @@ def process_files(
     logger.info(f"Found {len(pdf_files)} PDF files, {len(excel_files)} Excel files, {len(csv_files)} CSV files")
     
     # Group files by receipt type
-    # Note: CSV files are only for instacart-based (Instacart baseline files)
+    # Note: CSV files are for instacart-based and amazon-based (baseline files)
     vendor_based_files: List[Path] = []
     instacart_based_files: List[Path] = []
+    bbi_based_files: List[Path] = []
+    amazon_based_files: List[Path] = []
     
     # Group PDF and Excel files
     for file_list in [pdf_files, excel_files]:
@@ -137,8 +152,12 @@ def process_files(
             receipt_type = detect_group(file_path, input_dir)
             if receipt_type == 'vendor_based':
                 vendor_based_files.append(file_path)
-            else:
+            elif receipt_type == 'instacart_based':
                 instacart_based_files.append(file_path)
+            elif receipt_type == 'bbi_based':
+                bbi_based_files.append(file_path)
+            elif receipt_type == 'amazon_based':
+                amazon_based_files.append(file_path)
     
     # CSV files are only for instacart-based (Instacart baseline files)
     # They should only be in Instacart folders
@@ -149,7 +168,7 @@ def process_files(
         else:
             logger.warning(f"CSV file found in vendor-based location (ignoring): {file_path.relative_to(input_dir)}")
     
-    logger.info(f"Vendor-based files: {len(vendor_based_files)}, Instacart-based files: {len(instacart_based_files)}")
+    logger.info(f"Vendor-based files: {len(vendor_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}")
     
     ### Process vendor-based files
     vendor_based_output_dir = output_base_dir / 'vendor_based'
@@ -318,10 +337,45 @@ def process_files(
                 if receipt_data:
                     instacart_based_data[receipt_id] = receipt_data
     
+    ### Process BBI-based files
+    bbi_based_output_dir = output_base_dir / 'bbi_based'
+    bbi_based_data: Dict[str, Any] = {}
+    
+    if bbi_based_files:
+        logger.info("Processing BBI-based receipts...")
+        for file_path in bbi_based_files:
+            receipt_id, receipt_data = process_vendor_based_file(file_path)
+            if receipt_data:
+                receipt_data['source_group'] = 'bbi_based'
+                bbi_based_data[receipt_id] = receipt_data
+    
+    ### Process Amazon-based files (placeholder - needs full implementation)
+    amazon_based_output_dir = output_base_dir / 'amazon_based'
+    amazon_based_data: Dict[str, Any] = {}
+    
+    if amazon_based_files:
+        logger.info("Processing Amazon-based receipts...")
+        logger.warning("Amazon processing not yet fully implemented. PDFs will be processed as basic receipts.")
+        logger.warning("See docs/AMAZON_IMPLEMENTATION_PLAN.md for implementation details.")
+        for file_path in amazon_based_files:
+            if file_path.suffix.lower() == '.pdf':
+                try:
+                    receipt_data = pdf_processor.process_file(file_path)
+                    if receipt_data:
+                        receipt_id = receipt_data.get('order_id') or file_path.stem
+                        receipt_data['source_group'] = 'amazon_based'
+                        receipt_data['needs_review'] = True
+                        receipt_data['review_reasons'] = receipt_data.get('review_reasons', []) + ['Amazon CSV matching not yet implemented']
+                        amazon_based_data[receipt_id] = receipt_data
+                except Exception as e:
+                    logger.error(f"Error processing Amazon PDF {file_path.name}: {e}")
+    
     ### Save output files and generate reports
     results: Dict[str, Dict[str, Any]] = {
         'vendor_based': vendor_based_data,
-        'instacart_based': instacart_based_data
+        'instacart_based': instacart_based_data,
+        'bbi_based': bbi_based_data,
+        'amazon_based': amazon_based_data
     }
     
     # Save vendor-based output and generate report
@@ -358,10 +412,46 @@ def process_files(
         except Exception as e:
             logger.warning(f"Could not generate instacart-based report: {e}")
     
+    # Save BBI-based output and generate report
+    if bbi_based_data:
+        bbi_based_output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = bbi_based_output_dir / 'extracted_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(bbi_based_data, f, indent=2, ensure_ascii=False, default=str)
+        logger.info(f"Saved BBI-based data to: {output_file}")
+        
+        # Generate BBI-based report
+        try:
+            from .generate_report import generate_html_report
+            report_file = bbi_based_output_dir / 'report.html'
+            generate_html_report(bbi_based_data, report_file)
+            logger.info(f"Generated BBI-based report: {report_file}")
+        except Exception as e:
+            logger.warning(f"Could not generate BBI-based report: {e}")
+    
+    # Save Amazon-based output and generate report
+    if amazon_based_data:
+        amazon_based_output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = amazon_based_output_dir / 'extracted_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(amazon_based_data, f, indent=2, ensure_ascii=False, default=str)
+        logger.info(f"Saved Amazon-based data to: {output_file}")
+        
+        # Generate Amazon-based report
+        try:
+            from .generate_report import generate_html_report
+            report_file = amazon_based_output_dir / 'report.html'
+            generate_html_report(amazon_based_data, report_file)
+            logger.info(f"Generated Amazon-based report: {report_file}")
+        except Exception as e:
+            logger.warning(f"Could not generate Amazon-based report: {e}")
+    
     # Generate combined final report at root output directory
     all_receipts: Dict[str, Any] = {}
     all_receipts.update(vendor_based_data)
     all_receipts.update(instacart_based_data)
+    all_receipts.update(bbi_based_data)
+    all_receipts.update(amazon_based_data)
     
     if all_receipts:
         try:

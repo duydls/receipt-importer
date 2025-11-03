@@ -62,7 +62,7 @@ vendor_detection:
         - "_bbi_"
         - "uni_il_ut"
       vendor_code: "BBI"
-      source_type: "vendor_based"
+      source_type: "bbi_based"
       confidence: 0.95
     
     amazon:
