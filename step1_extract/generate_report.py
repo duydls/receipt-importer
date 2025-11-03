@@ -655,26 +655,42 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
 """
         
         # Get tax and other charges (always show, even if 0)
-        tax = receipt_data.get('tax', 0.0) or 0.0
+        # Handle None values explicitly
+        tax_raw = receipt_data.get('tax')
+        tax = float(tax_raw) if tax_raw is not None else 0.0
+        
         # Calculate other_charges from fees (bag fee, tips, service fees) if not already set
         # Other charges should include all fees except tax
-        other_charges = receipt_data.get('other_charges', 0.0) or 0.0
+        other_charges_raw = receipt_data.get('other_charges')
+        other_charges = float(other_charges_raw) if other_charges_raw is not None else 0.0
+        
         # Also sum fees from items (items with is_fee=True) if other_charges is not already calculated
         if other_charges == 0.0:
             fee_items = [item for item in receipt_data.get('items', []) if item.get('is_fee', False)]
             if fee_items:
-                other_charges = sum(item.get('total_price', 0) for item in fee_items)
-        subtotal = receipt_data.get('subtotal', 0.0) or 0.0
+                other_charges = sum(float(item.get('total_price') or 0) for item in fee_items)
+        
+        subtotal_raw = receipt_data.get('subtotal')
+        subtotal = float(subtotal_raw) if subtotal_raw is not None else 0.0
         
         # Verify calculated total against receipt total
         # Calculate total from items (excluding fees if subtotal includes them)
-        calculated_item_total = sum(item.get('total_price', 0) for item in items if not item.get('is_fee', False))
+        # Handle None values in item prices and quantities
+        calculated_item_total = sum(
+            float(item.get('total_price') or 0) 
+            for item in items 
+            if not item.get('is_fee', False)
+        )
         calculated_subtotal = calculated_item_total if subtotal == 0.0 else subtotal
-        calculated_total = calculated_subtotal + float(tax) + float(other_charges)
+        calculated_total = calculated_subtotal + tax + other_charges
         receipt_total = receipt_data.get('total', 0.0) or 0.0
         
         # Verify calculated items quantity against items_sold from receipt
-        calculated_items_qty = sum(item.get('quantity', 0) for item in items if not item.get('is_fee', False))
+        calculated_items_qty = sum(
+            float(item.get('quantity') or 0) 
+            for item in items 
+            if not item.get('is_fee', False)
+        )
         receipt_items_sold = receipt_data.get('items_sold')
         
         # Prepare validation messages and check marks
