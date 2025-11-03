@@ -44,9 +44,11 @@ class UoMExtractor:
         for item in items:
             new_item = item.copy()
             
-            # Initialize raw fields
-            new_item['raw_uom_text'] = None
-            new_item['raw_size_text'] = None
+            # Initialize raw fields (preserve existing values if present)
+            if 'raw_uom_text' not in new_item or not new_item['raw_uom_text']:
+                new_item['raw_uom_text'] = None
+            if 'raw_size_text' not in new_item or not new_item['raw_size_text']:
+                new_item['raw_size_text'] = None
             
             # Extract in priority order
             for priority_num in sorted(priority.keys()):

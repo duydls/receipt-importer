@@ -21,7 +21,7 @@ bbi_layouts:
       - "Item #"
       - "Unit"
       - "Price"
-      - "Discount (UoM 推测)"
+      - "UoM"
     
     column_mappings:
       product_name: "Description"
@@ -29,7 +29,7 @@ bbi_layouts:
       item_number: "Item #"
       unit_price: "Price"
       total_price: "Line Total"
-      raw_uom_text: "Discount (UoM 推测)"  # This seems to contain size/UoM info
+      raw_uom_text: "UoM"  # Size/UoM information
     
     normalization:
       trim_whitespace: true
@@ -46,7 +46,7 @@ bbi_layouts:
     
     notes:
       - "BBI files have a date row after header that should be skipped"
-      - "The 'Discount (UoM 推测)' column contains size/UoM information"
+      - "The 'UoM' column contains size/UoM information (e.g., 'kg', '50g*12-bag', '3.8kg-can')"
       - "Unit column contains '$' symbol which should be stripped"
       - "Some items may have NaN for item_number"
 

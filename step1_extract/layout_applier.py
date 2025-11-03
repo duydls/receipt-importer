@@ -710,9 +710,11 @@ class LayoutApplier:
             }
             
             # Add optional fields if present
-            for field in ['item_number', 'upc', 'transaction_date', 'order_date']:
+            for field in ['item_number', 'upc', 'transaction_date', 'order_date', 'raw_uom_text']:
                 if field in row and pd.notna(row[field]):
-                    item[field] = str(row[field]).strip()
+                    value = str(row[field]).strip()
+                    if value and value.lower() not in ['nan', 'none', '']:
+                        item[field] = value
             
             items.append(item)
         
