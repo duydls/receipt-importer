@@ -608,8 +608,9 @@ class LayoutApplier:
             except Exception as e:
                 logger.debug(f"Skip pattern error (falling back): {e}")
         
-        # Detect control lines: ^(subtotal|tax|total|items\s*sold)\b
-        control_pattern = r'\b(subtotal|tax|total|items\s*sold)\b'
+        # Detect control lines: tax, subtotal, total, items sold
+        # Note: Use looser pattern to catch variants like "B:Taxable", "Tax (Fee)", etc.
+        control_pattern = r'(subtotal|tax|total|items\s*sold)'
         control_mask = work_df['product_name'].str.contains(control_pattern, case=False, regex=True, na=False)
         
         control_rows = work_df[control_mask].copy()

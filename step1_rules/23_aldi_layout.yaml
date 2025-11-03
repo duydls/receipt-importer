@@ -30,7 +30,9 @@ aldi_layouts:
     skip_patterns:
       # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items" here
       # They are handled by CONTROL_PATTERNS in layout_applier.py
-      - "B:Taxable"
+      - "^\\s*$"  # Empty rows
+      - "^nan$"
+      - "^none$"
 
   # Variant B: No QTY column
   - name: "Aldi Excel v_total_only"
@@ -52,4 +54,6 @@ aldi_layouts:
     skip_patterns:
       # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items" here
       # They are handled by CONTROL_PATTERNS in layout_applier.py
-      - "B:Taxable"
+      - "^\\s*$"  # Empty rows
+      - "^nan$"
+      - "^none$"
