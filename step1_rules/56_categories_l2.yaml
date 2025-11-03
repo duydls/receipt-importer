@@ -235,6 +235,31 @@ categories_l2:
       vendor_hints:
         - title_contains: []
     
+    # ===== RETAIL PRODUCTS (C33) =====
+    
+    - id: C33
+      name: Retail Snacks & Beverages
+      description: Pre-packaged snacks and beverages for resale (not ingredients)
+      examples:
+        - Cookies, biscuits, candy, chocolate bars
+        - Chips, crackers, pretzels
+        - Bottled drinks, canned beverages
+        - Packaged confectionery
+      synonyms:
+        - cookies
+        - biscuits
+        - candy
+        - chocolate
+        - snacks
+        - chips
+        - beverages
+      vendor_hints:
+        - title_contains: ['cookies', 'biscuit', 'candy', 'chocolate', 'chips', 'crackers', 'confection']
+        - unspsc_family: ['Chocolate and sugars and sweeteners and confectionary products']
+      notes:
+        - Use this for items purchased for resale, not for ingredient use
+        - Examples: Lotus Biscoff cookies, candy bars, packaged snacks
+    
     # ===== PACKAGING (C20-C23) =====
     
     - id: C20

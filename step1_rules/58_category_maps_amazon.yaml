@@ -7,6 +7,53 @@ category_maps_amazon:
     Rules are evaluated in priority order (higher priority wins).
   
   rules:
+    # ===== UNSPSC TAXONOMY-BASED (HIGHEST PRIORITY) =====
+    # Use Amazon's standardized UNSPSC codes for accurate classification
+    
+    - match:
+        unspsc_family: 'Chocolate and sugars and sweeteners and confectionary products'
+      map_to_l2: C33  # Retail Snacks & Beverages (not ingredients)
+      priority: 100
+      notes: Confectionary products like cookies, candy, chocolate for resale
+    
+    - match:
+        unspsc_family: 'Seasonings and preservatives'
+      map_to_l2: C03  # Jam/Purée/Sauce
+      priority: 100
+      notes: Sauces, seasonings, preserves
+    
+    - match:
+        unspsc_family: 'Prepared and preserved foods'
+      map_to_l2: C01  # Tea & Coffee (or C33 depending on product)
+      priority: 95
+      notes: Prepared foods like nuts, dried fruits - check title for specifics
+    
+    - match:
+        unspsc_family: 'Beverages'
+        item_title_regex: '(?i)\b(coconut milk|oat milk|almond milk|soy milk)\b'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 100
+      notes: Non-dairy milk beverages
+    
+    - match:
+        unspsc_family: 'Beverages'
+      map_to_l2: C33  # Retail Snacks & Beverages
+      priority: 90
+      notes: Other beverages for resale
+    
+    - match:
+        unspsc_family: 'Paper products'
+      map_to_l2: C30  # Napkins & Paper Products
+      priority: 100
+      notes: Paper products
+    
+    - match:
+        unspsc_segment: 'Food Beverage and Tobacco Products'
+        unspsc_family: 'Dairy products and eggs'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 100
+      notes: Dairy products
+    
     # ===== PACKAGING =====
     
     - match:

@@ -266,6 +266,24 @@ class CategoryClassifier:
             if match['category'].lower() not in item_cat.lower():
                 return False
         
+        # Check UNSPSC segment
+        if 'unspsc_segment' in match:
+            item_segment = item.get('unspsc_segment', '')
+            if match['unspsc_segment'].lower() not in item_segment.lower():
+                return False
+        
+        # Check UNSPSC family
+        if 'unspsc_family' in match:
+            item_family = item.get('unspsc_family', '')
+            if match['unspsc_family'].lower() != item_family.lower():
+                return False
+        
+        # Check UNSPSC commodity
+        if 'unspsc_commodity' in match:
+            item_commodity = item.get('unspsc_commodity', '')
+            if match['unspsc_commodity'].lower() not in item_commodity.lower():
+                return False
+        
         # Check seller
         if 'seller' in match:
             item_seller = item.get('seller', '')

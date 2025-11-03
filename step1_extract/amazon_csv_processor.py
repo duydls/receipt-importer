@@ -305,6 +305,19 @@ class AmazonCSVProcessor:
         if category:
             item['category'] = category
         
+        # Add UNSPSC taxonomy fields for better classification
+        segment = row.get('Segment', '').strip()
+        if segment:
+            item['unspsc_segment'] = segment
+        
+        family = row.get('Family', '').strip()
+        if family:
+            item['unspsc_family'] = family
+        
+        commodity = row.get('Commodity', '').strip()
+        if commodity:
+            item['unspsc_commodity'] = commodity
+        
         # UoM extraction (will be done later by UoM extractor)
         item['raw_uom_text'] = None
         

@@ -83,6 +83,17 @@ category_keywords:
       priority: 85
       hints: ['Dairy & Milk']
     
+    # Sweeteners & Sugar
+    - include_regex: '(?i)\b(sugar|granulated sugar|cane sugar|brown sugar)\b'
+      map_to_l2: C05
+      priority: 90
+      hints: ['Sweeteners/Sugar - Including "Sugar Granulated"']
+    
+    - include_regex: '(?i)\b(honey|agave|stevia|sweetener)\b'
+      map_to_l2: C05
+      priority: 85
+      hints: ['Sweeteners/Sugar']
+    
     # Cleaning
     - include_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant)\b'
       map_to_l2: C50
@@ -94,17 +105,41 @@ category_keywords:
       priority: 90
       hints: ['Cleaning & Chemicals - Trash bags']
   
+  # Vendor-specific abbreviations and normalizations
+  vendor_abbreviations:
+    costco:
+      description: >
+        Costco uses abbreviated product names. Map common abbreviations to full names.
+      organic_markers:
+        - 'ORG\b'           # ORG = Organic (word boundary to avoid matching ORGANIZE, etc.)
+        - '\bORGANIC\b'
+      fruit_abbreviations:
+        STRAWBRY: 'Strawberry'
+        GRPS: 'Grapes'
+        BLUBRY: 'Blueberry'
+        RASBRY: 'Raspberry'
+      vegetable_abbreviations:
+        TOMS: 'Tomatoes'
+        CUKES: 'Cucumbers'
+        BROCLI: 'Broccoli'
+      notes:
+        - Pattern matching should be case-insensitive
+        - 'Example: "ORG STRAWBRY" maps to Organic Strawberry'
+        - 'Example: "ORG GRN GRPS" maps to Organic Green Grapes'
+  
   # Heuristic classifiers (smart pattern detection)
   heuristics:
     # Fruit classifier
     fruit:
       description: >
         Detects fruit items and classifies as Fresh/Frozen based on context.
+        Includes Costco abbreviations (STRAWBRY, GRPS).
       tokens:
         - apple
         - banana
         - strawberry
         - strawberries
+        - strawbry          # Costco abbreviation
         - blueberry
         - blueberries
         - raspberry
@@ -116,6 +151,7 @@ category_keywords:
         - orange
         - grape
         - grapes
+        - grps              # Costco abbreviation for grapes
         - peach
         - pear
         - plum

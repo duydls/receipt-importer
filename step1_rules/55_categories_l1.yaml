@@ -150,6 +150,7 @@ categories_l1:
     C13: A01  # Frozen Vegetables
     C14: A01  # Meat & Seafood
     C15: A01  # Other Ingredients
+    C33: A01  # Retail Snacks & Beverages (resale items)
     
     # Packaging (A02)
     C20: A02  # Cups & Lids
