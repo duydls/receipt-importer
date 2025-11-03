@@ -1,4 +1,37 @@
-# Python
+# ============================================================================
+# SENSITIVE DATA (MUST BE EXCLUDED)
+# ============================================================================
+
+# Environment variables (contains passwords and credentials)
+.env
+.env.*
+!.env.example
+
+# Configuration files with credentials
+config.py
+*_config.py
+secrets.json
+credentials.json
+
+# Database dumps (may contain sensitive data)
+*.sql
+*.dump
+*.db
+
+# SSH keys and certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+id_rsa*
+id_dsa*
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+
 __pycache__/
 *.py[cod]
 *$py.class
@@ -44,11 +77,10 @@ env/
 .coverage
 htmlcov/
 
-# Step 1 output (generated data)
-data/step1_output/
-
-# Step 2 output (generated data)
-data/step2_output/
+# Data directory (receipts, outputs, and generated files)
+data/
+# Keep the data directory structure but ignore all contents
+!data/.gitkeep
 
 # Logs
 *.log

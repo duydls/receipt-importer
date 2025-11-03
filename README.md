@@ -206,6 +206,165 @@ playwright install chromium
 
 ---
 
+## 🔧 Initial Setup
+
+### 1. Create Configuration Files
+
+The following files contain sensitive data and are **gitignored**. You need to create them from the example files:
+
+```bash
+# Copy example files
+cp .env.example .env
+cp config.py.example config.py
+
+# Edit with your credentials
+nano .env          # Add your database password
+nano config.py     # Configure paths and settings
+```
+
+**`.env` file** (required for database access):
+```bash
+ODOO_DB_HOST=your_database_host
+ODOO_DB_USER=your_database_user
+ODOO_DB_NAME=odoo
+ODOO_DB_PASSWORD=your_secure_password
+```
+
+**`config.py` file** (required for workflow):
+- Database connection settings
+- Folder paths for input/output
+- Vendor and product matching settings
+- See `config.py.example` for full template
+
+⚠️ **IMPORTANT**: These files contain sensitive credentials and are automatically excluded from Git.
+
+### 2. Create Data Directory Structure
+
+The `data/` directory is gitignored but required for processing. Create it with:
+
+```bash
+# Create main data directories
+mkdir -p data/{step1_input,step1_output,step2_output,step3_output}
+
+# Create vendor-specific input folders
+mkdir -p data/step1_input/{COSTCO,RD,JEWEL,ALDI,MARIANOS,PARKTOSHOP,INSTACART,BBI,AMAZON}
+
+# Create output subdirectories (auto-created by script, but you can pre-create)
+mkdir -p data/step1_output/{localgrocery_based,instacart_based,bbi_based,amazon_based}
+```
+
+**Directory structure** (all gitignored):
+
+```
+data/                              # ← GITIGNORED (sensitive receipts & outputs)
+├── step1_input/                   # Input receipts
+│   ├── COSTCO/                   # Costco Excel files (.xlsx)
+│   ├── RD/                       # Restaurant Depot Excel files
+│   ├── JEWEL/                    # Jewel-Osco Excel files
+│   ├── ALDI/                     # Aldi Excel files
+│   ├── MARIANOS/                 # Mariano's Excel files
+│   ├── PARKTOSHOP/               # ParkToShop Excel files
+│   ├── INSTACART/                # Instacart PDFs + CSV baseline
+│   │   ├── *.pdf                # Individual receipt PDFs
+│   │   └── order_summary_report.csv  # CSV baseline (optional)
+│   ├── BBI/                      # BBI Wholesale Excel files
+│   └── AMAZON/                   # Amazon Business orders
+│       ├── orders_from_*.csv    # Monthly order CSV (authoritative)
+│       └── *.pdf                # Individual order PDFs (validation)
+│
+├── step1_output/                  # Generated outputs (JSON + HTML + PDF)
+│   ├── report.html               # Combined report (all sources)
+│   ├── report.pdf
+│   ├── classification_report.html  # Category analytics
+│   ├── classification_report.pdf
+│   ├── classification_report.csv
+│   ├── localgrocery_based/       # Local grocery results
+│   │   ├── extracted_data.json
+│   │   ├── report.html
+│   │   └── report.pdf
+│   ├── instacart_based/          # Instacart results
+│   │   ├── extracted_data.json
+│   │   ├── report.html
+│   │   └── report.pdf
+│   ├── bbi_based/                # BBI results
+│   │   ├── extracted_data.json
+│   │   ├── report.html
+│   │   └── report.pdf
+│   └── amazon_based/             # Amazon results
+│       ├── extracted_data.json
+│       ├── report.html
+│       └── report.pdf
+│
+├── step2_output/                  # Step 2 outputs (product matching)
+│   ├── mapped_receipts.json
+│   ├── product_name_mapping.json
+│   └── fruit_weight_conversion.json
+│
+└── step3_output/                  # Step 3 outputs (SQL generation)
+    └── *.sql                     # Individual SQL files per receipt
+```
+
+**Why these directories are gitignored:**
+- ✋ **Receipts contain sensitive financial data** (vendor info, prices, items)
+- ✋ **Outputs are regenerable** from source receipts
+- ✋ **Large file sizes** (PDFs, Excel files, JSON outputs)
+- ✋ **Personal/company-specific data** should not be in version control
+
+### 3. (Optional) Add Knowledge Base
+
+For enhanced product enrichment (Costco, Restaurant Depot):
+
+```bash
+# Create knowledge base directory (also gitignored)
+mkdir -p data/knowledge_base
+
+# Add vendor-specific product databases (JSON format)
+# - data/knowledge_base/costco_products.json
+# - data/knowledge_base/rd_products.json
+```
+
+### 4. Verify Setup
+
+Run this command to verify your setup:
+
+```bash
+python -c "
+import os
+from pathlib import Path
+
+print('✅ Checking setup...\n')
+
+# Check config files
+if Path('.env').exists():
+    print('✅ .env file exists')
+else:
+    print('❌ .env file missing (copy from .env.example)')
+
+if Path('config.py').exists():
+    print('✅ config.py exists')
+else:
+    print('❌ config.py missing (copy from config.py.example)')
+
+# Check data directories
+if Path('data/step1_input').exists():
+    print('✅ data/step1_input/ exists')
+    vendors = list(Path('data/step1_input').iterdir())
+    print(f'   Found {len(vendors)} vendor folders')
+else:
+    print('❌ data/step1_input/ missing')
+
+if Path('step1_rules').exists():
+    rules = list(Path('step1_rules').glob('*.yaml'))
+    print(f'✅ Found {len(rules)} YAML rule files')
+else:
+    print('❌ step1_rules/ missing')
+
+print('\n✅ Setup verification complete!')
+"
+```
+
+---
+
 ## 📖 Usage
 
 ### Basic Usage

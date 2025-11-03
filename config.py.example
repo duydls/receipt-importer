@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""
+Configuration file for Receipt Importer Project
+Copy this file to config.py and edit values according to your Odoo setup
+
+IMPORTANT: config.py is gitignored and will not be committed to version control
+"""
+
+# Database Connection (for direct SQL queries)
+# Password is read from ODOO_DB_PASSWORD environment variable or .env file
+DB_CONFIG = {
+    'host': 'your_database_host',
+    'port': 5432,
+    'database': 'odoo',
+    'user': 'your_database_user',
+    'password': '',  # Leave empty - read via ODOO_DB_PASSWORD env var or .env file
+}
+
+# Workflow Folder Structure
+STEP1_INPUT_DIR = 'data/step1_input'
+STEP1_OUTPUT_DIR = 'data/step1_output'
+STEP1_RULES_DIR = 'step1_rules'
+
+STEP2_INPUT_DIR = 'data/step1_output'
+STEP2_OUTPUT_DIR = 'data/step2_output'
+
+STEP3_INPUT_DIR = 'data/step2_output'
+STEP3_OUTPUT_DIR = 'data/step3_output'
+
+# Database Dump File Path
+DB_DUMP_JSON = 'data/products_uom_analysis.json'
+
+# Mapping Files
+PRODUCT_MAPPING_FILE = 'data/step2_output/product_name_mapping.json'
+FRUIT_CONVERSION_FILE = 'data/step2_output/fruit_weight_conversion.json'
+
+# Vendor/Partner Settings
+DEFAULT_VENDOR = {
+    'name': 'IC-Instacart',
+    'search_names': ['IC-Instacart', 'IC-Jewel-Osco', 'Instacart', 'Jewel-Osco'],
+    'supplier_rank': 1,
+}
+
+# Fee Products
+FEE_PRODUCTS = {
+    'bag_fee': {
+        'search_names': ['Bag Fee', 'Checkout Bag Fee'],
+        'default_uom': 'Units',
+    },
+    'tip': {
+        'search_names': ['Tip', 'Grocery Tip', 'Delivery Tip'],
+        'default_uom': 'Units',
+    },
+    'service_fee': {
+        'search_names': ['Service Fee', 'Instacart Service Fee'],
+        'default_uom': 'Units',
+    },
+}
+
+# Company Settings
+DEFAULT_COMPANY_ID = 1
+DEFAULT_CURRENCY = 'USD'
+
+# Product Matching Settings
+PRODUCT_MATCHING = {
+    'min_similarity': 0.7,
+    'exact_match_first': True,
+    'case_sensitive': False,
+}
+
+# UoM Matching Settings
+UOM_MATCHING = {
+    'each_variations': ['units', 'unit', 'each', 'piece', 'pieces'],
+    'lb_variations': ['lb', 'lbs', 'pound', 'pounds'],
+    'kg_variations': ['kg', 'kilogram', 'kilograms'],
+}
+
+# Purchase Order Settings
+PO_SETTINGS = {
+    'default_state': 'done',
+    'auto_confirm': False,
+    'create_stock_picking': True,
+    'validate_receipt': True,
+}
+
+# Receipt Processing Settings
+RECEIPT_PROCESSING = {
+    'supported_formats': ['.pdf', '.xlsx', '.xls', '.csv'],
+    'date_format': '%Y-%m-%d',
+    'decimal_separator': '.',
+    'thousands_separator': ',',
+    'excel_engine': 'openpyxl',
+}
+
+# Logging Settings
+LOGGING = {
+    'level': 'INFO',
+    'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+}
