@@ -103,6 +103,57 @@ def _should_use_picked_weight(item: Dict, picked_weight_rules: Dict) -> bool:
         return matches_keyword and matches_uom and has_picked_weight
 
 
+def _get_category_badge_html(item: Dict) -> str:
+    """Generate HTML for category badges"""
+    l2_cat = item.get('l2_category')
+    l2_name = item.get('l2_category_name')
+    l1_cat = item.get('l1_category')
+    l1_name = item.get('l1_category_name')
+    confidence = item.get('category_confidence', 0)
+    needs_review = item.get('needs_category_review', False)
+    
+    if not l2_cat:
+        return ""
+    
+    # Color coding based on L1 category
+    l1_colors = {
+        'A01': '#28a745',  # COGS-Ingredients (green)
+        'A02': '#17a2b8',  # COGS-Packaging (cyan)
+        'A03': '#6c757d',  # COGS-Non-food (gray)
+        'A04': '#fd7e14',  # Smallwares (orange)
+        'A05': '#6f42c1',  # Cleaning (purple)
+        'A06': '#20c997',  # Office (teal)
+        'A07': '#dc3545',  # Taxes (red)
+        'A08': '#ffc107',  # Shipping (yellow)
+        'A09': '#e83e8c',  # Tips (pink)
+        'A99': '#6c757d',  # Unknown (gray)
+    }
+    
+    l1_color = l1_colors.get(l1_cat, '#6c757d')
+    
+    # Add warning for items needing review
+    review_badge = ""
+    if needs_review:
+        review_badge = '<span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 5px;">⚠️ Review</span>'
+    
+    confidence_display = f"{confidence:.0%}" if confidence else "N/A"
+    
+    return f'''
+        <div style="font-size: 0.85em; margin-top: 5px;">
+            <span style="background: {l1_color}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 500; margin-right: 5px;">
+                L1: {l1_cat} - {l1_name}
+            </span>
+            <span style="background: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 4px; font-size: 0.9em;">
+                L2: {l2_cat} - {l2_name}
+            </span>
+            <span style="color: #6c757d; font-size: 0.85em; margin-left: 8px;">
+                Confidence: {confidence_display}
+            </span>
+            {review_badge}
+        </div>
+    '''
+
+
 def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
     """
     Generate HTML report from extracted receipt data
@@ -651,6 +702,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                         <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
                             <span class="unit-badge">UoM: {uom_display}</span>
                         </div>
+                        {_get_category_badge_html(item)}
                     </div>
                 </div>
 """

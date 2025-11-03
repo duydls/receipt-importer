@@ -532,6 +532,15 @@ def process_files(
             logger.info(f"Generated combined final report: {final_report_file}")
         except Exception as e:
             logger.warning(f"Could not generate combined final report: {e}")
+        
+        # Generate classification report
+        try:
+            from .generate_classification_report import generate_classification_report
+            html_path, csv_path = generate_classification_report(all_receipts, output_base_dir)
+            logger.info(f"Generated classification report: {html_path}")
+            logger.info(f"Generated classification CSV: {csv_path}")
+        except Exception as e:
+            logger.warning(f"Could not generate classification report: {e}", exc_info=True)
     
     # Feature 4: Log column-mapping cache stats
     try:
