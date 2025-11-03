@@ -1,0 +1,155 @@
+# Amazon CSV Matching Rules
+# Links Amazon PDF receipts to baseline CSV data
+# Structure: One CSV row per item, Order ID links PDF to CSV rows
+
+amazon_csv_rules:
+  description: >
+    Match Amazon PDF receipts to baseline CSV using Order ID.
+    CSV structure: One row per item (unlike Instacart which is one row per order).
+    Multiple CSV rows can belong to the same Order ID.
+  
+  # CSV file patterns
+  csv_file_patterns:
+    - "orders_from_*.csv"
+    - "amazon_orders*.csv"
+    - "*_amazon_*.csv"
+  
+  # Column name mappings (handle variations)
+  column_mappings:
+    order_id:
+      - "Order ID"
+      - "OrderID"
+      - "Order Number"
+    
+    order_date:
+      - "Order Date"
+      - "OrderDate"
+      - "Placed Date"
+    
+    item_name:
+      - "Title"
+      - "Item Title"
+      - "Product Title"
+      - "Product Name"
+    
+    quantity:
+      - "Item Quantity"
+      - "Order Quantity"
+      - "Quantity"
+      - "Qty"
+    
+    unit_price:
+      - "Purchase PPU"
+      - "Item Subtotal"  # If no PPU, calculate from subtotal/quantity
+      - "Listed PPU"
+    
+    item_subtotal:
+      - "Item Subtotal"
+      - "Item Net Total"
+    
+    item_tax:
+      - "Item Tax"
+      - "Tax"
+    
+    item_total:
+      - "Item Net Total"
+      - "Total"
+    
+    order_subtotal:
+      - "Order Subtotal"
+      - "Subtotal"
+    
+    order_tax:
+      - "Order Tax"
+      - "Tax Total"
+    
+    order_total:
+      - "Order Net Total"
+      - "Grand Total"
+      - "Total Amount"
+    
+    asin:
+      - "ASIN"
+    
+    brand:
+      - "Brand"
+      - "Manufacturer"
+    
+    category:
+      - "Amazon-Internal Product Category"
+      - "Segment"
+  
+  # Extraction rules
+  extraction:
+    # How to extract Order ID from PDF filename or path
+    order_id_from_path:
+      patterns:
+        - "(?P<order_id>\\d{3}-\\d{7}-\\d{7})"  # e.g., 114-4690641-2662621
+      
+    # CSV matching
+    match_strategy:
+      # Match by Order ID
+      primary_key: "order_id"
+      
+      # Group CSV rows by Order ID (since one order = multiple rows)
+      group_by_order: true
+      
+      # Aggregate order-level fields
+      aggregation:
+        order_subtotal: "first"  # Same for all rows in an order
+        order_tax: "first"
+        order_total: "first"
+        order_date: "first"
+        items: "collect"  # Collect all items for this order
+    
+    # Field mappings for items
+    item_fields:
+      required:
+        - item_name
+        - quantity
+      
+      optional:
+        - unit_price
+        - item_subtotal
+        - item_tax
+        - item_total
+        - asin
+        - brand
+        - category
+      
+      # Calculate missing fields
+      calculations:
+        # If unit_price is missing, calculate from item_subtotal / quantity
+        unit_price: "item_subtotal / quantity"
+        
+        # If item_total is missing, use item_subtotal + item_tax
+        item_total: "item_subtotal + item_tax"
+  
+  # Validation
+  validation:
+    # Verify that sum of item totals matches order total
+    verify_total: true
+    
+    # Tolerance for rounding differences
+    tolerance: 0.02
+    
+    # Flag for review if mismatch
+    flag_on_mismatch: true
+  
+  # Fallback behavior
+  fallback:
+    # If no CSV found, still process PDF
+    allow_pdf_only: true
+    
+    # Mark as needs_review if CSV not found
+    flag_missing_csv: true
+    
+    # If CSV found but Order ID not in CSV
+    flag_missing_order_id: true
+
+# Notes:
+# - Amazon CSV has one row per item, not per order
+# - Need to group rows by Order ID to get full order
+# - PDF is in subfolder named by Order ID
+# - Order-level fields (subtotal, tax, total) are same across all rows of an order
+

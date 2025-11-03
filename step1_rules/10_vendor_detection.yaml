@@ -65,6 +65,17 @@ vendor_detection:
       source_type: "vendor_based"
       confidence: 0.95
     
+    amazon:
+      patterns:
+        - "amazon"
+        - "_amazon_"
+        - "orders_from_"
+        - "112-"
+        - "114-"
+      vendor_code: "AMAZON"
+      source_type: "amazon_based"
+      confidence: 0.95
+    
     instacart:
       patterns:
         - "instacart"
