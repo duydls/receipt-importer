@@ -129,6 +129,7 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
 <head>
     <meta charset="UTF-8">
     <title>Category Classification Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -224,6 +225,26 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
             margin: 20px 0;
             border-radius: 4px;
         }}
+        .chart-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }}
+        .chart-container {{
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .chart-container h3 {{
+            margin-top: 0;
+            color: #2c3e50;
+            text-align: center;
+        }}
+        canvas {{
+            max-height: 400px;
+        }}
     </style>
 </head>
 <body>
@@ -256,6 +277,26 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
             <div class="kpi-card" style="background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%);">
                 <h3>{stats['review_count']}</h3>
                 <p>Need Review</p>
+            </div>
+        </div>
+        
+        <h2>📈 Category Distribution</h2>
+        <div class="chart-grid">
+            <div class="chart-container">
+                <h3>L1 Categories by Item Count</h3>
+                <canvas id="l1ItemChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>L1 Categories by Spend</h3>
+                <canvas id="l1SpendChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Top 10 L2 Categories</h3>
+                <canvas id="l2Chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Classification Sources</h3>
+                <canvas id="sourceChart"></canvas>
             </div>
         </div>
         
@@ -358,6 +399,173 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
     html += """
         </table>
     </div>
+    
+    <script>
+        // Prepare data for charts
+        const l1Data = """ + json.dumps({
+            'labels': [f"{k} - {v['name']}" for k, v in sorted(stats['l1_stats'].items())],
+            'counts': [v['count'] for k, v in sorted(stats['l1_stats'].items())],
+            'spend': [round(v['spend'], 2) for k, v in sorted(stats['l1_stats'].items())]
+        }) + """;
+        
+        const l2Data = """ + json.dumps({
+            'labels': [f"{k} - {v['name']}" for k, v in sorted(stats['l2_stats'].items(), key=lambda x: x[1]['count'], reverse=True)[:10]],
+            'counts': [v['count'] for k, v in sorted(stats['l2_stats'].items(), key=lambda x: x[1]['count'], reverse=True)[:10]]
+        }) + """;
+        
+        const sourceData = """ + json.dumps({
+            k: sum(1 for item in items if item.get('category_source') == k)
+            for k in set(item.get('category_source', 'unknown') for item in items)
+        }) + """;
+        
+        // Color palette
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384',
+            '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+        ];
+        
+        // L1 Item Count Chart
+        new Chart(document.getElementById('l1ItemChart'), {
+            type: 'pie',
+            data: {
+                labels: l1Data.labels,
+                datasets: [{
+                    data: l1Data.counts,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 10 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': ' + value + ' items (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // L1 Spend Chart
+        new Chart(document.getElementById('l1SpendChart'), {
+            type: 'pie',
+            data: {
+                labels: l1Data.labels,
+                datasets: [{
+                    data: l1Data.spend,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 10 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // L2 Chart (Top 10)
+        new Chart(document.getElementById('l2Chart'), {
+            type: 'doughnut',
+            data: {
+                labels: l2Data.labels,
+                datasets: [{
+                    data: l2Data.counts,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 9 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                return label + ': ' + value + ' items';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Source Chart
+        const sourceLabels = Object.keys(sourceData);
+        const sourceValues = Object.values(sourceData);
+        
+        new Chart(document.getElementById('sourceChart'), {
+            type: 'pie',
+            data: {
+                labels: sourceLabels.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+                datasets: [{
+                    data: sourceValues,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': ' + value + ' items (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
 """
