@@ -233,6 +233,7 @@ categories_l1:
   shipping_overrides:
     description: >
       Regex patterns that force L1=A08 (Shipping/Delivery).
+      Includes service fees and bag fees as delivery-related charges.
     map_to_l2: C80  # Shipping/Delivery
     patterns:
       - '(?i)shipping'
@@ -240,6 +241,13 @@ categories_l1:
       - '(?i)delivery'
       - '(?i)handling'
       - '(?i)postal\s+fee'
+      - '(?i)service\s+fee'
+      - '(?i)bag\s+fee'
+      - '(?i)checkout\s+bag'
+      - '(?i)carrier\s+bag'
+      - '(?i)scheduled\s+delivery'
+      - '(?i)priority\s+delivery'
+      - '(?i)heavy\s+item\s+fee'
   
   tip_overrides:
     description: >

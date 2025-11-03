@@ -220,6 +220,13 @@ category_maps_instacart:
       priority: 100
       notes: Delivery fee
     
+    - match:
+        is_fee: true
+        text_contains: ['bag fee', 'checkout bag', 'carrier bag']
+      map_to_l2: C80  # Shipping/Delivery
+      priority: 100
+      notes: Bag fees (charged by retailer for checkout bags)
+    
     # ===== DEFAULT FALLBACK =====
     
     - match:

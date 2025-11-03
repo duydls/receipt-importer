@@ -34,10 +34,10 @@ category_keywords:
       hints: ['Utensils & Misc Packaging - Straws']
     
     - include_regex: '(?i)\b(bag|bags|tote)\b'
-      exclude_regex: '(?i)\b(tea bag|trash bag|garbage bag)\b'
+      exclude_regex: '(?i)\b(tea bag|trash bag|garbage bag|checkout bag|carrier bag|bag fee)\b'
       map_to_l2: C21
       priority: 85
-      hints: ['Bags & Trays - Exclude tea bags and trash bags']
+      hints: ['Bags & Trays - Exclude tea bags, trash bags, and checkout bag fees (those are service fees)']
     
     - include_regex: '(?i)(aluminum\s+tray|food\s+tray|serving\s+tray)'
       map_to_l2: C21
