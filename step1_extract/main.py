@@ -541,6 +541,19 @@ def process_files(
             logger.info(f"Generated classification CSV: {csv_path}")
         except Exception as e:
             logger.warning(f"Could not generate classification report: {e}", exc_info=True)
+        
+        # Generate PDF versions of all reports
+        try:
+            from .pdf_generator import generate_pdfs_for_all_reports
+            pdfs = generate_pdfs_for_all_reports(output_base_dir)
+            pdf_count = sum(1 for path in pdfs.values() if path.suffix == '.pdf')
+            if pdf_count > 0:
+                logger.info(f"✅ Generated {pdf_count} PDF reports")
+            else:
+                logger.info("ℹ️  PDF generation skipped (Chrome not available)")
+                logger.info("   You can print HTML reports to PDF manually from your browser")
+        except Exception as e:
+            logger.warning(f"Could not generate PDF reports: {e}", exc_info=True)
     
     # Feature 4: Log column-mapping cache stats
     try:

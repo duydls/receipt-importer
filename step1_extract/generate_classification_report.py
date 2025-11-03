@@ -68,29 +68,40 @@ def _calculate_statistics(items: List[Dict]) -> Dict[str, Any]:
     total_qty = sum(float(item.get('quantity') or 0) for item in items)
     
     # Count by L1
-    l1_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'qty': 0.0})
+    l1_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'qty': 0.0, 'vendors': set()})
     for item in items:
         l1 = item.get('l1_category', 'A99')
         l1_name = item.get('l1_category_name', 'Unknown')
+        vendor = item.get('_vendor_code', 'UNKNOWN')
         l1_stats[l1]['name'] = l1_name
         l1_stats[l1]['count'] += 1
         l1_stats[l1]['spend'] += float(item.get('total_price') or 0)
         l1_stats[l1]['qty'] += float(item.get('quantity') or 0)
+        l1_stats[l1]['vendors'].add(vendor)
     
     # Count by L2
-    l2_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'qty': 0.0, 'l1': None})
+    l2_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'qty': 0.0, 'l1': None, 'vendors': set()})
     for item in items:
         l2 = item.get('l2_category', 'C99')
         l2_name = item.get('l2_category_name', 'Unknown')
         l1 = item.get('l1_category', 'A99')
+        vendor = item.get('_vendor_code', 'UNKNOWN')
         l2_stats[l2]['name'] = l2_name
         l2_stats[l2]['l1'] = l1
         l2_stats[l2]['count'] += 1
         l2_stats[l2]['spend'] += float(item.get('total_price') or 0)
         l2_stats[l2]['qty'] += float(item.get('quantity') or 0)
+        l2_stats[l2]['vendors'].add(vendor)
     
     # Count by source type
     source_stats = Counter(item['_source_type'] for item in items)
+    
+    # Count by vendor
+    vendor_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0})
+    for item in items:
+        vendor = item.get('_vendor_code', 'UNKNOWN')
+        vendor_stats[vendor]['count'] += 1
+        vendor_stats[vendor]['spend'] += float(item.get('total_price') or 0)
     
     # Count classified vs unmapped
     classified_count = sum(1 for item in items if item.get('l2_category') != 'C99')
@@ -117,6 +128,7 @@ def _calculate_statistics(items: List[Dict]) -> Dict[str, Any]:
         'l1_stats': dict(l1_stats),
         'l2_stats': dict(l2_stats),
         'source_stats': dict(source_stats),
+        'vendor_stats': dict(vendor_stats),
         'top_l2_by_spend': top_l2_by_spend
     }
 
@@ -246,6 +258,31 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
             max-height: 400px;
         }}
     </style>
+    <style media="print">
+        @page {{
+            size: letter;
+            margin: 0.5in;
+        }}
+        body {{
+            font-size: 10pt;
+        }}
+        .kpi-card {{
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+        table {{
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+        h1, h2, h3 {{
+            break-after: avoid;
+            page-break-after: avoid;
+        }}
+        .chart-container {{
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }}
+    </style>
 </head>
 <body>
     <div class="container">
@@ -295,6 +332,10 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <canvas id="l2Chart"></canvas>
             </div>
             <div class="chart-container">
+                <h3>Vendors by Spend</h3>
+                <canvas id="vendorChart"></canvas>
+            </div>
+            <div class="chart-container">
                 <h3>Classification Sources</h3>
                 <canvas id="sourceChart"></canvas>
             </div>
@@ -307,7 +348,7 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <th>Item Count</th>
                 <th>Total Spend</th>
                 <th>% of Total Spend</th>
-                <th>Avg Price</th>
+                <th>Vendors</th>
             </tr>
 """
     
@@ -315,7 +356,9 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
     for l1_id in sorted(stats['l1_stats'].keys()):
         l1_data = stats['l1_stats'][l1_id]
         pct_spend = (l1_data['spend'] / stats['total_spend'] * 100) if stats['total_spend'] > 0 else 0
-        avg_price = l1_data['spend'] / l1_data['count'] if l1_data['count'] > 0 else 0
+        # Convert set to sorted list for display
+        vendors_list = sorted(list(l1_data.get('vendors', set())))
+        vendors_display = ', '.join(vendors_list) if vendors_list else 'N/A'
         
         html += f"""
             <tr>
@@ -323,7 +366,7 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <td>{l1_data['count']}</td>
                 <td>${l1_data['spend']:,.2f}</td>
                 <td>{pct_spend:.1f}%</td>
-                <td>${avg_price:.2f}</td>
+                <td>{vendors_display}</td>
             </tr>
 """
     
@@ -337,14 +380,15 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <th>Parent L1</th>
                 <th>Item Count</th>
                 <th>Total Spend</th>
-                <th>Avg Price</th>
+                <th>Vendors</th>
             </tr>
 """
     
     # L2 breakdown (sorted by spend)
     sorted_l2 = sorted(stats['l2_stats'].items(), key=lambda x: x[1]['spend'], reverse=True)
     for l2_id, l2_data in sorted_l2[:20]:  # Top 20
-        avg_price = l2_data['spend'] / l2_data['count'] if l2_data['count'] > 0 else 0
+        vendors_list = sorted(list(l2_data.get('vendors', set())))
+        vendors_display = ', '.join(vendors_list) if vendors_list else 'N/A'
         
         html += f"""
             <tr>
@@ -352,7 +396,7 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <td>{l2_data['l1']}</td>
                 <td>{l2_data['count']}</td>
                 <td>${l2_data['spend']:,.2f}</td>
-                <td>${avg_price:.2f}</td>
+                <td>{vendors_display}</td>
             </tr>
 """
     
@@ -416,6 +460,12 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
         const sourceData = """ + json.dumps({
             k: sum(1 for item in items if item.get('category_source') == k)
             for k in set(item.get('category_source', 'unknown') for item in items)
+        }) + """;
+        
+        const vendorData = """ + json.dumps({
+            'labels': [k for k in sorted(stats['vendor_stats'].keys())],
+            'counts': [stats['vendor_stats'][k]['count'] for k in sorted(stats['vendor_stats'].keys())],
+            'spend': [round(stats['vendor_stats'][k]['spend'], 2) for k in sorted(stats['vendor_stats'].keys())]
         }) + """;
         
         // Color palette
@@ -521,6 +571,41 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                                 const label = context.label || '';
                                 const value = context.parsed || 0;
                                 return label + ': ' + value + ' items';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Vendor Chart
+        new Chart(document.getElementById('vendorChart'), {
+            type: 'pie',
+            data: {
+                labels: vendorData.labels,
+                datasets: [{
+                    data: vendorData.spend,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 10 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
                             }
                         }
                     }
