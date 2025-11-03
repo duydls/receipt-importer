@@ -55,6 +55,7 @@ uom_extraction:
       # Amazon-specific patterns: "Pack of 12", "6-Count", "3 Pack", "24 Rolls", "Case of 6"
       # Keep original product name unchanged
       extract_patterns:
+        - '(\d+/\d+\s*(?:LB|Lb|lb|KG|Kg|kg))'  # RD: "6/5LB" (6 cases × 5 lb)
         - '(\d+(?:\.\d+)?\s*(?:LB|Lb|lb|OZ|Oz|oz|GAL|Gal|gal|QT|Qt|qt|PC|Pc|pc|PKG|Pkg|pkg|PK|Pk|pk|CT|Ct|ct|EA|Ea|ea|EACH|Each|each|UNIT|Unit|unit|UNITS|Units|units|KG|Kg|kg|G|g))'  # Standard units (case-insensitive, allows decimal)
         - 'Pack\s+of\s+(\d+)'  # Amazon: "Pack of 12"
         - '(\d+)[\s-]?(?:Count|count|ct|CT)'  # Amazon: "12-Count", "42 Count", "6-ct"

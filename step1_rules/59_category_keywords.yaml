@@ -94,6 +94,24 @@ category_keywords:
       priority: 85
       hints: ['Sweeteners/Sugar']
     
+    # Protein / Meat (RD-specific patterns)
+    - include_regex: '(?i)(^CHX\b|^CHIX\b|NUGGET|BREAST|WING|THIGH|DRUMSTICK)'
+      map_to_l2: C14
+      priority: 90
+      hints: ['Meat & Seafood - Chicken products (RD abbreviations)']
+    
+    # French Fries / Frozen Potatoes (RD-specific)
+    - include_regex: '(?i)(^FF\b|CRINKL|STRGHT|WAFFLE FRIES|TWISTER|TATER)'
+      map_to_l2: C13
+      priority: 95
+      hints: ['Frozen Vegetables - French fries and potato products (RD)']
+    
+    # Oils (RD-specific)
+    - include_regex: '(?i)(^OIL\b|SHRT.*CRM|SHORTENING|VEGETABLE OIL)'
+      map_to_l2: C15
+      priority: 90
+      hints: ['Other Ingredients - Oils and shortening (RD)']
+    
     # Cleaning
     - include_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant)\b'
       map_to_l2: C50
@@ -126,6 +144,67 @@ category_keywords:
         - Pattern matching should be case-insensitive
         - 'Example: "ORG STRAWBRY" maps to Organic Strawberry'
         - 'Example: "ORG GRN GRPS" maps to Organic Green Grapes'
+    
+    restaurant_depot:
+      description: >
+        Restaurant Depot (RD) uses heavy abbreviations for product names.
+        These patterns help classify items even with abbreviated names.
+      
+      # Prefix patterns for classification (not full expansion)
+      protein_prefixes:
+        - 'CHX\b'           # Chicken
+        - 'CHIX\b'          # Chicken (alternate)
+        - 'BF\b'            # Beef
+        - 'BEEF\b'
+        - 'PORK\b'
+        - 'FISH\b'
+        - 'SALMN\b'         # Salmon
+        - 'SHRIMP\b'
+        - 'SHRMP\b'
+      
+      frozen_prefixes:
+        - '^FZ\b'           # Frozen (start of line)
+        - '\bFROZ\b'
+        - '\bFRZN\b'
+      
+      fries_patterns:
+        - '^FF\b'           # French Fries
+        - 'CRINKL'          # Crinkle
+        - 'STRGHT'          # Straight cut
+        - 'WAFFLE'          # Waffle fries
+        - 'TWISTER'         # Twister fries
+        - 'TATER'           # Tater tots
+      
+      oil_patterns:
+        - '^OIL\b'          # Oil (start of line)
+        - 'SHRT'            # Shortening
+        - 'VEG\b'           # Vegetable
+        - 'OLIVE\b'
+        - 'CANOLA\b'
+      
+      dairy_patterns:
+        - 'CREAM\b'
+        - 'MILK\b'
+        - 'BUTTER\b'
+        - 'CHEESE\b'
+        - 'MOZZ\b'          # Mozzarella
+        - 'CHDR\b'          # Cheddar
+      
+      descriptor_abbreviations:
+        BNLS: 'Boneless'
+        SKLS: 'Skinless'
+        BTRD: 'Battered'
+        BRDD: 'Breaded'
+        IQF: 'Individually Quick Frozen'
+        UHT: 'Ultra Heat Treated'
+      
+      notes:
+        - 'Pattern matching is case-insensitive'
+        - 'Use these patterns for CLASSIFICATION, not full expansion'
+        - 'Full product details should come from knowledge base'
+        - 'Example: "CHX NUGGET BTRD" → Classify as Meat/Seafood (C14)'
+        - 'Example: "FF CRINKL" → Classify as Frozen Vegetables (C13)'
+        - 'Example: "OIL SHRT" → Classify as Other Ingredients (C15)'
   
   # Heuristic classifiers (smart pattern detection)
   heuristics:
