@@ -1,5 +1,11 @@
 version: 1
 
+exclude_lines:
+  - reason: "No Charge / Complimentary"
+    any_text_icontains: ["no charge","complimentary","free item","free of charge"]
+  - reason: "Zero amount"
+    amount_equals: 0.00
+
 reclassify:
   - when:
       any_text_icontains: ["no charge","complimentary","free item","free of charge"]

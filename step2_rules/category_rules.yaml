@@ -15,13 +15,13 @@ rules:
 
   - l1: "A01 COGS–Ingredients"
     l2: "Nuts & Seeds"
-    must_include: ["almond","almonds","sliced almonds","nut","nuts","pumpkin seed","sunflower seed"]
+    must_include: ["almond","almonds","sliced almonds","cashew","walnut","chia","flax","pumpkin seed","sunflower seed","nut","nuts"]
     priority: 50
 
   - l1: "A01 COGS–Ingredients"
     l2: "Fresh Fruit & Veg"
-    must_include: ["strawberry","banana","lime","lemon","orange","grape","grapefruit"]
-    priority: 45
+    must_include: ["strawberry","strawberries","banana","lime","lemon","orange","grape","grapefruit","romaine","blueberry","cilantro","lettuce","onion","avocado","cucumber"]
+    priority: 48
 
   - l1: "A01 COGS–Ingredients"
     l2: "Sweeteners"
@@ -47,8 +47,8 @@ rules:
 
   - l1: "A03 COGS–Non-food Consumables"
     l2: "POS Paper & Register Supplies"
-    must_include: ["thermal paper","receipt paper","receipt roll","pos paper","thermal roll"]
-    must_exclude: ["napkin","tissue"]
+    must_include: ["thermal paper","receipt paper","receipt roll","pos paper","thermal roll","register tape","label roll"]
+    must_exclude: ["napkin","tissue","paper towel"]
     priority: 80
 
   - l1: "A03 COGS–Non-food Consumables"

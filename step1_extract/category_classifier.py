@@ -97,7 +97,8 @@ class CategoryClassifier:
         Returns:
             Dict with l2_category, l1_category, category_source, category_rule_id, category_confidence, needs_category_review
         """
-        product_name = item.get('product_name', '')
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         is_fee = item.get('is_fee', False)
         
         # Try each stage in pipeline order
@@ -307,6 +308,13 @@ class CategoryClassifier:
                 confidence=confidence
             )
         
+        # RD-specific vendor heuristics (run early, before general keywords)
+        # These use clean_name and size_spec from name hygiene
+        if vendor_code in ['RD', 'RESTAURANT_DEPOT', 'RESTAURANT']:
+            result = self._apply_rd_vendor_heuristics(item)
+            if result:
+                return result
+        
         # TODO: Could implement other vendor-specific biasing here
         return None
     
@@ -318,7 +326,8 @@ class CategoryClassifier:
         # Sort by priority
         sorted_rules = sorted(rules, key=lambda r: r.get('priority', 0), reverse=True)
         
-        product_name = item.get('product_name', '')
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         
         for idx, rule in enumerate(sorted_rules):
             include_pattern = rule.get('include_regex', '')
@@ -348,7 +357,8 @@ class CategoryClassifier:
         keyword_config = self.keyword_rules.get('category_keywords', {})
         heuristics = keyword_config.get('heuristics', {})
         
-        product_name = item.get('product_name', '').lower()
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = (item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')).lower()
         
         # Try fruit heuristic
         fruit_config = heuristics.get('fruit', {})
@@ -410,6 +420,132 @@ class CategoryClassifier:
         """Check if text contains any of the tokens (case-insensitive)"""
         text_lower = text.lower()
         return any(token.lower() in text_lower for token in tokens)
+    
+    def _apply_rd_vendor_heuristics(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        RD-specific vendor heuristics that run early in the pipeline.
+        Uses clean_name and size_spec from name hygiene.
+        
+        Heuristics:
+        - Frozen: IQF, FZ markers → C08 (Frozen Fruit) or C10 (Frozen Vegetables)
+        - Packaging: CT markers, multi-pack patterns → C20-C23 (Packaging)
+        - Cleaning: detergent, sanitizer → C50 (Cleaning & Chemicals)
+        - Gloves: gloves, food service supplies → C31 (Gloves & Food Service Supplies)
+        - Syrups/Jams: syrups vs jams distinction → C02 (Syrups) or C03 (Jam/Purée)
+        """
+        # Use clean_name and size_spec from name hygiene
+        clean_name = (item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')).lower()
+        size_spec = (item.get('size_spec') or '').upper()
+        product_name = clean_name  # Use clean name for matching
+        
+        # 1. Frozen detection (IQF, FZ markers)
+        if 'iqf' in product_name or 'fz' in product_name or 'frozen' in product_name:
+            # Check if it's fruit or vegetable
+            fruit_tokens = ['strawberry', 'blueberry', 'mango', 'peach', 'berry', 'fruit']
+            vegetable_tokens = ['vegetable', 'broccoli', 'corn', 'peas', 'carrot', 'spinach']
+            
+            if any(token in product_name for token in fruit_tokens):
+                return self._build_result(
+                    l2_category='C08',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_frozen_fruit',
+                    confidence=0.90
+                )
+            elif any(token in product_name for token in vegetable_tokens):
+                return self._build_result(
+                    l2_category='C10',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_frozen_vegetable',
+                    confidence=0.90
+                )
+            else:
+                # Generic frozen (could be fruit or vegetable, default to fruit)
+                return self._build_result(
+                    l2_category='C08',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_frozen_generic',
+                    confidence=0.75
+                )
+        
+        # 2. Packaging detection (CT markers, multi-pack patterns from size_spec)
+        if size_spec and ('CT' in size_spec or 'PK' in size_spec or 'CS' in size_spec):
+            # Check product name for specific packaging types
+            if any(word in product_name for word in ['napkin', 'towel', 'wipe', 'tissue']):
+                return self._build_result(
+                    l2_category='C21',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_napkin',
+                    confidence=0.90
+                )
+            elif any(word in product_name for word in ['cup', 'lid', 'container']):
+                return self._build_result(
+                    l2_category='C20',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_cup',
+                    confidence=0.90
+                )
+            elif any(word in product_name for word in ['bag', 'tray', 'wrap']):
+                return self._build_result(
+                    l2_category='C21',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_bag',
+                    confidence=0.90
+                )
+            elif any(word in product_name for word in ['straw', 'utensil', 'fork', 'spoon', 'skewer']):
+                return self._build_result(
+                    l2_category='C22',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_utensil',
+                    confidence=0.90
+                )
+            # Generic packaging (multi-pack pattern detected)
+            return self._build_result(
+                l2_category='C21',
+                source='rd_vendor_heuristic',
+                rule_id='rd_packaging_generic',
+                confidence=0.80
+            )
+        
+        # 3. Cleaning detection (detergent, sanitizer)
+        cleaning_tokens = ['detergent', 'sanitizer', 'disinfectant', 'cleaner', 'chlorine', 'sani', 'dish']
+        if any(token in product_name for token in cleaning_tokens):
+            return self._build_result(
+                l2_category='C50',
+                source='rd_vendor_heuristic',
+                rule_id='rd_cleaning',
+                confidence=0.92
+            )
+        
+        # 4. Gloves & Food Service Supplies
+        if any(word in product_name for word in ['glove', 'spill kit', 'body fluid', 'apron']):
+            return self._build_result(
+                l2_category='C31',
+                source='rd_vendor_heuristic',
+                rule_id='rd_gloves_supplies',
+                confidence=0.90
+            )
+        
+        # 5. Syrups vs Jams distinction
+        if 'syrup' in product_name or 'torani' in product_name or 'puremade' in product_name:
+            # Exclude jams (they might have "syrup" in description)
+            if 'jam' not in product_name and 'jelly' not in product_name and 'purée' not in product_name:
+                return self._build_result(
+                    l2_category='C02',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_syrup',
+                    confidence=0.90
+                )
+        
+        if 'jam' in product_name or 'jelly' in product_name or 'purée' in product_name or 'puree' in product_name:
+            return self._build_result(
+                l2_category='C03',
+                source='rd_vendor_heuristic',
+                rule_id='rd_jam',
+                confidence=0.90
+            )
+        
+        # No RD-specific match found
+        return None
     
     def _apply_overrides(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Apply special overrides (tax, discount, shipping, tips) - all from YAML"""

@@ -474,6 +474,31 @@ def process_files(
             except Exception as e:
                 logger.error(f"Error processing {file_path.name}: {e}", exc_info=True)
     
+    ### Apply Name Hygiene (extract UPC/Item# and clean names BEFORE classification)
+    logger.info("Applying name hygiene to all items...")
+    
+    from .name_hygiene import apply_name_hygiene_batch
+    
+    # Apply name hygiene to all receipt types
+    for receipts_data in [
+        localgrocery_based_data,
+        instacart_based_data,
+        bbi_based_data,
+        amazon_based_data,
+        webstaurantstore_based_data
+    ]:
+        if not receipts_data:
+            continue
+        
+        for receipt_id, receipt_data in receipts_data.items():
+            try:
+                items = receipt_data.get('items', [])
+                if items:
+                    # Apply name hygiene: extract UPC/Item# and create clean_name
+                    receipt_data['items'] = apply_name_hygiene_batch(items)
+            except Exception as e:
+                logger.warning(f"Error applying name hygiene to {receipt_id}: {e}", exc_info=True)
+    
     ### Apply Category Classification (Feature 14)
     logger.info("Applying category classification to all items...")
     from .category_classifier import CategoryClassifier
