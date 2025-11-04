@@ -49,6 +49,11 @@ category_keywords:
       priority: 90
       hints: ['Utensils & Misc Packaging - BBI "Chopsticks No Charge"']
     
+    - include_regex: '(?i)\b(skewer|skewers|bamboo skewer)\b'
+      map_to_l2: C22
+      priority: 90
+      hints: ['Utensils & Misc Packaging - Skewers (e.g., "EEcoChoice Compostable 6" Round Bamboo Skewer")']
+    
     - include_regex: '(?i)\b(label|labels|sticker|stickers)\b'
       map_to_l2: C23
       priority: 90
@@ -201,6 +206,12 @@ category_keywords:
       map_to_l2: C50
       priority: 90
       hints: ['Cleaning & Chemicals - Trash bags']
+    
+    # Smallwares & Equipment
+    - include_regex: '(?i)\b(tent|canopy|pop up canopy|straight leg canopy)\b'
+      map_to_l2: C40
+      priority: 90
+      hints: ['Smallwares & Equipment - Tents and canopies (e.g., Galaxy Equipment 10x10 White Straight Leg Instant Pop Up Canopy Tent)']
   
   # Vendor-specific abbreviations and normalizations
   vendor_abbreviations:
