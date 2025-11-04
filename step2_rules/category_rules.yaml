@@ -20,7 +20,7 @@ rules:
 
   - l1: "A01 COGS–Ingredients"
     l2: "Fresh Fruit & Veg"
-    must_include: ["strawberry","banana","lime","lemon","orange","grape","grapefruit"]
+    must_include: ["strawberry","strawberries","banana","lime","lemon","orange","grape","grapefruit","romaine","blueberry"]
     priority: 45
 
   - l1: "A01 COGS–Ingredients"
@@ -47,7 +47,7 @@ rules:
 
   - l1: "A03 COGS–Non-food Consumables"
     l2: "POS Paper & Register Supplies"
-    must_include: ["thermal paper","receipt paper","receipt roll","pos paper","thermal roll"]
+    must_include: ["thermal paper","receipt paper","receipt roll","pos paper","thermal roll","label roll"]
     must_exclude: ["napkin","tissue"]
     priority: 80
 

@@ -1,0 +1,31 @@
+version: 1
+
+rules:
+  - l1: "A06 Fees/Taxes/Services"
+    l2: "Checkout Bag Tax/Fees"
+    must_include: ["bag tax","checkout bag","bag fee"]
+    include_in_reports: true
+    exclude_from_cogs: true
+    priority: 90
+
+  - l1: "A06 Fees/Taxes/Services"
+    l2: "Platform/Service Fees"
+    must_include: ["service fee","platform fee","delivery fee","processing fee"]
+    include_in_reports: true
+    exclude_from_cogs: true
+    priority: 80
+
+  - l1: "A06 Fees/Taxes/Services"
+    l2: "Tips & Gratuities"
+    must_include: ["tip","gratuity"]
+    include_in_reports: true
+    exclude_from_cogs: true
+    priority: 80
+
+  - l1: "A06 Fees/Taxes/Services"
+    l2: "Discounts & Adjustments"
+    must_include: ["discount","promo","promotion","coupon","adjustment","no charge","complimentary","free of charge"]
+    include_in_reports: true
+    exclude_from_cogs: true
+    priority: 70
+

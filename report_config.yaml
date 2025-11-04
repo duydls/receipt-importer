@@ -13,3 +13,13 @@ report:
     - extended_amount
   hide_if_empty: [item_number, upc, spec.pack, spec.size, spec.uom]
 
+  group_subtotals_by: ["L1","L2"]
+
+  custom_subtotals:
+    - name: "COGS (Ingredients + Packaging + Non-food)"
+      includes_l1: ["A01 COGS–Ingredients","A02 COGS–Packaging","A03 COGS–Non-food Consumables"]
+    - name: "Fees/Taxes/Services"
+      includes_l1: ["A06 Fees/Taxes/Services"]
+    - name: "Grand Total"
+      includes_all: true
+
