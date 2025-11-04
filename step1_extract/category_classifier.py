@@ -294,7 +294,20 @@ class CategoryClassifier:
     
     def _apply_vendor_overrides(self, item: Dict[str, Any], vendor_code: str) -> Optional[Dict[str, Any]]:
         """Apply vendor-specific hints from L2 catalog"""
-        # TODO: Could implement vendor-specific biasing here
+        # Check for WebstaurantStore online lookup hints
+        if vendor_code == 'WEBSTAURANTSTORE' and item.get('_webstaurantstore_l2_hint'):
+            l2_category = item['_webstaurantstore_l2_hint']
+            confidence = item.get('_webstaurantstore_confidence', 0.80)
+            keywords = item.get('_webstaurantstore_keywords', [])
+            
+            return self._build_result(
+                l2_category=l2_category,
+                source='webstaurantstore_lookup',
+                rule_id=f"wss_lookup_{item.get('item_number', 'unknown')}",
+                confidence=confidence
+            )
+        
+        # TODO: Could implement other vendor-specific biasing here
         return None
     
     def _apply_keywords(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:

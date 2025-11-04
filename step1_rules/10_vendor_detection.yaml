@@ -48,6 +48,14 @@ vendor_detection:
       source_type: "localgrocery_based"
       confidence: 0.90
     
+    webstaurantstore:
+      patterns:
+        - "webstaurant"
+        - "webstaurantstore"
+      vendor_code: "WEBSTAURANTSTORE"
+      source_type: "webstaurantstore_based"
+      confidence: 0.95
+    
     parktoshop:
       patterns:
         - "parktoshop"
@@ -119,6 +127,16 @@ vendor_detection:
       vendor_code: "MARIANOS"
       source_type: "localgrocery_based"
       confidence: 0.80
+    
+    webstaurantstore:
+      keywords:
+        - "webstaurantstore"
+        - "webstaurant store"
+        - "sales invoice"
+        - "help@webstaurantstore.com"
+      vendor_code: "WEBSTAURANTSTORE"
+      source_type: "webstaurantstore_based"
+      confidence: 0.90
     
     aldi:
       keywords:

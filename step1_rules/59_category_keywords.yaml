@@ -185,11 +185,17 @@ category_keywords:
       priority: 85
       hints: ['Fresh Vegetables - Including herbs (Parktoshop "GREEN ONION", "BASIL LEAVE")']
     
-    # Cleaning
-    - include_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant)\b'
+    # Cleaning & Chemicals (including WebstaurantStore products)
+    - include_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant|chlorine|test strip|sani)\b'
       map_to_l2: C50
       priority: 85
-      hints: ['Cleaning & Chemicals']
+      hints: ['Cleaning & Chemicals - Sanitizers, disinfectants, test strips (WebstaurantStore)']
+    
+    # Body Fluid Spill Kits (WebstaurantStore)
+    - include_regex: '(?i)\b(spill kit|body fluid|clamshell case)\b'
+      map_to_l2: C31
+      priority: 90
+      hints: ['Gloves & Food Service Supplies - Spill kits (WebstaurantStore)']
     
     - include_regex: '(?i)\b(trash bag|garbage bag)\b'
       map_to_l2: C50

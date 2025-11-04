@@ -56,12 +56,16 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         input_dir: Base input directory
         
     Returns:
-        'localgrocery_based', 'instacart_based', 'bbi_based', or 'amazon_based'
+        'localgrocery_based', 'instacart_based', 'bbi_based', 'amazon_based', or 'webstaurantstore_based'
     """
     try:
         rel_path = file_path.relative_to(input_dir)
         folder_name = str(rel_path.parent) if rel_path.parent != Path('.') else ''
         filename_lower = file_path.name.lower()
+        
+        # WebstaurantStore-based = WebstaurantStore folder
+        if 'webstaurant' in folder_name.lower():
+            return 'webstaurantstore_based'
         
         # BBI-based = BBI folder or BBI filename patterns
         if 'bbi' in folder_name.lower() or 'uni_il_ut' in filename_lower:
@@ -80,6 +84,8 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
     except ValueError:
         # If can't determine relative path, check filename
         filename_lower = file_path.name.lower()
+        if 'webstaurant' in filename_lower:
+            return 'webstaurantstore_based'
         if 'bbi' in filename_lower or 'uni_il_ut' in filename_lower:
             return 'bbi_based'
         if 'amazon' in filename_lower or 'orders_from_' in filename_lower:
@@ -145,6 +151,7 @@ def process_files(
     instacart_based_files: List[Path] = []
     bbi_based_files: List[Path] = []
     amazon_based_files: List[Path] = []
+    webstaurantstore_based_files: List[Path] = []
     
     # Group PDF and Excel files
     for file_list in [pdf_files, excel_files]:
@@ -158,6 +165,8 @@ def process_files(
                 bbi_based_files.append(file_path)
             elif receipt_type == 'amazon_based':
                 amazon_based_files.append(file_path)
+            elif receipt_type == 'webstaurantstore_based':
+                webstaurantstore_based_files.append(file_path)
     
     # CSV files are only for instacart-based (Instacart baseline files)
     # They should only be in Instacart folders
@@ -168,7 +177,7 @@ def process_files(
         else:
             logger.warning(f"CSV file found in localgrocery location (ignoring): {file_path.relative_to(input_dir)}")
     
-    logger.info(f"LocalGrocery-based files: {len(localgrocery_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}")
+    logger.info(f"LocalGrocery-based files: {len(localgrocery_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}, WebstaurantStore-based files: {len(webstaurantstore_based_files)}")
     
     ### Process localgrocery-based files (Costco, RD, Aldi, Jewel-Osco, Mariano's, Parktoshop)
     localgrocery_based_output_dir = output_base_dir / 'localgrocery_based'
@@ -405,6 +414,52 @@ def process_files(
                 except Exception as e:
                     logger.error(f"Error processing Amazon order {order_id}: {e}", exc_info=True)
     
+    ### Process WebstaurantStore-based files (PDF invoices)
+    webstaurantstore_based_output_dir = output_base_dir / 'webstaurantstore_based'
+    webstaurantstore_based_data: Dict[str, Any] = {}
+    
+    if webstaurantstore_based_files:
+        logger.info("Processing WebstaurantStore-based receipts...")
+        
+        # Use dedicated WebstaurantStore PDF processor
+        from .webstaurantstore_pdf_processor import WebstaurantStorePDFProcessor
+        webstaurantstore_processor = WebstaurantStorePDFProcessor(rule_loader)
+        
+        for file_path in webstaurantstore_based_files:
+            try:
+                logger.info(f"Processing [WebstaurantStore]: {file_path.name}")
+                
+                if file_path.suffix.lower() == '.pdf':
+                    receipt_data = webstaurantstore_processor.process_file(file_path)
+                else:
+                    logger.warning(f"Unsupported file type for WebstaurantStore: {file_path.suffix}")
+                    continue
+                
+                if receipt_data:
+                    receipt_id = receipt_data.get('receipt_number') or file_path.stem
+                    
+                    # Apply vendor detection
+                    receipt_data = vendor_detector.apply_detection_to_receipt(file_path, receipt_data)
+                    
+                    # Add source info
+                    receipt_data['source_group'] = 'webstaurantstore_based'
+                    if 'source_file' not in receipt_data:
+                        receipt_data['source_file'] = str(file_path.relative_to(input_dir))
+                    
+                    # Apply UoM extraction
+                    from .uom_extractor import UoMExtractor
+                    uom_extractor = UoMExtractor(rule_loader)
+                    receipt_data['items'] = uom_extractor.extract_uom_from_items(receipt_data['items'])
+                    
+                    webstaurantstore_based_data[receipt_id] = receipt_data
+                    item_count = len([i for i in receipt_data['items'] if not i.get('is_fee')])
+                    logger.info(f"  ✓ Extracted {item_count} items, ${receipt_data.get('total', 0):.2f}")
+                else:
+                    logger.warning(f"  ✗ Failed to process {file_path.name}")
+            
+            except Exception as e:
+                logger.error(f"Error processing {file_path.name}: {e}", exc_info=True)
+    
     ### Apply Category Classification (Feature 14)
     logger.info("Applying category classification to all items...")
     from .category_classifier import CategoryClassifier
@@ -415,7 +470,8 @@ def process_files(
         ('localgrocery_based', localgrocery_based_data),
         ('instacart_based', instacart_based_data),
         ('bbi_based', bbi_based_data),
-        ('amazon_based', amazon_based_data)
+        ('amazon_based', amazon_based_data),
+        ('webstaurantstore_based', webstaurantstore_based_data)
     ]:
         if not receipts_data:
             continue
@@ -446,7 +502,8 @@ def process_files(
         'localgrocery_based': localgrocery_based_data,
         'instacart_based': instacart_based_data,
         'bbi_based': bbi_based_data,
-        'amazon_based': amazon_based_data
+        'amazon_based': amazon_based_data,
+        'webstaurantstore_based': webstaurantstore_based_data
     }
     
     # Save vendor-based output and generate report
@@ -517,12 +574,30 @@ def process_files(
         except Exception as e:
             logger.warning(f"Could not generate Amazon-based report: {e}")
     
+    # Save WebstaurantStore-based output and generate report
+    if webstaurantstore_based_data:
+        webstaurantstore_based_output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = webstaurantstore_based_output_dir / 'extracted_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(webstaurantstore_based_data, f, indent=2, ensure_ascii=False, default=str)
+        logger.info(f"Saved WebstaurantStore-based data to: {output_file}")
+        
+        # Generate WebstaurantStore-based report
+        try:
+            from .generate_report import generate_html_report
+            report_file = webstaurantstore_based_output_dir / 'report.html'
+            generate_html_report(webstaurantstore_based_data, report_file)
+            logger.info(f"Generated WebstaurantStore-based report: {report_file}")
+        except Exception as e:
+            logger.warning(f"Could not generate WebstaurantStore-based report: {e}")
+    
     # Generate combined final report at root output directory
     all_receipts: Dict[str, Any] = {}
     all_receipts.update(localgrocery_based_data)
     all_receipts.update(instacart_based_data)
     all_receipts.update(bbi_based_data)
     all_receipts.update(amazon_based_data)
+    all_receipts.update(webstaurantstore_based_data)
     
     if all_receipts:
         try:
@@ -566,7 +641,7 @@ def process_files(
     except Exception as e:
         logger.debug(f"Could not retrieve cache stats: {e}")
     
-    logger.info(f"\nStep 1 Complete: Extracted {len(localgrocery_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts")
+    logger.info(f"\nStep 1 Complete: Extracted {len(localgrocery_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts, {len(bbi_based_data)} BBI receipts, {len(amazon_based_data)} Amazon receipts, {len(webstaurantstore_based_data)} WebstaurantStore receipts")
     
     return results
 
