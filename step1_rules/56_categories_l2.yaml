@@ -378,6 +378,23 @@ categories_l2:
       vendor_hints:
         - title_contains: ['equipment', 'tool', 'utensil', 'container', 'storage', 'organizer', 'rack', 'holder']
     
+    - id: C41
+      name: Countertop Organizers & Holders
+      description: Countertop organizers, cup holders, condiment caddies, and similar fixtures
+      examples:
+        - 4-cup holders
+        - Countertop cup/condiment organizers
+        - Dispenser racks and caddies
+      synonyms:
+        - organizer
+        - countertop organizer
+        - cup holder
+        - 4-cup holder
+        - caddy
+        - dispenser rack
+      vendor_hints:
+        - title_contains: ['countertop organizer', 'cup holder', '4-cup holder', 'caddy', 'dispenser rack']
+    
     # ===== CLEANING (C50) =====
     
     - id: C50
@@ -414,6 +431,24 @@ categories_l2:
         - tape
       vendor_hints:
         - title_contains: ['paper', 'pen', 'marker', 'tape', 'stapler', 'folder', 'file', 'printer']
+
+    - id: C61
+      name: POS Paper & Register Supplies
+      description: Point-of-sale thermal paper, register tapes, and related POS consumables
+      examples:
+        - Thermal receipt paper rolls
+        - Cash register tape
+        - POS printer paper
+      synonyms:
+        - pos paper
+        - thermal paper
+        - receipt paper
+        - register tape
+        - cash register tape
+        - pos roll
+        - receipt roll
+      vendor_hints:
+        - title_contains: ['thermal paper', 'receipt paper', 'register tape', 'pos paper', 'pos roll', 'receipt roll']
     
     # ===== FEES & CHARGES (C70-C92) =====
     

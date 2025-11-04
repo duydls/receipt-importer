@@ -400,6 +400,12 @@ class LayoutApplier:
                         receipt_data['items'] = list(items)
                     except Exception:
                         receipt_data['items'] = items
+                    # Post-process: codes-first normalization
+                    try:
+                        items = self._postprocess_codes(items, vendor_code, layout)
+                        receipt_data['items'] = list(items)
+                    except Exception as e:
+                        logger.debug(f"Codes-first post-processing skipped: {e}")
                     logger.info(f"Successfully extracted {len(items)} items using layout '{layout.get('name', 'unnamed')}'")
                     return items
                 else:
@@ -1136,6 +1142,97 @@ class LayoutApplier:
         self._update_receipt_metadata_old(df, format_config, receipt_data)
         
         return items
+
+    # ---------------- Codes-first post-processing ----------------
+    def _postprocess_codes(self, items: List[Dict[str, Any]], vendor_code: str, layout: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Reorder fields, build display_name_codes_first, match_key, and has_codes.
+        Also optionally correct codes from product_name if missing using regex from shared.yaml.
+        """
+        # Load shared codes config
+        try:
+            codes_cfg = self.rule_loader.load_rule_file_by_name('shared.yaml').get('codes', {})
+        except Exception:
+            codes_cfg = {}
+
+        canonical_order = codes_cfg.get('canonical_column_order', [
+            'upc','item_number','product_name','quantity','unit_price','total_price'
+        ])
+        code_fields = layout.get('code_fields', codes_cfg.get('code_fields', ['upc','item_number']))
+        require_codes_vendors = set(codes_cfg.get('require_codes_at_start_vendors', []))
+        require_codes = vendor_code in require_codes_vendors or layout.get('require_codes_at_start', False)
+        prefix_fmt = layout.get('code_prefix_format', codes_cfg.get('code_prefix_format', '{upc} {item_number} — {product_name}'))
+        code_sep = codes_cfg.get('code_separator', ' ')
+        regex_cfg = codes_cfg.get('regex', {})
+        upc_pat = re.compile(regex_cfg.get('upc', r'(?<![0-9])([0-9]{8,14})(?![0-9])'))
+        item_pat = re.compile(regex_cfg.get('item_number', r'(?<![A-Za-z0-9])([A-Za-z0-9\-]{5,10})(?![A-Za-z0-9])'))
+
+        processed: List[Dict[str, Any]] = []
+        for it in items:
+            item = dict(it)  # shallow copy
+
+            # Best-effort code correction from product_name (OCR drift)
+            name = str(item.get('product_name') or '').strip()
+            if not item.get('upc') and name:
+                m = upc_pat.search(name)
+                if m:
+                    item['upc'] = m.group(1)
+            if not item.get('item_number') and name:
+                m2 = item_pat.search(name)
+                if m2:
+                    item['item_number'] = m2.group(1)
+
+            # display_name_codes_first
+            def fmt_field(k: str) -> str:
+                v = item.get(k)
+                return str(v).strip() if v not in (None, '', 'nan') else ''
+
+            upc_val = fmt_field('upc')
+            item_val = fmt_field('item_number')
+            name_val = fmt_field('product_name')
+
+            # Build prefix while skipping missing segments and collapsing spaces around sep
+            parts = []
+            if upc_val:
+                parts.append(upc_val)
+            if item_val:
+                parts.append(item_val)
+            if name_val:
+                # Use delimiter with em dash by default
+                if parts:
+                    display = f"{code_sep.join(parts)} — {name_val}".strip()
+                else:
+                    display = name_val
+            else:
+                display = code_sep.join(parts)
+            item['display_name_codes_first'] = display
+
+            # match_key priority: upc|item_number > item_number > normalized name
+            if upc_val and item_val:
+                item['match_key'] = f"{upc_val}|{item_val}"
+            elif upc_val:
+                item['match_key'] = upc_val
+            elif item_val:
+                item['match_key'] = item_val
+            else:
+                norm_name = re.sub(r"\s+", " ", name_val.lower()).strip()
+                item['match_key'] = norm_name
+
+            # has_codes flag
+            item['has_codes'] = bool(upc_val or item_val)
+
+            # Rebuild dict in canonical order (preserve others afterward)
+            ordered = {}
+            for key in canonical_order:
+                if key in item:
+                    ordered[key] = item[key]
+            # append other keys
+            for k, v in item.items():
+                if k not in ordered:
+                    ordered[k] = v
+
+            processed.append(ordered)
+
+        return processed
     
     def _detect_excel_format_old(self, df: pd.DataFrame, excel_formats: Dict[str, Any]) -> Optional[str]:
         """Detect which Excel format matches the DataFrame columns (old structure)"""

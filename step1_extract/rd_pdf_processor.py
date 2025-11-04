@@ -585,30 +585,60 @@ class RDPDFProcessor:
                 except (ValueError, IndexError):
                     continue
         
-        # Extract tax (using YAML patterns)
+        # Extract tax (using YAML patterns) - RD specific: IL TAX + IL FOOD TAX => TOTAL TAX
         tax_patterns = totals_patterns.get('tax', [
+            r'TOTAL\s+TAX[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)', # Prioritize TOTAL TAX
+            r'IL\s+FOOD\s+Tax[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
+            r'IL\s+TAX[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
             r'Taxes?[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
             r'Tax[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
             r'Sales\s+Tax[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
-            r'IL\s+FOOD\s+Tax[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
-            r'TOTAL\s+TAX[:\s]+(?:\\$?\\s*)?([0-9,]+(?:\.[0-9]{2})?)',
         ])
-        for pattern_config in tax_patterns:
-            pattern = pattern_config if isinstance(pattern_config, str) else pattern_config.get('regex', pattern_config)
-            # Decode YAML-escaped pattern (same as item pattern)
-            try:
-                pattern = pattern.encode('utf-8').decode('unicode_escape')
-            except Exception:
-                pass
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
+
+        # RD tax logic: prefer IL TAX lines over TOTAL TAX (IL TAX is more reliable)
+        try:
+            il_food_match = re.search(r'IL\s*FOOD\s*TAX[:\s]+\$?\s*([0-9,]+(?:\.[0-9]{2})?)', text, re.IGNORECASE)
+            il_tax_match = re.search(r'IL\s*TAX[:\s]+\$?\s*([0-9,]+(?:\.[0-9]{2})?)', text, re.IGNORECASE)
+            if il_food_match or il_tax_match:
+                il_food_val = float(il_food_match.group(1).replace(',', '').replace(':', '.')) if il_food_match else 0.0
+                il_val = float(il_tax_match.group(1).replace(',', '').replace(':', '.')) if il_tax_match else 0.0
+                combined = round(il_food_val + il_val, 2)
+                # Only set if positive; otherwise continue to other patterns
+                if combined >= 0.0:
+                    receipt_data['tax'] = combined
+                    logger.debug(f"RD tax extracted as sum: IL FOOD TAX ${il_food_val:.2f} + IL TAX ${il_val:.2f} = ${combined:.2f}")
+        except Exception:
+            pass
+
+        if not receipt_data.get('tax'):
+            # If no IL TAX lines found, try TOTAL TAX
+            total_tax_match = re.search(r'TOTAL\s*TAX[:\s]+\$?\s*([0-9,]+(?:\.[0-9]{2})?)', text, re.IGNORECASE)
+            if total_tax_match:
                 try:
-                    value_str = match.group(1).replace(',', '').replace(':', '.').replace('|', '')  # Fix OCR errors
-                    value = float(value_str)
+                    value = float(total_tax_match.group(1).replace(',', '').replace(':', '.'))
                     receipt_data['tax'] = value
-                    break
+                    logger.debug(f"RD tax extracted from TOTAL TAX: ${value:.2f}")
                 except (ValueError, IndexError):
-                    continue
+                    pass
+
+        if not receipt_data.get('tax'):
+            # Fallback to generic patterns
+            for pattern_config in tax_patterns:
+                pattern = pattern_config if isinstance(pattern_config, str) else pattern_config.get('regex', pattern_config)
+                # Decode YAML-escaped pattern (same as item pattern)
+                try:
+                    pattern = pattern.encode('utf-8').decode('unicode_escape')
+                except Exception:
+                    pass
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    try:
+                        value_str = match.group(1).replace(',', '').replace(':', '.').replace('|', '')  # Fix OCR errors
+                        value = float(value_str)
+                        receipt_data['tax'] = value
+                        break
+                    except (ValueError, IndexError):
+                        continue
         
         # Extract total (using YAML patterns)
         total_patterns = totals_patterns.get('total', [
@@ -632,6 +662,7 @@ class RDPDFProcessor:
                     break
                 except (ValueError, IndexError):
                     continue
+
     
     def _enrich_rd_items(self, items: list) -> list:
         """

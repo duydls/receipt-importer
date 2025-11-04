@@ -52,6 +52,17 @@ def _ensure_kb_loaded() -> Dict:
     _KB_SINGLETON = {}
     return _KB_SINGLETON
 
+def _load_overrides() -> dict:
+    """Load vendor overrides produced by the review loop (immutable overlay)."""
+    try:
+        overrides_path = Path('data/rd_review/kb_overrides.json')
+        if overrides_path.exists():
+            with overrides_path.open('r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
 def _kb_lookup_price_by_signature(vendor_key: str, item_signature: Dict) -> Optional[float]:
     kb = _ensure_kb_loaded()
     if not kb:
@@ -86,6 +97,24 @@ def lookup_cached(vendor_key: str, frozen_signature: tuple) -> Optional[Dict]:
     """LRU-cached KB lookup. Callers should pass a frozen signature (use _freeze_signature)."""
     # Unfreeze back into dict
     sig = {k: v for (k, v) in frozen_signature}
+    # Overlay support: restaurant_depot and costco
+    if vendor_key in ('restaurant_depot', 'costco'):
+        try:
+            ov = _load_overrides()
+            vendor_bucket = ov.get('RD' if vendor_key == 'restaurant_depot' else 'COSTCO', {})
+            rd_kb = vendor_bucket.get('kb', {})
+            item_number = (sig.get('item_number') or sig.get('upc') or '').strip()
+            if item_number and item_number in rd_kb:
+                entry = rd_kb[item_number]
+                # Only return a unit_price if present; else fall back to base price lookup
+                if 'unit_price' in entry:
+                    try:
+                        return {'unit_price': float(entry['unit_price'])}
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     price = _kb_lookup_price_by_signature(vendor_key, sig)
     if price is None:
         return None

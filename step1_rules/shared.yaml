@@ -31,6 +31,36 @@ validation:
   total_tolerance: 0.05
   required_fields: ["vendor", "order_date", "subtotal", "total"]
 
+# Codes-first display and matching configuration
+codes:
+  # Canonical column order for outputs and downstream exports
+  canonical_column_order:
+    - upc
+    - item_number
+    - product_name
+    - quantity
+    - unit_price
+    - total_price
+    - item_tax
+    - purchase_uom
+    - raw_uom_text
+
+  # Vendors that should require codes-first presentation
+  require_codes_at_start_vendors: ["RD", "COSTCO"]
+
+  # Default code fields (can be overridden per vendor/layout)
+  code_fields: ["upc", "item_number"]
+
+  # Display name format (missing fields are skipped automatically)
+  code_prefix_format: "{upc} {item_number} — {product_name}"
+  code_separator: " "
+
+  # Regex patterns for safe code detection/correction (used by OCR post-correction)
+  regex:
+    upc: '(?<![0-9])([0-9]{8,14})(?![0-9])'
+    # Default item number: 5-10 alnum (override per vendor in layouts if needed)
+    item_number: '(?<![A-Za-z0-9])([A-Za-z0-9\-]{5,10})(?![A-Za-z0-9])'
+
 output_fields:
   - vendor
   - order_date

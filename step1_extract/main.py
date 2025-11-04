@@ -230,6 +230,14 @@ def process_files(
                         receipt_data['source_group'] = 'localgrocery_based'
                     if 'source_file' not in receipt_data:
                         receipt_data['source_file'] = str(file_path.relative_to(input_dir))
+                    # RD-only amount reconciliation (post-extraction, pre-report)
+                    try:
+                        from .rd_amount_reconciler import reconcile_rd_amounts
+                        if receipt_data and (receipt_data.get('vendor') in ('RD', 'Restaurant Depot') or receipt_data.get('detected_vendor_code') in ('RD', 'RESTAURANT_DEPOT')):
+                            receipt_data = reconcile_rd_amounts(receipt_data)
+                    except Exception as e:
+                        logger.debug(f"RD reconciler skipped: {e}")
+
                     item_count = len(receipt_data.get('items', []))
                     if item_count > 0:
                         logger.info(f"  ✓ Extracted {item_count} items")

@@ -561,7 +561,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Add items
         for item in items:
-            product_name = item.get('product_name', 'Unknown Product')
+            # Use codes-first display name if available
+            product_name = item.get('display_name_codes_first') or item.get('product_name', 'Unknown Product')
             quantity = item.get('quantity', 0)
             # Use purchase_uom if available, otherwise fallback to raw_uom_text from Excel
             purchase_uom = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
@@ -603,12 +604,12 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Build detailed unit information
             unit_info_parts = []
             
-            # For Group 1 receipts, display Item Number and UPC if available
+            # For Group 1 receipts, display UPC and Item Number first if available
             if is_group1:
-                if item_number is not None:
-                    unit_info_parts.append(f'<strong>Item #:</strong> {item_number}')
                 if upc is not None:
-                    unit_info_parts.append(f'<strong>UPC:</strong> {upc}')
+                    unit_info_parts.insert(0, f'<strong>UPC:</strong> {upc}')
+                if item_number is not None:
+                    unit_info_parts.insert(1, f'<strong>Item #:</strong> {item_number}')
             
             if size:
                 unit_info_parts.append(f'<strong>Size:</strong> {size}')
@@ -697,10 +698,15 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                 price_style = 'background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 8px; margin-top: 5px; border-radius: 4px;'
                 price_warning = f'<div style="color: #856404; font-weight: bold; font-size: 0.9em; margin-top: 5px;">⚠️ Price Mismatch: Expected ${expected_total:.2f} ({calculation_display}), Got ${total_price_float:.2f}, Difference: ${abs(expected_total - total_price_float):.2f}</div>'
             
+            # Badge for missing codes (for manual attention)
+            missing_codes_badge = ''
+            if is_group1 and not item.get('has_codes', False):
+                missing_codes_badge = '<span style="background: #ffeeba; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 6px;">No UPC/Item#</span>'
+
             html_content += f"""
                 <div class="item-row" style="{price_style if not price_match else ''}">
                     <div style="flex: 2;">
-                        <div class="item-name">{product_name}</div>
+                        <div class="item-name">{product_name}{missing_codes_badge}</div>
                         {unit_info_html}
                     </div>
                     <div class="item-details">
@@ -744,7 +750,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Get vendor code to apply vendor-specific logic
         vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-        is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+        upper_vendor = vendor_code.upper()
+        is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
         
         # Verify calculated total against receipt total
         calculated_item_total = sum(
@@ -811,6 +818,9 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         # Get receipt total (use calculated if not available from receipt)
         total = receipt_data.get('total', 0.0) or calculated_total or 0.0
         
+        # RD-specific: label tax as "Total Tax"
+        tax_label = 'Total Tax' if ('RD' in upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor) else 'Tax'
+
         html_content += f"""
             </div>
             <div class="receipt-total" style="padding: 0 20px 20px 20px;">
@@ -826,7 +836,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${float(shipping):,.2f}</td>
                     </tr>
                     <tr>
-                        <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">Tax:</td>
+                        <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">{tax_label}:</td>
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${float(tax):,.2f}</td>
                     </tr>
                     <tr>

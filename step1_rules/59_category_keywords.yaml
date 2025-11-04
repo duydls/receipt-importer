@@ -58,6 +58,12 @@ category_keywords:
       map_to_l2: C23
       priority: 90
       hints: ['Labels & Stickers']
+
+    # POS paper vs service paper distinction
+    - include_regex: '(?i)\b(thermal\s+paper|receipt\s+paper|register\s+tape|cash\s+register\s+tape|pos\s+paper|receipt\s+roll|pos\s+roll)\b'
+      map_to_l2: C61
+      priority: 92
+      hints: ['POS Paper & Register Supplies']
     
     - include_regex: '(?i)(décor\s+paper|decorative\s+paper|packing\s+paper)'
       map_to_l2: C22
@@ -125,6 +131,11 @@ category_keywords:
       map_to_l2: C04
       priority: 85
       hints: ['Dairy & Milk - Including heavy cream/whipping cream (Aldi "Heavy Whip")']
+
+    - include_regex: '(?i)\b(yogurt|greek yogurt)\b'
+      map_to_l2: C04
+      priority: 90
+      hints: ['Dairy & Milk - Yogurt products']
     
     # Sweeteners & Sugar
     - include_regex: '(?i)\b(sugar|granulated sugar|cane sugar|brown sugar)\b'
@@ -137,6 +148,18 @@ category_keywords:
       priority: 85
       hints: ['Sweeteners/Sugar']
     
+    # Fruit cups in syrup → Syrups & Sauces (per user)
+    - include_regex: '(?i)\b(fruit\s+cup|grapefruit)\b.*\b(in\s+extra\s+light\s+syrup|in\s+syrup|light\s+syrup)\b'
+      map_to_l2: C02
+      priority: 92
+      hints: ['Syrups & Sauces - Canned fruit cups in (extra light) syrup']
+
+    # Fresh Fruit - Grapefruit
+    - include_regex: '(?i)\b(grapefruit|grapefruits)\b'
+      map_to_l2: C09
+      priority: 85
+      hints: ['Fresh Fruit - Grapefruit']
+
     # Grains & Starches
     - include_regex: '(?i)\b(panko|breadcrumb|bread crumb|coating)\b'
       map_to_l2: C07
@@ -212,6 +235,17 @@ category_keywords:
       map_to_l2: C40
       priority: 90
       hints: ['Smallwares & Equipment - Tents and canopies (e.g., Galaxy Equipment 10x10 White Straight Leg Instant Pop Up Canopy Tent)']
+    
+    - include_regex: '(?i)\b(straw\s+holder|stirrers?\s+holder|stirrer\s+holder|utensil\s+holder|organizer|caddy|rack)\b'
+      map_to_l2: C40
+      priority: 88
+      hints: ['Smallwares & Equipment - Holders/organizers/caddies/racks for kitchen tools']
+    
+    # Explicit IQF strawberry mapping
+    - include_regex: '(?i)\bIQF\b.*\bstrawberr(y|ies)\b|\bstrawberr(y|ies)\b.*\bIQF\b'
+      map_to_l2: C10
+      priority: 96
+      hints: ['Frozen Fruit - IQF strawberries']
   
   # Vendor-specific abbreviations and normalizations
   vendor_abbreviations:
@@ -378,6 +412,7 @@ category_keywords:
         - freeze dried
         - '°F'
         - '-°F'
+        - iqf
       map_to_l2_fresh: C09   # Fresh Fruit
       map_to_l2_frozen: C10  # Frozen Fruit
       confidence: 0.85
