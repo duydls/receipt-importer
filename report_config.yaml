@@ -11,6 +11,8 @@ report:
     - qty
     - unit_price
     - extended_amount
+    - L1
+    - L2
   hide_if_empty: [item_number, upc, spec.pack, spec.size, spec.uom]
 
   group_subtotals_by: ["L1","L2"]

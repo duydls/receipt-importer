@@ -13,14 +13,14 @@ rules:
     must_include: ["service fee","platform fee","delivery fee","processing fee"]
     include_in_reports: true
     exclude_from_cogs: true
-    priority: 80
+    priority: 85
 
   - l1: "A06 Fees/Taxes/Services"
     l2: "Tips & Gratuities"
     must_include: ["tip","gratuity"]
     include_in_reports: true
     exclude_from_cogs: true
-    priority: 80
+    priority: 85
 
   - l1: "A06 Fees/Taxes/Services"
     l2: "Discounts & Adjustments"
