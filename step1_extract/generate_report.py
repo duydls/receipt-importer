@@ -572,8 +572,15 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             
             # Item number and UPC (extracted from name hygiene)
             item_number = item.get('item_number')
+            vendor_item_no = item.get('vendor_item_no')  # RD-specific vendor item number
             item_code = item.get('item_code')
             upc = item.get('upc')
+            
+            # Size/spec (from name hygiene)
+            size_spec = item.get('size_spec', '')
+            
+            # No Charge marker (from name hygiene)
+            is_no_charge = item.get('is_no_charge', False)
             
             # Unit details
             size = item.get('size', '')
@@ -617,16 +624,28 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     spec_str = f"{spec_size} {spec_uom}"
             spec_html = f'<span class="unit-badge" style="margin-left:10px;">Spec: {spec_str}</span>' if spec_str else ''
             exclude_cogs_badge = '<span style="background:#f5c6cb;color:#721c24;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">Excluded from COGS</span>' if item.get('exclude_from_cogs') else ''
+            no_charge_badge = '<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">No Charge</span>' if is_no_charge else ''
             
             # Build detailed unit information
             unit_info_parts = []
             
-            # Display UPC and Item Number as separate columns (hide if empty)
-            # For all receipts, show UPC and Item# if available (not just Group 1)
+            # Display UPC, Vendor Item #, and Item Number as separate columns (hide if empty)
+            # For all receipts, show UPC, Vendor Item#, and Item# if available
             if upc is not None and upc:
                 unit_info_parts.insert(0, f'<strong>UPC:</strong> {upc}')
+            if vendor_item_no is not None and vendor_item_no:
+                unit_info_parts.insert(1, f'<strong>Vendor Item #:</strong> {vendor_item_no}')
             if item_number is not None and item_number:
-                unit_info_parts.insert(1, f'<strong>Item #:</strong> {item_number}')
+                # Only show Item # if vendor_item_no is not already shown (avoid duplication)
+                if not vendor_item_no:
+                    unit_info_parts.insert(1, f'<strong>Item #:</strong> {item_number}')
+                elif item_number != vendor_item_no:
+                    # Show both if they're different
+                    unit_info_parts.insert(2, f'<strong>Item #:</strong> {item_number}')
+            
+            # Display size_spec (from name hygiene) if available
+            if size_spec:
+                unit_info_parts.append(f'<strong>Size/Spec:</strong> {size_spec}')
             
             if size:
                 unit_info_parts.append(f'<strong>Size:</strong> {size}')
@@ -723,7 +742,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             html_content += f"""
                 <div class="item-row" style="{price_style if not price_match else ''}">
                     <div style="flex: 2;">
-                        <div class="item-name">{product_name}{missing_codes_badge}</div>
+                        <div class="item-name">{product_name}{missing_codes_badge}{no_charge_badge}</div>
                         {unit_info_html}
                     </div>
                     <div class="item-details">
@@ -758,11 +777,13 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         other_charges_raw = receipt_data.get('other_charges')
         other_charges = float(other_charges_raw) if other_charges_raw is not None else 0.0
         
-        # Also sum fees from items (items with is_fee=True) if other_charges is not already calculated
+        # Also sum fees from items (items with is_fee=True) and no-charge items if other_charges is not already calculated
+        # No-charge items are excluded from COGS but visible in "Other/Operational"
         if other_charges == 0.0:
             fee_items = [item for item in receipt_data.get('items', []) if item.get('is_fee', False)]
-            if fee_items:
-                other_charges = sum(float(item.get('total_price') or 0) for item in fee_items)
+            no_charge_items = [item for item in receipt_data.get('items', []) if item.get('is_no_charge', False)]
+            if fee_items or no_charge_items:
+                other_charges = sum(float(item.get('total_price') or 0) for item in fee_items + no_charge_items)
         
         subtotal_raw = receipt_data.get('subtotal')
         subtotal = float(subtotal_raw) if subtotal_raw is not None else 0.0
@@ -773,10 +794,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
         
         # Verify calculated total against receipt total
+        # Exclude fees and no-charge items from COGS calculations
         calculated_item_total = sum(
             float(item.get('total_price') or 0) 
             for item in items 
-            if not item.get('is_fee', False)
+            if not item.get('is_fee', False) and not item.get('is_no_charge', False)
         )
         
         # Vendor-specific logic for subtotal calculation
@@ -790,10 +812,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                 calculated_subtotal = subtotal
             else:
                 # Fallback: calculate from items (unit_price × quantity, tax excluded)
+                # Exclude fees and no-charge items from COGS calculations
                 calculated_subtotal = sum(
                     float(item.get('unit_price') or 0) * float(item.get('quantity') or 0)
                     for item in items 
-                    if not item.get('is_fee', False)
+                    if not item.get('is_fee', False) and not item.get('is_no_charge', False)
                 )
         else:
             # For other vendors: use extracted subtotal if provided, otherwise use calculated from items
@@ -806,10 +829,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         receipt_total = receipt_data.get('total', 0.0) or 0.0
         
         # Verify calculated items quantity against items_sold from receipt
+        # Exclude fees and no-charge items from quantity calculations
         calculated_items_qty = sum(
             float(item.get('quantity') or 0) 
             for item in items 
-            if not item.get('is_fee', False)
+            if not item.get('is_fee', False) and not item.get('is_no_charge', False)
         )
         receipt_items_sold = receipt_data.get('items_sold')
         
