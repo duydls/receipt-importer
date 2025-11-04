@@ -141,3 +141,62 @@ rd_layouts:
       # They are handled by CONTROL_PATTERNS in layout_applier.py
       - "BALANCE"
       - "PREVIOUS BALANCE"
+    # OCR-specific patterns for image-based PDFs (when pdfplumber table extraction fails)
+    ocr_extraction:
+      # Item line parsing pattern (for OCR text)
+      # Note: Use single quotes for regex patterns to avoid YAML escaping issues
+      item_pattern:
+        regex: '^(\\d{10,13})\\s+(\\d{5,10})\\s+(.+?)\\s+(\\d+[.,]\\d{2})\\s+(\\d+(?:\\.\\d+)?)\\s+[Uu]\\s*\\(?[Tt]\\)?\\s+(\\d+[.,]\\d{2})\\s*[Tt]?.*$'
+        description: "RD item line format: UPC ItemNumber Description UnitPrice Qty U(T) ExtAmount Tax"
+        groups:
+          - upc
+          - item_number
+          - product_name
+          - unit_price
+          - quantity
+          - total_price
+      # OCR error correction rules (applied before pattern matching)
+      error_corrections:
+        - find: ":"
+          replace: "."
+          description: "Fix '32:15' -> '32.15'"
+        - find: "|"
+          replace: " "
+          description: "Remove pipe characters"
+        - find: "(\\d)\\.([f])"
+          replace: "\\1.7"
+          description: "Fix '21.f2' -> '21.72'"
+        - find: "(\\d)\\.([e])"
+          replace: "\\1.2"
+          description: "Fix '21.e2' -> '21.22'"
+      # Totals extraction patterns (for OCR text)
+      # Note: Use single quotes for regex patterns to avoid YAML escaping issues
+      totals_patterns:
+        subtotal:
+          - regex: 'Subtotal[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'Sub\\s+Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'SUBTOTAL[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+        tax:
+          - regex: 'Taxes?[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'Tax[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'Sales\\s+Tax[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'IL\\s+FOOD\\s+Tax[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'TOTAL\\s+TAX[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+        total:
+          - regex: 'TRANSACTION\\s+TOTAL[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+          - regex: 'Grand\\s+Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)'
+      # Skip patterns for OCR text (non-item lines)
+      skip_lines:
+        - "BALANCE"
+        - "PREVIOUS BALANCE"
+        - "RESTAURANT DEPOT"
+        - "JETRO CASH"
+        - "^\\|"
+        - "^:"
+      # Stop patterns (end of item section)
+      stop_patterns:
+        - "SUBTOTAL"
+        - "TAX"
+        - "TOTAL"
+        - "TRANSACTION TOTAL"

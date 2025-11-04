@@ -37,8 +37,15 @@ psycopg2-binary>=2.9.9
 playwright>=1.40.0
 # After install, run: playwright install chromium
 
-# Image processing (future enhancements)
+# Image processing (for OCR)
 Pillow>=10.2.0
+
+# OCR for image-based PDFs (optional, requires tesseract system dependency)
+pytesseract>=0.3.10
+# After install, install tesseract:
+# macOS: brew install tesseract
+# Ubuntu/Debian: sudo apt-get install tesseract-ocr
+# Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
 
 # ============================================================================
 # PYTHON VERSION
