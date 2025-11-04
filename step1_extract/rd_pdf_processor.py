@@ -659,10 +659,19 @@ class RDPDFProcessor:
             item_number = str(item.get('item_number', '')).strip()
             
             # Look up in knowledge base
+            # KB format: [name, store, spec, price] or {name, store, spec, price}
             kb_entry = kb.get(item_number)
             if kb_entry:
-                kb_spec = kb_entry.get('spec', '')  # Size/spec info
-                kb_name = kb_entry.get('name', '')
+                # Handle both array and dict formats
+                if isinstance(kb_entry, list):
+                    kb_name = kb_entry[0] if len(kb_entry) > 0 else ''
+                    kb_spec = kb_entry[2] if len(kb_entry) > 2 else ''  # Size/spec info (UoM)
+                elif isinstance(kb_entry, dict):
+                    kb_name = kb_entry.get('name', '')
+                    kb_spec = kb_entry.get('spec', '')
+                else:
+                    kb_name = ''
+                    kb_spec = ''
                 
                 # Add size/spec info if available
                 if kb_spec:
