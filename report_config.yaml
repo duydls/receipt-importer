@@ -1,0 +1,15 @@
+version: 1
+
+report:
+  display_name: canonical_name
+  columns:
+    - item_number
+    - upc
+    - spec.pack
+    - spec.size
+    - spec.uom
+    - qty
+    - unit_price
+    - extended_amount
+  hide_if_empty: [item_number, upc, spec.pack, spec.size, spec.uom]
+

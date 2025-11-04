@@ -1,0 +1,23 @@
+version: 1
+
+entries:
+  - id: rd-pos-thermal-paper
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Thermal Receipt Paper (POS)"
+    aliases: ["thermal paper","receipt roll","pos paper","thermal roll"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "POS Paper & Register Supplies" }
+    category_lock: true
+    priority: 95
+
+
+entries:
+  - id: rd-pos-thermal-paper
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Thermal Receipt Paper (POS)"
+    aliases: ["thermal paper","receipt roll","pos paper","thermal roll"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "POS Paper & Register Supplies" }
+    category_lock: true
+    priority: 95
+
