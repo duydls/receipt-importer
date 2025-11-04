@@ -184,9 +184,9 @@ class RDPDFProcessor:
             if not receipt_data.get('parsed_by'):
                 receipt_data['parsed_by'] = 'rd_pdf_v1'
             
-            # Enrich with knowledge base (same as Excel)
-            if self._legacy_processor:
-                receipt_data = self._legacy_processor.enrich_with_vendor_kb(receipt_data, vendor_code)
+            # Enrich with knowledge base (same as Excel processor)
+            # Use the same enrichment logic as Excel processor for RD
+            receipt_data['items'] = self._enrich_rd_items(receipt_data.get('items', []))
             
             logger.info(f"Extracted {len(items)} items from RD PDF {file_path.name}")
             return receipt_data
@@ -629,4 +629,51 @@ class RDPDFProcessor:
                 except (ValueError, IndexError):
                     continue
     
+    def _enrich_rd_items(self, items: list) -> list:
+        """
+        Enrich RD items with size/spec information from knowledge base.
+        Same logic as ExcelProcessor._enrich_rd_items()
+        
+        Args:
+            items: List of item dictionaries
+        
+        Returns:
+            List of enriched items
+        """
+        from . import vendor_profiles
+        
+        # Load knowledge base (uses singleton cache)
+        kb = vendor_profiles._ensure_kb_loaded()
+        
+        if not kb:
+            logger.warning("Knowledge base not loaded, skipping RD enrichment")
+            return items
+        
+        enriched_items = []
+        
+        for item in items:
+            item_number = str(item.get('item_number', '')).strip()
+            
+            # Look up in knowledge base
+            kb_entry = kb.get(item_number)
+            if kb_entry:
+                kb_spec = kb_entry.get('spec', '')  # Size/spec info
+                kb_name = kb_entry.get('name', '')
+                
+                # Add size/spec info if available
+                if kb_spec:
+                    item['kb_size'] = kb_spec
+                    item['kb_source'] = 'knowledge_base'
+                    logger.debug(f"RD KB: {item.get('product_name', 'Unknown')} ({item_number}): size={kb_spec}")
+                
+                # Optionally verify the name matches (for QA purposes)
+                if kb_name and kb_name.upper() != item.get('product_name', '').upper():
+                    item['kb_name_mismatch'] = True
+                    logger.debug(f"RD KB: Name mismatch for {item_number}: receipt='{item.get('product_name')}' vs kb='{kb_name}'")
+            else:
+                logger.debug(f"RD KB: Item {item_number} not found in knowledge base")
+            
+            enriched_items.append(item)
+        
+        return enriched_items
 
