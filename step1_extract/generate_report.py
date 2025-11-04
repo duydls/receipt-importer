@@ -672,8 +672,20 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             unit_price_float = float(unit_price) if unit_price else 0.0
             total_price_float = float(total_price) if total_price else 0.0
             
-            # Calculate expected total
-            expected_total = qty_float * unit_price_float if qty_float > 0 and unit_price_float > 0 else total_price_float
+            # Get vendor code for vendor-specific validation
+            vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
+            is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+            
+            # Calculate expected total (vendor-specific logic)
+            if is_webstaurantstore:
+                # WEBSTAURANTSTORE-specific: total_price = (unit_price × quantity) + item_tax
+                item_tax = float(item.get('item_tax') or 0)
+                expected_total = (qty_float * unit_price_float) + item_tax if qty_float > 0 and unit_price_float > 0 else total_price_float
+                calculation_display = f"{qty_float:g} × ${unit_price_float:.2f} + ${item_tax:.2f} (tax) = ${expected_total:.2f}"
+            else:
+                # For other vendors: total_price = unit_price × quantity
+                expected_total = qty_float * unit_price_float if qty_float > 0 and unit_price_float > 0 else total_price_float
+                calculation_display = f"{qty_float:g} × ${unit_price_float:.2f} = ${expected_total:.2f}"
             
             # Check if they match (allow small rounding differences of 0.01)
             price_match = abs(expected_total - total_price_float) < 0.01
@@ -683,7 +695,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             price_warning = ""
             if not price_match and qty_float > 0 and unit_price_float > 0 and total_price_float > 0:
                 price_style = 'background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 8px; margin-top: 5px; border-radius: 4px;'
-                price_warning = f'<div style="color: #856404; font-weight: bold; font-size: 0.9em; margin-top: 5px;">⚠️ Price Mismatch: Expected ${expected_total:.2f} (Qty: {qty_float} × Unit: ${unit_price_float:.2f}), Got ${total_price_float:.2f}, Difference: ${abs(expected_total - total_price_float):.2f}</div>'
+                price_warning = f'<div style="color: #856404; font-weight: bold; font-size: 0.9em; margin-top: 5px;">⚠️ Price Mismatch: Expected ${expected_total:.2f} ({calculation_display}), Got ${total_price_float:.2f}, Difference: ${abs(expected_total - total_price_float):.2f}</div>'
             
             html_content += f"""
                 <div class="item-row" style="{price_style if not price_match else ''}">
@@ -696,7 +708,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                             <strong>Quantity:</strong> {qty_float:g}{unit_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f}
                         </div>
                         <div style="font-size: 0.9em; color: #666; margin-top: 3px;">
-                            Calculation: {qty_float:g} × ${unit_price_float:.2f} = ${expected_total:.2f} {'✅' if price_match else '❌'}
+                            Calculation: {calculation_display} {'✅' if price_match else '❌'}
                         </div>
                         {price_warning}
                         <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
@@ -712,8 +724,12 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         tax_raw = receipt_data.get('tax')
         tax = float(tax_raw) if tax_raw is not None else 0.0
         
+        # Get shipping & handling (always show, even if 0)
+        shipping_raw = receipt_data.get('shipping')
+        shipping = float(shipping_raw) if shipping_raw is not None else 0.0
+        
         # Calculate other_charges from fees (bag fee, tips, service fees) if not already set
-        # Other charges should include all fees except tax
+        # Other charges should include all fees except tax and shipping
         other_charges_raw = receipt_data.get('other_charges')
         other_charges = float(other_charges_raw) if other_charges_raw is not None else 0.0
         
@@ -726,16 +742,41 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         subtotal_raw = receipt_data.get('subtotal')
         subtotal = float(subtotal_raw) if subtotal_raw is not None else 0.0
         
+        # Get vendor code to apply vendor-specific logic
+        vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
+        is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+        
         # Verify calculated total against receipt total
-        # Calculate total from items (excluding fees if subtotal includes them)
-        # Handle None values in item prices and quantities
         calculated_item_total = sum(
             float(item.get('total_price') or 0) 
             for item in items 
             if not item.get('is_fee', False)
         )
-        calculated_subtotal = calculated_item_total if subtotal == 0.0 else subtotal
-        calculated_total = calculated_subtotal + tax + other_charges
+        
+        # Vendor-specific logic for subtotal calculation
+        if is_webstaurantstore:
+            # WEBSTAURANTSTORE-specific logic:
+            # - Subtotal (summary) is TAX EXCLUDED (sum of unit_price × quantity only)
+            # - Item total_price includes tax: total_price = (unit_price × quantity) + item_tax
+            # - So sum of item total_price ≠ subtotal (summary) because it includes tax
+            # - We MUST use the extracted subtotal (tax excluded) if provided
+            if subtotal > 0:
+                calculated_subtotal = subtotal
+            else:
+                # Fallback: calculate from items (unit_price × quantity, tax excluded)
+                calculated_subtotal = sum(
+                    float(item.get('unit_price') or 0) * float(item.get('quantity') or 0)
+                    for item in items 
+                    if not item.get('is_fee', False)
+                )
+        else:
+            # For other vendors: use extracted subtotal if provided, otherwise use calculated from items
+            if subtotal > 0:
+                calculated_subtotal = subtotal
+            else:
+                calculated_subtotal = calculated_item_total
+        
+        calculated_total = calculated_subtotal + shipping + tax + other_charges
         receipt_total = receipt_data.get('total', 0.0) or 0.0
         
         # Verify calculated items quantity against items_sold from receipt
@@ -755,7 +796,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         if receipt_total > 0:
             total_diff = abs(calculated_total - receipt_total)
             if total_diff > 0.01:  # Allow 1 cent tolerance
-                total_validation_warning = f'<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 8px; margin: 10px 0; border-radius: 4px;"><strong>⚠️ Total Mismatch:</strong> Calculated ${calculated_total:.2f} (Subtotal: ${calculated_subtotal:.2f} + Tax: ${tax:.2f} + Other Charges: ${other_charges:.2f}) ≠ Receipt Total ${receipt_total:.2f}, Difference: ${total_diff:.2f}</div>'
+                total_validation_warning = f'<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 8px; margin: 10px 0; border-radius: 4px;"><strong>⚠️ Total Mismatch:</strong> Calculated ${calculated_total:.2f} (Subtotal: ${calculated_subtotal:.2f} + Shipping: ${shipping:.2f} + Tax: ${tax:.2f} + Other Charges: ${other_charges:.2f}) ≠ Receipt Total ${receipt_total:.2f}, Difference: ${total_diff:.2f}</div>'
             else:
                 total_check = ' <span style="color: #28a745;">✅</span>'
         
@@ -779,6 +820,10 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     <tr>
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">Subtotal:</td>
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${float(calculated_subtotal):,.2f}</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">Shipping & Handling:</td>
+                        <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${float(shipping):,.2f}</td>
                     </tr>
                     <tr>
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">Tax:</td>
