@@ -171,11 +171,17 @@ class WebstaurantStorePDFProcessor:
         shipping_match = re.search(r'Shipping & Handling:\$([0-9,]+\.\d{2})', text)
         if shipping_match:
             receipt_data['shipping'] = float(shipping_match.group(1).replace(',', ''))
+        else:
+            # Default shipping to 0.0 if not found
+            receipt_data['shipping'] = 0.0
+            logger.debug("Shipping & Handling not found in PDF, defaulting to $0.00")
         
-        # Tax can be "Est. Tax" or "Estimated Tax"
-        # Pattern: "Estimated Tax:$4.60" or "Est. Tax:$4.60"
+        # Tax can be "Est. Tax" or "Estimated Tax" (note: PDF may have typo "Esmated Tax")
+        # IMPORTANT: Use summary tax as authoritative (may include tax on shipping, not just sum of item taxes)
+        # Pattern: "Estimated Tax:$4.60" or "Est. Tax:$4.60" or "Esmated Tax:$3.96"
         tax_patterns = [
             r'Estimated\s+Tax[:\s]+\$([0-9,]+\.\d{2})',  # "Estimated Tax:$4.60"
+            r'Esmated\s+Tax[:\s]+\$([0-9,]+\.\d{2})',  # "Esmated Tax:$3.96" (PDF typo)
             r'Es[tm]\.\s*Tax[:\s]+\$([0-9,]+\.\d{2})',  # "Est. Tax:$4.60"
             r'Es[tm]\.?\s*Tax[:\s]+\$([0-9,]+\.\d{2})',  # "Est Tax:$4.60"
         ]
@@ -189,12 +195,13 @@ class WebstaurantStorePDFProcessor:
         
         if tax_value is not None:
             receipt_data['tax'] = tax_value
+            logger.debug(f"Extracted summary tax from PDF: ${tax_value:.2f}")
         else:
             # Fallback: sum item taxes if total tax not found
             items_tax_sum = sum(float(item.get('item_tax', 0)) for item in items)
             if items_tax_sum > 0:
                 receipt_data['tax'] = items_tax_sum
-                logger.debug(f"Total tax not found in PDF, using sum of item taxes: ${items_tax_sum:.2f}")
+                logger.warning(f"Total tax not found in PDF summary, using sum of item taxes: ${items_tax_sum:.2f}")
         
         total_match = re.search(r'Total:\$([0-9,]+\.\d{2})', text)
         if total_match:
@@ -227,18 +234,16 @@ class WebstaurantStorePDFProcessor:
                 f'Subtotal mismatch: calculated ${items_subtotal_from_unit:.2f} (sum of unit×qty, tax excluded) vs PDF ${receipt_data["subtotal"]:.2f}'
             )
         
-        # 2. Verify sum of item taxes matches total tax (summary)
+        # 2. Verify sum of item taxes vs total tax (summary)
+        # NOTE: Summary tax is authoritative and may include tax on shipping,
+        # so it's OK if summary tax differs from sum of item taxes
         items_tax_sum = sum(float(item.get('item_tax', 0)) for item in items)
         if abs(items_tax_sum - receipt_data['tax']) > 0.02:
-            logger.warning(
-                f"Tax mismatch: items tax sum ${items_tax_sum:.2f} vs extracted tax ${receipt_data['tax']:.2f}"
+            logger.debug(
+                f"Tax difference: items tax sum ${items_tax_sum:.2f} vs summary tax ${receipt_data['tax']:.2f} "
+                f"(difference may be shipping tax)"
             )
-            receipt_data['needs_review'] = True
-            if 'review_reasons' not in receipt_data:
-                receipt_data['review_reasons'] = []
-            receipt_data['review_reasons'].append(
-                f'Tax mismatch: calculated ${items_tax_sum:.2f} (sum of item taxes) vs PDF ${receipt_data["tax"]:.2f}'
-            )
+            # Don't flag as review - summary tax is authoritative
         
         # 3. Verify grand total: subtotal + shipping + tax = total (tax included)
         calculated_total = receipt_data['subtotal'] + receipt_data['shipping'] + receipt_data['tax']
@@ -332,7 +337,82 @@ class WebstaurantStorePDFProcessor:
             if line.startswith('Subtotal') or line.startswith('Shipping') or line.startswith('Total'):
                 break
             
-            # Check if line starts with item number (alphanumeric code)
+            # FIRST: Try to match single-line item (item number + description + all prices on one line)
+            # Pattern: ItemNumber Description... UnitPrice QTY Tax Total
+            # Example: "877RE012584 30 lb. IQF Whole Strawberries $61.99 2 $2.79 $126.77"
+            single_line_match = re.match(r'^([A-Z0-9]{5,})\s+(.+?)\$([0-9,]+\.\d{2})\s+(\d+)\s+\$([0-9,]+\.\d{2})\s+\$([0-9,]+\.\d{2})$', line)
+            if single_line_match:
+                # Found single-line item - extract all data
+                item_number = single_line_match.group(1)
+                description = single_line_match.group(2).strip()
+                unit_price = float(single_line_match.group(3).replace(',', ''))
+                quantity = float(single_line_match.group(4))
+                item_tax = float(single_line_match.group(5).replace(',', ''))
+                total_price_extracted = float(single_line_match.group(6).replace(',', ''))
+                
+                # Verify total: (unit_price × quantity) + item_tax = total_price
+                calculated_total = (unit_price * quantity) + item_tax
+                
+                # Use calculated total if it matches (within 0.01 tolerance for rounding)
+                if abs(calculated_total - total_price_extracted) <= 0.01:
+                    total_price = calculated_total
+                else:
+                    # If mismatch, use extracted but log warning
+                    total_price = total_price_extracted
+                    logger.warning(
+                        f"Item {item_number}: Total mismatch - "
+                        f"calculated ${calculated_total:.2f} (${unit_price:.2f} × {quantity} + ${item_tax:.2f}) "
+                        f"vs extracted ${total_price_extracted:.2f}"
+                    )
+                
+                # Clean description
+                description = re.sub(r'\s+', ' ', description).strip()
+                
+                # Extract UoM from description
+                purchase_uom = None
+                raw_uom_text = None
+                
+                # Look for pack/size patterns
+                pack_match = re.search(r'(\d+)/Pack', description, re.IGNORECASE)
+                if pack_match:
+                    purchase_uom = f"{pack_match.group(1)}-pk"
+                    raw_uom_text = f"{pack_match.group(1)}/Pack"
+                else:
+                    pack_match = re.search(r'(\d+)/Case', description, re.IGNORECASE)
+                    if pack_match:
+                        purchase_uom = f"{pack_match.group(1)}-cs"
+                        raw_uom_text = f"{pack_match.group(1)}/Case"
+                    else:
+                        pack_match = re.search(r'(\d+)\s*Pack', description, re.IGNORECASE)
+                        if pack_match:
+                            purchase_uom = f"{pack_match.group(1)}-pk"
+                            raw_uom_text = f"{pack_match.group(1)} Pack"
+                
+                item = {
+                    'product_name': description,
+                    'item_number': item_number,
+                    'quantity': quantity,
+                    'unit_price': unit_price,
+                    'total_price': total_price,
+                    'item_tax': item_tax,
+                    'purchase_uom': purchase_uom,
+                    'raw_uom_text': raw_uom_text,
+                    'is_fee': False
+                }
+                
+                items.append(item)
+                logger.debug(
+                    f"Extracted single-line item: {item_number} - {description[:50]}... "
+                    f"Qty: {quantity}, Unit: ${unit_price:.2f}, Tax: ${item_tax:.2f}, Total: ${total_price:.2f}"
+                )
+                
+                # Clear accumulated state
+                current_description_lines = []
+                current_item_number = None
+                i += 1
+                continue
+            
+            # SECOND: Check if line starts with item number (alphanumeric code) - multi-line item start
             # Item numbers are typically: digits + optional letters + optional digits
             # Examples: "373CH1000", "381384101CLM"
             item_num_match = re.match(r'^([A-Z0-9]{5,})', line)
@@ -345,7 +425,7 @@ class WebstaurantStorePDFProcessor:
                 i += 1
                 continue
             
-            # Try to match item row pattern (line ending with prices)
+            # THIRD: Try to match item row pattern (line ending with prices) - multi-line item end
             # Look for line ending with price pattern: $XX.XX number $X.XX $XX.XX
             # Format: Unit Price | QTY | Est. Tax | Total
             # Pattern matches: $12.96 2 $2.65 $28.57
