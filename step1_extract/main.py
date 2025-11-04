@@ -134,9 +134,11 @@ def process_files(
     # Initialize processors (pass input_dir for knowledge base location)
     from .excel_processor import ExcelProcessor
     from .pdf_processor import PDFProcessor
+    from .rd_pdf_processor import RDPDFProcessor
     
     excel_processor = ExcelProcessor(rule_loader, input_dir=input_dir)
     pdf_processor = PDFProcessor(rule_loader, input_dir=input_dir)
+    rd_pdf_processor = RDPDFProcessor(rule_loader, input_dir=input_dir)
     
     # Find all files
     pdf_files = list(input_dir.glob('**/*.pdf'))
@@ -200,7 +202,11 @@ def process_files(
                 if file_path.suffix.lower() in ['.xlsx', '.xls']:
                     receipt_data = excel_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
                 elif file_path.suffix.lower() == '.pdf':
-                    receipt_data = excel_processor.process_pdf(file_path)
+                    # Check if it's an RD PDF and use grid processor
+                    if detected_vendor_code in ['RD', 'RESTAURANT_DEPOT']:
+                        receipt_data = rd_pdf_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
+                    else:
+                        receipt_data = excel_processor.process_pdf(file_path)
                 else:
                     logger.warning(f"Unsupported file type: {file_path.suffix}")
                     return file_path.stem, None

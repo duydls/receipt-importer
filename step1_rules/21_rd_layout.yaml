@@ -104,49 +104,40 @@ rd_layouts:
       - ""
       - "nan"
   
-  - name: "RD PDF Receipt"
+  # PDF variant: Grid mode (uses pdfplumber to extract tables, then applies same column mappings as Excel)
+  - name: "RD PDF Grid v1"
     parsed_by: "rd_pdf_v1"
     applies_to:
       vendor_code: ["RD", "RESTAURANT_DEPOT"]
       file_ext: [".pdf"]
-      text_contains: ["UPC", "Item", "Description"]
-    # PDF parsing uses line patterns instead of column mappings
-    line_patterns:
-      # Main RD item pattern: UPC Item_Number Item_Description Unit_Price Qty U(T) Ext_Amount
-      - type: "rd_item"
-        regex: "(\\d{5,13})\\s+(\\d{5,13})\\s+([A-Z][A-Z0-9\\s/]+?)\\s+(\\d+\\.\\d{2})\\s+(\\d+(?:\\.\\d+)?)\\s+[UC]\\(T\\)\\s+(\\d+\\.\\d{2})"
-        flags: "IGNORECASE"
-        groups:
-          - first_number  # Could be UPC or item_number
-          - second_number  # Could be UPC or item_number
-          - description
-          - unit_price
-          - quantity
-          - ext_amount
-        description: "RD item line with UPC, item number, description, prices"
-      
-      # Header detection
-      - type: "header"
-        keywords: ["UPC", "Item", "Description"]
-        description: "RD receipt header line"
-    
-    # Number identification rules
-    number_identification:
-      upc:
-        min_digits: 10
-        max_digits: 13
-      item_number:
-        min_digits: 5
-        max_digits: 10
-    
-    # Skip patterns for summary lines
-    skip_patterns:
-      - "PREVIOUS BALANCE"
-      - "SUBTOTAL"
-      - "TOTAL"
-      - "TAX"
-      - "TRANSACTION"
-    
+      header_contains:
+        - "Item Description"
+        - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?"
+      text_contains:
+        - "Restaurant Depot"
+        - "Item Description"
+    required_columns:
+      - "Item Description"
+      - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?"
+    optional_columns:
+      - "QTY"
+      - "Unit Price"
+      - "Item Number"
+      - "UPC"
+      - "Transaction Date"
+    column_mappings:
+      product_name: "Item Description"
+      quantity: "^(QTY|Qty|Quantity)$"
+      unit_price: "^(Unit\\s*Price|Price|UnitPrice|U\\s*Price)$"
+      total_price: "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?|Total\\s*Price|Amount"
+      item_number: "^(Item\\s*Number|Item\\s*#|Item\\s*No\\.?|Item#|SKU)$"
+      upc: "^(UPC|Barcode)$"
+      transaction_date: "^(Transaction\\s*Date|Date|Trans\\s*Date|TransactionDate)$"
     normalization:
       trim_whitespace: true
       preserve_case: true
+    skip_patterns:
+      # Note: Do NOT add control keywords like "TOTAL", "TAX", "Total Items Sold" here
+      # They are handled by CONTROL_PATTERNS in layout_applier.py
+      - "BALANCE"
+      - "PREVIOUS BALANCE"

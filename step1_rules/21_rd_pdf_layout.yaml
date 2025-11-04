@@ -1,0 +1,132 @@
+# Restaurant Depot PDF Layout Rules (Grid Mode)
+# Grid-based PDF extraction for RD receipts
+# This file defines patterns for extracting data from RD PDF receipts using layout-preserving grid extraction
+
+rd_pdf_layouts:
+  - name: "RD PDF Grid v1"
+    parsed_by: "rd_pdf_v1"
+    applies_to:
+      vendor_code: ["RD", "RESTAURANT_DEPOT"]
+      file_ext: [".pdf"]
+      text_contains:
+        - "Restaurant Depot"
+        - "Item Description"
+        - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?"
+      filename_patterns:
+        - "RD_.*\\.pdf"
+        - ".*RD.*\\.pdf"
+        - ".*Restaurant.*Depot.*\\.pdf"
+    
+    # Grid mode settings
+    table:
+      mode: "grid"
+      header_contains:
+        - "Item Description"
+        - "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?|Total\\s*Price|Amount"
+      header_aliases:
+        quantity:
+          - "QTY"
+          - "Qty"
+          - "Quantity"
+        unit_price:
+          - "Unit Price"
+          - "UnitPrice"
+          - "U Price"
+          - "Price"
+        total_price:
+          - "Extended Amount (USD)"
+          - "Extended Amount"
+          - "Amount"
+          - "Total Price"
+          - "Total"
+        product_name:
+          - "Item Description"
+          - "Description"
+          - "Item"
+          - "Product"
+        item_number:
+          - "Item Number"
+          - "Item#"
+          - "Item #"
+          - "Item No."
+          - "SKU"
+        upc:
+          - "UPC"
+          - "Barcode"
+    
+    # Column mappings (same as Excel layout)
+    column_mappings:
+      product_name: "Item Description"
+      quantity: "^(QTY|Qty|Quantity)$"
+      unit_price: "^(Unit\\s*Price|Price|UnitPrice|U\\s*Price)$"
+      total_price: "(?i)Extended\\s*Amount(?:\\s*\\(USD\\))?|Total\\s*Price|Amount"
+      item_number: "^(Item\\s*Number|Item\\s*#|Item\\s*No\\.?|Item#|SKU)$"
+      upc: "^(UPC|Barcode)$"
+      transaction_date: "^(Transaction\\s*Date|Date|Trans\\s*Date|TransactionDate)$"
+    
+    # Skip patterns for non-item rows
+    skip_patterns:
+      - "BALANCE"
+      - "PREVIOUS BALANCE"
+      - "^$"  # Empty lines
+      - "^\\s*$"  # Whitespace-only lines
+    
+    # Totals extraction patterns
+    totals:
+      subtotal:
+        patterns:
+          - "Subtotal[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+          - "Sub\\s*Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+      tax:
+        patterns:
+          - "Taxes?[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+          - "Tax[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+          - "Sales\\s+Tax[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+      total:
+        patterns:
+          - "Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+          - "Grand\\s+Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+          - "Transaction\\s+Total[:\\s]+(?:\\$?\\s*)?([0-9,]+(?:\\.[0-9]{2})?)"
+    
+    # Normalization settings
+    normalization:
+      trim_whitespace: true
+      preserve_case: true
+      currency_symbols:
+        - "$"
+        - "USD"
+      thousands_separator: ","
+      clean_currency:
+        - strip_symbols: true
+        - strip_commas: true
+        - handle_negatives: true
+    
+    # Number cleaning patterns
+    number_cleaning:
+      currency_pattern: "\\$|USD"
+      thousands_pattern: ","
+      decimal_pattern: "\\."
+      negative_pattern: "[-()]"
+    
+    # Grid extraction settings
+    grid_extraction:
+      use_pdfplumber: true  # Use pdfplumber for better layout preservation
+      min_column_width: 10  # Minimum column width in points
+      merge_adjacent_cells: true  # Merge cells in same row
+      handle_wrapped_text: true  # Handle text that wraps to next line
+      continue_on_page_break: true  # Continue extraction across pages
+    
+    # Validation rules
+    validation:
+      require_product_name: true
+      require_total_price: true
+      require_quantity: false  # Quantity is optional (may be inferred)
+      require_unit_price: false  # Unit price is optional (may be calculated)
+    
+    # Debug settings
+    debug:
+      log_header_detection: true
+      log_column_boundaries: true
+      log_extracted_rows: false  # Set to true for detailed debugging
+      log_totals_extraction: true
+
