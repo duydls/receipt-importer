@@ -600,6 +600,22 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             
             # Build unit information display
             uom_display = purchase_uom.upper() if purchase_uom and purchase_uom != 'unknown' else 'UNKNOWN'
+            # Normalization spec fields (from 00_normalize.yaml)
+            spec_pack = item.get('spec.pack') or (item.get('spec', {}).get('pack') if isinstance(item.get('spec', {}), dict) else None)
+            spec_size = item.get('spec.size') or (item.get('spec', {}).get('size') if isinstance(item.get('spec', {}), dict) else None)
+            spec_uom  = item.get('spec.uom')  or (item.get('spec', {}).get('uom')  if isinstance(item.get('spec', {}), dict) else None)
+            spec_str = ''
+            if spec_size and spec_uom:
+                try:
+                    p = int(spec_pack) if spec_pack not in (None, '', 0, '0') else None
+                except Exception:
+                    p = None
+                if p:
+                    spec_str = f"{p}×{spec_size} {spec_uom}"
+                else:
+                    spec_str = f"{spec_size} {spec_uom}"
+            spec_html = f'<span class="unit-badge" style="margin-left:10px;">Spec: {spec_str}</span>' if spec_str else ''
+            exclude_cogs_badge = '<span style="background:#f5c6cb;color:#721c24;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">Excluded from COGS</span>' if item.get('exclude_from_cogs') else ''
             
             # Build detailed unit information
             unit_info_parts = []
@@ -717,9 +733,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                             Calculation: {calculation_display} {'✅' if price_match else '❌'}
                         </div>
                         {price_warning}
-                        <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
-                            <span class="unit-badge">UoM: {uom_display}</span>
-                        </div>
+                    <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
+                        <span class="unit-badge">UoM: {uom_display}</span>
+                        {spec_html}
+                        {exclude_cogs_badge}
+                    </div>
                         {_get_category_badge_html(item)}
                     </div>
                 </div>

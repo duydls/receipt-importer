@@ -1,0 +1,48 @@
+version: 1
+
+normalize:
+  - name: extract_upc
+    match: '(?:^|[\s(])(?:upc[:\s#-]*)?(?P<upc>\d{12,14})(?=[\s),]|$)'
+    set: { upc: '${upc}' }
+    strip_from_name: true
+    priority: 100
+
+  - name: extract_item_number
+    match: '(?:^|[\s(])(?:item\s*#|item[:\s#-]*|sku[:\s#-]*|mfr\s*#|rd\s*#)\s*(?P<item_number>[A-Za-z0-9\-]+)\b'
+    set: { item_number: '${item_number}' }
+    strip_from_name: true
+    priority: 95
+
+  - name: extract_pack_slash
+    match: '(?P<pack>\d{1,3})\s*/\s*(?P<size_value>\d+(?:\.\d+)?)\s*(?P<size_uom>oz|fl\s*oz|ml|g|lb|ct)'
+    set: { spec.pack: '${pack}', spec.size: '${size_value}', spec.uom: '${size_uom}' }
+    strip_from_name: true
+    priority: 90
+
+  - name: extract_pack_x
+    match: '(?P<pack>\d{1,3})\s*[xX]\s*(?P<size_value>\d+(?:\.\d+)?)\s*(?P<size_uom>oz|fl\s*oz|ml|g|lb|ct)'
+    set: { spec.pack: '${pack}', spec.size: '${size_value}', spec.uom: '${size_uom}' }
+    strip_from_name: true
+    priority: 88
+
+  - name: extract_simple_size
+    match: '(?P<size_value>\d+(?:\.\d+)?)\s*(?P<size_uom>lb|lbs|oz|fl\s*oz|ml|l|kg|g|gal|ct)\b'
+    set: { spec.pack: '1', spec.size: '${size_value}', spec.uom: '${size_uom}' }
+    strip_from_name: true
+    priority: 85
+
+  - name: normalize_uom
+    replace_map:
+      size_uom:
+        'lbs': 'lb'
+        'fl oz': 'fl_oz'
+        'l': 'L'
+    priority: 80
+
+  - name: clean_name
+    replace:
+      - { pattern: '\\(\\s*\\)', with: '' }
+      - { pattern: '\\s{2,}',  with: ' ' }
+      - { pattern: '\\s*[-–—]\\s*$', with: '' }
+    priority: 10
+

@@ -1,0 +1,10 @@
+version: 1
+
+reclassify:
+  - when:
+      any_text_icontains: ["no charge","complimentary","free item","free of charge"]
+    set_category:
+      L1: "A06 Fees/Taxes/Services"
+      L2: "Other Surcharges/Adjustments"
+    exclude_from_cogs: true
+
