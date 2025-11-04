@@ -474,8 +474,9 @@ class RDPDFProcessor:
                         continue  # Skip duplicate OCR artifacts
                     seen_lines.add(normalized)
                     
-                    # Create row: Item Description, QTY, Unit Price, Extended Amount
-                    row = [description, qty, unit_price, ext_amount]
+                    # Create row: Item Description, QTY, Unit Price, Extended Amount, UPC, Item Number
+                    # Include UPC and item_number for knowledge base lookup
+                    row = [description, qty, unit_price, ext_amount, upc, item_number]
                     data_rows.append(row)
                     continue
                 
@@ -524,7 +525,10 @@ class RDPDFProcessor:
             max_cols = max(len(row) for row in data_rows) if data_rows else 0
             
             # Create column names based on header if possible, otherwise use generic names
-            if max_cols >= 4:
+            # Include UPC and Item Number columns if available
+            if max_cols >= 6:
+                column_names = ['Item Description', 'QTY', 'Unit Price', 'Extended Amount', 'UPC', 'Item Number']
+            elif max_cols >= 4:
                 column_names = ['Item Description', 'QTY', 'Unit Price', 'Extended Amount']
             elif max_cols >= 3:
                 column_names = ['Item Description', 'QTY', 'Extended Amount']
