@@ -408,8 +408,19 @@ class RDPDFProcessor:
             skip_lines = ocr_config.get('skip_lines', [])
             stop_patterns = ocr_config.get('stop_patterns', [])
             
-            # Default item pattern if not in YAML
-            if not item_pattern:
+            # Process item pattern: YAML loads single-quoted strings with escaped backslashes
+            # YAML '\\d' becomes Python '\d' (invalid), so we need to decode it
+            if item_pattern:
+                # Convert YAML-escaped pattern to Python re-compatible pattern
+                # YAML loads '\\d' as literal '\d', which needs to be '\\d' for Python re
+                try:
+                    # Decode the escaped string to get the actual pattern
+                    item_pattern = item_pattern.encode('utf-8').decode('unicode_escape')
+                except Exception:
+                    # If decoding fails, use as-is (might already be correct)
+                    pass
+            else:
+                # Default item pattern if not in YAML
                 item_pattern = r'^(\d{10,13})\s+(\d{5,10})\s+(.+?)\s+(\d+[.,]\d{2})\s+(\d+(?:\.\d+)?)\s+[Uu]\s*\(?[Tt]\)?\s+(\d+[.,]\d{2})\s*[Tt]?.*$'
             
             for i in range(header_idx + 1, len(all_text_lines)):
@@ -555,6 +566,11 @@ class RDPDFProcessor:
         ])
         for pattern_config in subtotal_patterns:
             pattern = pattern_config if isinstance(pattern_config, str) else pattern_config.get('regex', pattern_config)
+            # Decode YAML-escaped pattern (same as item pattern)
+            try:
+                pattern = pattern.encode('utf-8').decode('unicode_escape')
+            except Exception:
+                pass
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 try:
@@ -575,6 +591,11 @@ class RDPDFProcessor:
         ])
         for pattern_config in tax_patterns:
             pattern = pattern_config if isinstance(pattern_config, str) else pattern_config.get('regex', pattern_config)
+            # Decode YAML-escaped pattern (same as item pattern)
+            try:
+                pattern = pattern.encode('utf-8').decode('unicode_escape')
+            except Exception:
+                pass
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 try:
@@ -593,6 +614,11 @@ class RDPDFProcessor:
         ])
         for pattern_config in total_patterns:
             pattern = pattern_config if isinstance(pattern_config, str) else pattern_config.get('regex', pattern_config)
+            # Decode YAML-escaped pattern (same as item pattern)
+            try:
+                pattern = pattern.encode('utf-8').decode('unicode_escape')
+            except Exception:
+                pass
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 try:
