@@ -97,7 +97,8 @@ class CategoryClassifier:
         Returns:
             Dict with l2_category, l1_category, category_source, category_rule_id, category_confidence, needs_category_review
         """
-        product_name = item.get('product_name', '')
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         is_fee = item.get('is_fee', False)
         
         # Try each stage in pipeline order
@@ -318,7 +319,8 @@ class CategoryClassifier:
         # Sort by priority
         sorted_rules = sorted(rules, key=lambda r: r.get('priority', 0), reverse=True)
         
-        product_name = item.get('product_name', '')
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         
         for idx, rule in enumerate(sorted_rules):
             include_pattern = rule.get('include_regex', '')
@@ -348,7 +350,8 @@ class CategoryClassifier:
         keyword_config = self.keyword_rules.get('category_keywords', {})
         heuristics = keyword_config.get('heuristics', {})
         
-        product_name = item.get('product_name', '').lower()
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = (item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')).lower()
         
         # Try fruit heuristic
         fruit_config = heuristics.get('fruit', {})

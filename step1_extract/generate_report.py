@@ -561,15 +561,16 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Add items
         for item in items:
-            # Use codes-first display name if available
-            product_name = item.get('display_name_codes_first') or item.get('product_name', 'Unknown Product')
+            # Use clean_name (from name hygiene) for display, fall back to product_name
+            # Note: clean_name has UPC/Item# stripped out for classification
+            product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', 'Unknown Product')
             quantity = item.get('quantity', 0)
             # Use purchase_uom if available, otherwise fallback to raw_uom_text from Excel
             purchase_uom = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
             unit_price = item.get('unit_price', 0)
             total_price = item.get('total_price', 0)
             
-            # Item number and UPC (for Group 1 receipts)
+            # Item number and UPC (extracted from name hygiene)
             item_number = item.get('item_number')
             item_code = item.get('item_code')
             upc = item.get('upc')
@@ -620,12 +621,12 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Build detailed unit information
             unit_info_parts = []
             
-            # For Group 1 receipts, display UPC and Item Number first if available
-            if is_group1:
-                if upc is not None:
-                    unit_info_parts.insert(0, f'<strong>UPC:</strong> {upc}')
-                if item_number is not None:
-                    unit_info_parts.insert(1, f'<strong>Item #:</strong> {item_number}')
+            # Display UPC and Item Number as separate columns (hide if empty)
+            # For all receipts, show UPC and Item# if available (not just Group 1)
+            if upc is not None and upc:
+                unit_info_parts.insert(0, f'<strong>UPC:</strong> {upc}')
+            if item_number is not None and item_number:
+                unit_info_parts.insert(1, f'<strong>Item #:</strong> {item_number}')
             
             if size:
                 unit_info_parts.append(f'<strong>Size:</strong> {size}')
