@@ -166,7 +166,14 @@ class UnifiedPDFProcessor:
                 if date:
                     receipt_data['transaction_date'] = date
             
-            # Enrich with knowledge base
+            # Costco-specific: infer integer quantities using knowledge base unit prices
+            if detected_vendor_code == 'COSTCO' and receipt_data.get('items'):
+                try:
+                    receipt_data['items'] = self._infer_costco_quantities(receipt_data['items'])
+                except Exception as e:
+                    logger.debug(f"Costco quantity inference skipped: {e}")
+
+            # Enrich with knowledge base (general)
             if receipt_data.get('items'):
                 receipt_data['items'] = self._enrich_items(receipt_data['items'], detected_vendor_code)
             
@@ -1220,6 +1227,69 @@ class UnifiedPDFProcessor:
                     logger.debug(f"Aldi: Total matches expected: ${totals['total']:.2f} = ${totals['subtotal']:.2f} + ${totals['tax']:.2f}")
         
         return totals
+
+    # --- Costco quantity inference ---
+    _kb_cache = None
+
+    def _load_knowledge_base(self) -> Dict[str, Any]:
+        """Load knowledge base JSON once (cached)."""
+        if UnifiedPDFProcessor._kb_cache is not None:
+            return UnifiedPDFProcessor._kb_cache
+        try:
+            # Default KB path relative to input_dir if provided
+            kb_path = None
+            try:
+                # Attempt to use legacy processor config if available
+                kb_path = Path(self._legacy_processor.config.get('knowledge_base_file')) if getattr(self, '_legacy_processor', None) else None
+            except Exception:
+                kb_path = None
+            if not kb_path:
+                kb_path = Path('data/step1_input/knowledge_base.json')
+            import json
+            with open(kb_path, 'r') as f:
+                UnifiedPDFProcessor._kb_cache = json.load(f)
+        except Exception:
+            UnifiedPDFProcessor._kb_cache = {}
+        return UnifiedPDFProcessor._kb_cache
+
+    def _infer_costco_quantities(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """For Costco items without explicit quantity, use KB unit price to infer integer quantity."""
+        kb = self._load_knowledge_base()
+        updated: List[Dict[str, Any]] = []
+        for item in items:
+            try:
+                item_number = str(item.get('item_number') or '').strip()
+                total_price = float(item.get('total_price') or 0)
+                quantity = item.get('quantity')
+                unit_price = item.get('unit_price')
+
+                # Only infer when quantity is missing/zero and total_price present and KB has price
+                kb_entry = kb.get(item_number) if item_number else None
+                kb_price = None
+                if isinstance(kb_entry, list) and len(kb_entry) >= 4:
+                    try:
+                        kb_price = float(kb_entry[3])
+                    except Exception:
+                        kb_price = None
+
+                if total_price > 0 and kb_price and kb_price > 0:
+                    # Always infer integer quantity for Costco using KB price
+                    inferred_qty = int(round(total_price / kb_price))
+                    if inferred_qty < 1:
+                        inferred_qty = 1
+                    item['quantity'] = int(inferred_qty)
+                    item['unit_price'] = float(kb_price)
+                elif (unit_price is None or float(unit_price or 0) == 0.0) and total_price > 0 and float(quantity or 0) > 0:
+                    # Fallback: derive unit price from total/qty
+                    try:
+                        item['unit_price'] = round(total_price / float(quantity), 2)
+                    except Exception:
+                        pass
+            except Exception:
+                # Don't fail the whole receipt on one item
+                pass
+            updated.append(item)
+        return updated
     
     def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
         """Extract items sold count from text (pattern from YAML)"""
