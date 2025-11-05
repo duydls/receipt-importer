@@ -25,16 +25,56 @@ skip_keywords:
 
 # Item patterns (processed in order)
 item_patterns:
-  # Pattern 1: QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL
+  # Pattern 1: QTY @ $PRICE PRODUCT $TOTAL (with OCR error handling)
+  # Handles: "5 @ $1.79ea. F $8.95 Tx]" or "5 @ $1.79 F $8.95"
   - type: "qty_at_price_item"
-    regex: "(\\d+(?:\\.\\d+)?)\\s*@\\s*\\$(\\d+[.,]\\d{1,2})\\s*(\\d{3,6})\\s+(.+?)\\s+\\$(\\d+[.,]\\d{1,2})\\s*$"
+    regex: "(\\d+(?:\\.\\d+)?)\\s*@\\s*\\$?(\\d+[.,]\\d{1,2})\\s*[a-zA-Z]?\\.?\\s*[a-zA-Z]?\\s+\\$?(\\d+[.,]\\d{1,2})\\s*[Tt]x?[\\]\\}]?\\s*$"
+    groups:
+      - quantity
+      - unit_price
+      - total_price
+    description: "QTY @ $PRICE PRODUCT $TOTAL (handles OCR errors like 'ea.' and 'Tx]')"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      extract_product_name: true  # Extract product name from context
+    case_insensitive: true
+  
+  # Pattern 2: PRODUCT_NAME $PRICE (handles prices with or without $)
+  # Handles: "PLASTIC $0.07" or "SOYBEAN PHD-YIFENG 5.32"
+  - type: "product_price_item"
+    regex: "^(.+?)\\s+\\$?(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - product_name
+      - total_price
+    description: "PRODUCT_NAME $PRICE (handles prices with or without $ symbol)"
+    field_mappings:
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+    quantity_from_next_line: true
+    # Extract quantity and unit price from the next line like: "5 @ $1.79ea. F $8.95"
+    quantity_pattern: "(\\d+)\\s*@\\s*\\$?(\\d+[.,]\\d{1,2})"
+    case_insensitive: true
+    conditions:
+      - "len(product_name) > 3"  # Skip very short product names
+      - "total_price > 0"  # Skip zero prices
+      - "not any(kw in line.upper() for kw in ['TOTAL', 'TAX', 'SUB', 'REFERENCE', 'DEBIT', 'SAVED', 'MINT'])"  # Skip summary lines
+  
+  # Pattern 3: QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL (original pattern, more strict)
+  - type: "qty_at_price_item_number"
+    regex: "(\\d+(?:\\.\\d+)?)\\s*@\\s*\\$?(\\d+[.,]\\d{1,2})\\s*(\\d{3,6})\\s+(.+?)\\s+\\$?(\\d+[.,]\\d{1,2})\\s*$"
     groups:
       - quantity
       - unit_price
       - item_number
       - product_name
       - total_price
-    description: "QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL"
+    description: "QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL (strict pattern with item number)"
     field_mappings:
       quantity: "quantity"
       unit_price: "unit_price"
@@ -43,57 +83,7 @@ item_patterns:
       total_price: "total_price"
     post_process:
       clean_product_name: true
-      infer_product_from_price: true
-      price_mappings:
-        "1.00": "GREEN ONION"
-        "6.01": "BASIL LEAVE"
     case_insensitive: true
-  
-  # Pattern 2: SIZE QTY @ $PRICE PRODUCT $TOTAL
-  - type: "size_qty_price_item"
-    regex: "(\\d+[.,]\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|IB|IBS)\\s+(\\d+(?:\\.\\d+)?)\\s+\\$(\\d+[.,]\\d+)\\s+(.+?)\\s+\\$(\\d+[.,]\\d{1,2})\\s*$"
-    groups:
-      - size
-      - purchase_uom
-      - quantity
-      - unit_price
-      - product_name
-      - total_price
-    description: "SIZE UOM QTY @ $PRICE PRODUCT $TOTAL"
-    field_mappings:
-      quantity: "quantity"
-      unit_price: "unit_price"
-      product_name: "product_name"
-      total_price: "total_price"
-      purchase_uom: "purchase_uom"
-    post_process:
-      clean_product_name: true
-      infer_product_from_price: true
-      price_mappings:
-        "6.01": "BASIL LEAVE"
-        "1.00": "GREEN ONION"
-    case_insensitive: true
-  
-  # Pattern 3: Flexible pattern for lines with price at end
-  - type: "flexible_price_item"
-    regex: "(.+?)\\s+\\$(\\d+[.,]\\d{1,2})\\s*$"
-    groups:
-      - product_name
-      - total_price
-    description: "PRODUCT_NAME $TOTAL (fallback pattern)"
-    field_mappings:
-      product_name: "product_name"
-      total_price: "total_price"
-    post_process:
-      clean_product_name: true
-      infer_product_from_price: true
-      price_mappings:
-        "1.00": "GREEN ONION"
-        "6.01": "BASIL LEAVE"
-    case_insensitive: true
-    conditions:
-      - "len(line) > 15"  # Skip short lines
-      - "total_price > 0"  # Skip zero prices
 
 # Total extraction patterns (handle OCR errors: "TOTAL «ee €7 07")
 total_patterns:
