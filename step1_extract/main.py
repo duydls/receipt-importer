@@ -20,13 +20,13 @@ EXPLICIT RULE EXECUTION ORDER (enforced in code, not by filename):
      c. group2_pdf.yaml - Legacy fallback for Instacart PDFs (marks as needs_review)
    
    ELSE (detected_source_type == "vendor-based"):
-     a. Try vendor layouts in order:
-        - 20_costco_layout.yaml
-        - 21_rd_layout.yaml
-        - 22_jewel_layout.yaml
-        - (future: 23_hmart_layout.yaml, 24_parktoshop_layout.yaml, etc.)
+     a. PDF processing only (Excel files no longer supported for localgrocery vendors):
+        - 20_costco_pdf.yaml - Costco PDF rules
+        - 21_rd_pdf_layout.yaml - RD PDF grid rules
+        - 22_jewel_pdf.yaml - Jewel-Osco PDF rules
+        - 23_aldi_pdf.yaml - Aldi PDF rules
+        - 24_parktoshop_pdf.yaml - Parktoshop PDF rules
      b. 30_uom_extraction.yaml - Extract raw UoM/size text (no normalization)
-     c. group1_excel.yaml - Legacy fallback if no modern layout matched (marks as needs_review)
 
 3. ALWAYS AFTER PROCESSING:
    a. shared.yaml - Common flags, fee keywords, multiline rules, AI fallback config
@@ -79,7 +79,7 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         if 'instacart' in folder_name.lower() or 'instarcart' in folder_name.lower():
             return 'instacart_based'
         
-        # Local grocery-based = Costco, Jewel-Osco, RD, Aldi, Mariano's, Parktoshop, etc.
+        # Local grocery-based = Costco, Jewel-Osco, RD, Aldi, Parktoshop, etc.
         return 'localgrocery_based'
     except ValueError:
         # If can't determine relative path, check filename
@@ -135,10 +135,12 @@ def process_files(
     from .excel_processor import ExcelProcessor
     from .pdf_processor import PDFProcessor
     from .rd_pdf_processor import RDPDFProcessor
+    from .pdf_processor_unified import UnifiedPDFProcessor
     
     excel_processor = ExcelProcessor(rule_loader, input_dir=input_dir)
     pdf_processor = PDFProcessor(rule_loader, input_dir=input_dir)
     rd_pdf_processor = RDPDFProcessor(rule_loader, input_dir=input_dir)
+    unified_pdf_processor = UnifiedPDFProcessor(rule_loader, input_dir=input_dir)
     
     # Find all files
     pdf_files = list(input_dir.glob('**/*.pdf'))
@@ -155,20 +157,30 @@ def process_files(
     amazon_based_files: List[Path] = []
     webstaurantstore_based_files: List[Path] = []
     
-    # Group PDF and Excel files
-    for file_list in [pdf_files, excel_files]:
-        for file_path in file_list:
-            receipt_type = detect_group(file_path, input_dir)
-            if receipt_type == 'localgrocery_based':
-                localgrocery_based_files.append(file_path)
-            elif receipt_type == 'instacart_based':
-                instacart_based_files.append(file_path)
-            elif receipt_type == 'bbi_based':
-                bbi_based_files.append(file_path)
-            elif receipt_type == 'amazon_based':
-                amazon_based_files.append(file_path)
-            elif receipt_type == 'webstaurantstore_based':
-                webstaurantstore_based_files.append(file_path)
+    # Group PDF files (Excel files removed - no longer processed for RD, Costco, Aldi, Jewel, Parktoshop)
+    for file_path in pdf_files:
+        receipt_type = detect_group(file_path, input_dir)
+        if receipt_type == 'localgrocery_based':
+            localgrocery_based_files.append(file_path)
+        elif receipt_type == 'instacart_based':
+            instacart_based_files.append(file_path)
+        elif receipt_type == 'bbi_based':
+            bbi_based_files.append(file_path)
+        elif receipt_type == 'amazon_based':
+            amazon_based_files.append(file_path)
+        elif receipt_type == 'webstaurantstore_based':
+            webstaurantstore_based_files.append(file_path)
+    
+    # Skip Excel files for localgrocery_based vendors (they only use PDF now)
+    # Excel files are only for BBI-based receipts
+    for file_path in excel_files:
+        receipt_type = detect_group(file_path, input_dir)
+        if receipt_type == 'bbi_based':
+            bbi_based_files.append(file_path)
+        elif receipt_type == 'localgrocery_based':
+            logger.warning(f"Skipping Excel file for localgrocery vendor (PDF only now): {file_path.relative_to(input_dir)}")
+        else:
+            logger.warning(f"Excel file in unsupported location: {file_path.relative_to(input_dir)}")
     
     # CSV files are only for instacart-based (Instacart baseline files)
     # They should only be in Instacart folders
@@ -181,7 +193,7 @@ def process_files(
     
     logger.info(f"LocalGrocery-based files: {len(localgrocery_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}, WebstaurantStore-based files: {len(webstaurantstore_based_files)}")
     
-    ### Process localgrocery-based files (Costco, RD, Aldi, Jewel-Osco, Mariano's, Parktoshop)
+    ### Process localgrocery-based files (Costco, RD, Aldi, Jewel-Osco, Parktoshop)
     localgrocery_based_output_dir = output_base_dir / 'localgrocery_based'
     localgrocery_based_data: Dict[str, Any] = {}
     
@@ -199,16 +211,17 @@ def process_files(
                 initial_receipt_data = vendor_detector.apply_detection_to_receipt(file_path, initial_receipt_data)
                 detected_vendor_code = initial_receipt_data.get('detected_vendor_code')
                 
-                if file_path.suffix.lower() in ['.xlsx', '.xls']:
-                    receipt_data = excel_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
-                elif file_path.suffix.lower() == '.pdf':
-                    # Check if it's an RD PDF and use grid processor
+                # Only process PDF files (Excel files no longer supported for localgrocery vendors)
+                if file_path.suffix.lower() == '.pdf':
+                    # Route to appropriate PDF processor
                     if detected_vendor_code in ['RD', 'RESTAURANT_DEPOT']:
+                        # RD uses grid-based extraction (different approach)
                         receipt_data = rd_pdf_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
                     else:
-                        receipt_data = excel_processor.process_pdf(file_path)
+                        # Use unified PDF processor for all other vendors (Costco, Jewel, Aldi, Parktoshop)
+                        receipt_data = unified_pdf_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
                 else:
-                    logger.warning(f"Unsupported file type: {file_path.suffix}")
+                    logger.warning(f"Unsupported file type for localgrocery vendor (PDF only): {file_path.suffix}")
                     return file_path.stem, None
                 
                 if receipt_data:
@@ -366,10 +379,64 @@ def process_files(
     
     if bbi_based_files:
         logger.info("Processing BBI-based receipts...")
+        
+        def process_bbi_file(file_path: Path) -> Tuple[str, Optional[Dict[str, Any]]]:
+            """Process a single BBI file and return (receipt_id, receipt_data)"""
+            try:
+                logger.info(f"Processing [BBI]: {file_path.name}")
+                
+                # Apply vendor detection FIRST (before processing)
+                initial_receipt_data = {'filename': file_path.name}
+                initial_receipt_data = vendor_detector.apply_detection_to_receipt(file_path, initial_receipt_data)
+                detected_vendor_code = initial_receipt_data.get('detected_vendor_code')
+                
+                # BBI files are Excel files - use Excel processor
+                if file_path.suffix.lower() in ['.xlsx', '.xls']:
+                    receipt_data = excel_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
+                else:
+                    logger.warning(f"Unsupported file type for BBI (Excel only): {file_path.suffix}")
+                    return file_path.stem, None
+                
+                if receipt_data:
+                    receipt_id = receipt_data.get('order_id') or file_path.stem
+                    # Preserve fields from vendor detection
+                    if 'detected_vendor_code' not in receipt_data:
+                        receipt_data['detected_vendor_code'] = detected_vendor_code
+                    if 'detected_source_type' not in receipt_data:
+                        receipt_data['detected_source_type'] = initial_receipt_data.get('detected_source_type', 'bbi_based')
+                    # Set source_group and source_file
+                    receipt_data['source_group'] = 'bbi_based'
+                    if 'source_file' not in receipt_data:
+                        receipt_data['source_file'] = str(file_path.relative_to(input_dir))
+                    
+                    item_count = len(receipt_data.get('items', []))
+                    if item_count > 0:
+                        logger.info(f"  ✓ Extracted {item_count} items")
+                    else:
+                        logger.warning(f"  ⚠ No items extracted from {file_path.name}")
+                    return receipt_id, receipt_data
+                else:
+                    logger.warning(f"  ✗ Failed to process {file_path.name}")
+                    return file_path.stem, None
+                    
+            except Exception as e:
+                logger.error(f"Error processing {file_path.name}: {e}", exc_info=True)
+                receipt_id = file_path.stem
+                error_data: Dict[str, Any] = {
+                    'filename': file_path.name,
+                    'vendor': 'BBI',
+                    'items': [],
+                    'total': 0.0,
+                    'source_group': 'bbi_based',
+                    'source_file': str(file_path.relative_to(input_dir)),
+                    'needs_review': True,
+                    'review_reasons': [f'Error processing: {str(e)}']
+                }
+                return receipt_id, error_data
+        
         for file_path in bbi_based_files:
-            receipt_id, receipt_data = process_localgrocery_file(file_path)
+            receipt_id, receipt_data = process_bbi_file(file_path)
             if receipt_data:
-                receipt_data['source_group'] = 'bbi_based'
                 bbi_based_data[receipt_id] = receipt_data
     
     ### Process Amazon-based files (CSV-first approach)
@@ -691,7 +758,7 @@ def main() -> None:
     from pathlib import Path
     
     parser = argparse.ArgumentParser(
-        description='Step 1: Extract receipt data from PDF and Excel files',
+        description='Step 1: Extract receipt data from PDF files (CSV baseline files for Instacart/Amazon)',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(

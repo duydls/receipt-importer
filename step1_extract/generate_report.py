@@ -483,7 +483,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         # Check if vendor was detected from filename
         vendor_from_filename = receipt_data.get('vendor_source') == 'filename'
         # For Group 1 Excel files, if vendor_source is not set, check if vendor likely came from filename
-        if not vendor_from_filename and receipt_data.get('source_group') == 'group1':
+        # group1 deprecated - check for localgrocery vendors directly
+        if not vendor_from_filename and receipt_data.get('source_type') == 'localgrocery_based':
             # Check if filename contains vendor identifier patterns
             filename_lower = filename.lower()
             vendor_lower = vendor.lower() if vendor else ''
@@ -557,7 +558,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Detect if this is Group 1 (Excel-based) receipt
         source_group = receipt_data.get('source_group', '')
-        is_group1 = source_group == 'group1'
+        # group1 deprecated - check source_type instead
+        is_group1 = receipt_data.get('source_type') == 'localgrocery_based'
         
         # Add items
         for item in items:

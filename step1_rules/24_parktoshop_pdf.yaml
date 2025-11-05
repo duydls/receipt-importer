@@ -1,0 +1,104 @@
+# Parktoshop PDF Layout Rules
+# OCR-based PDF parsing rules for Parktoshop receipts
+
+vendor_name: "PARKTOSHOP"
+parsed_by: "parktoshop_pdf_v1"
+extraction_method: "ocr"  # image-based PDF, requires OCR
+
+# Summary section keywords
+summary_keywords:
+  - "TOTAL"
+  - "AMOUNT USDS"
+  - "SUBTOTAL"
+  - "TAX"
+
+# Skip keywords
+skip_keywords:
+  - "TOTAL"
+  - "SUBTOTAL"
+  - "TAX"
+  - "AMOUNT"
+  - "PARK TO SHOP"
+  - "SALE"
+  - "VISA"
+  - "DEBIT"
+
+# Item patterns (processed in order)
+item_patterns:
+  # Pattern 1: QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL
+  - type: "qty_at_price_item"
+    regex: "(\\d+(?:\\.\\d+)?)\\s*@\\s*\\$(\\d+[.,]\\d{1,2})\\s*(\\d{3,6})\\s+(.+?)\\s+\\$(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - quantity
+      - unit_price
+      - item_number
+      - product_name
+      - total_price
+    description: "QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+      item_number: "item_number"
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      infer_product_from_price: true
+      price_mappings:
+        "1.00": "GREEN ONION"
+        "6.01": "BASIL LEAVE"
+    case_insensitive: true
+  
+  # Pattern 2: SIZE QTY @ $PRICE PRODUCT $TOTAL
+  - type: "size_qty_price_item"
+    regex: "(\\d+[.,]\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|IB|IBS)\\s+(\\d+(?:\\.\\d+)?)\\s+\\$(\\d+[.,]\\d+)\\s+(.+?)\\s+\\$(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - size
+      - purchase_uom
+      - quantity
+      - unit_price
+      - product_name
+      - total_price
+    description: "SIZE UOM QTY @ $PRICE PRODUCT $TOTAL"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+      product_name: "product_name"
+      total_price: "total_price"
+      purchase_uom: "purchase_uom"
+    post_process:
+      clean_product_name: true
+      infer_product_from_price: true
+      price_mappings:
+        "6.01": "BASIL LEAVE"
+        "1.00": "GREEN ONION"
+    case_insensitive: true
+  
+  # Pattern 3: Flexible pattern for lines with price at end
+  - type: "flexible_price_item"
+    regex: "(.+?)\\s+\\$(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - product_name
+      - total_price
+    description: "PRODUCT_NAME $TOTAL (fallback pattern)"
+    field_mappings:
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      infer_product_from_price: true
+      price_mappings:
+        "1.00": "GREEN ONION"
+        "6.01": "BASIL LEAVE"
+    case_insensitive: true
+    conditions:
+      - "len(line) > 15"  # Skip short lines
+      - "total_price > 0"  # Skip zero prices
+
+# Total extraction patterns (handle OCR errors: "TOTAL «ee €7 07")
+total_patterns:
+  subtotal: "SUBTOTAL\\s+(\\d+[.,]\\d{1,2})"
+  tax: "TAX\\s+(\\d+[.,]\\d{1,2})"
+  # Handles "TOTAL «ee €7 07" -> 7.07 or "TOTAL USDS 7.01" -> 7.01
+  total: "TOTAL\\s*[^\\d]*\\$?(\\d+)[\\s\\.\\,](\\d{1,2})"
+

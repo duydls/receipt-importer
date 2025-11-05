@@ -205,6 +205,9 @@ class ReceiptProcessor:
         filename_lower = excel_path.name.lower()
         path_lower = str(excel_path).lower()
         
+        # Localgrocery vendors no longer use Excel files (PDF only)
+        localgrocery_vendors = ['costco', 'rd', 'restaurant depot', 'jewel', 'mariano', 'aldi', 'parktoshop']
+        
         if 'costco' in filename_lower or 'costco' in path_lower:
             vendor = 'Costco'
         elif 'mariano' in filename_lower or 'mariano' in path_lower:
@@ -217,6 +220,19 @@ class ReceiptProcessor:
             vendor = 'Restaurant Depot'
         elif 'jewel' in filename_lower or 'jewel' in path_lower:
             vendor = 'Jewel Osco'
+        
+        # Reject localgrocery vendors (Excel no longer supported)
+        if vendor != 'Unknown' and any(lgv in vendor.lower() or lgv in filename_lower or lgv in path_lower for lgv in localgrocery_vendors):
+            logger.warning(f"Excel files no longer supported for {vendor}. Use PDF files instead. Skipping: {excel_path.name}")
+            return {
+                'filename': excel_path.name,
+                'vendor': vendor,
+                'items': [],
+                'needs_review': True,
+                'review_reasons': [f'Excel files no longer supported for {vendor}. Please use PDF files.'],
+                'parsed_by': 'rejected_excel_format',
+                'source_type': 'excel'
+            }
         
         receipt_data = {
             'filename': excel_path.name,
@@ -1952,14 +1968,11 @@ class ReceiptProcessor:
         vendor = receipt.get('vendor', '')
         vendor_lower = vendor.lower() if vendor else ''
         
-        # Load Group 1 vendors from rules instead of hardcoding
+        # Skip CSV matching for localgrocery vendors (group1 deprecated - now use vendor-specific PDF rules)
+        # Localgrocery vendors: Costco, RD, Jewel, Aldi, Parktoshop (no longer use group1)
         is_group1_vendor = False
-        if self.rule_loader:
-            group1_vendors = self.rule_loader.get_group1_vendors()
-            is_group1_vendor = any(name.lower() in vendor_lower for name in group1_vendors)
-        else:
-            # Fallback to hardcoded list if rule_loader not available
-            is_group1_vendor = any(name in vendor_lower for name in ['costco', 'restaurant depot', 'restaurantdepot', 'rd', 'jewel', 'aldi', 'others'])
+        localgrocery_keywords = ['costco', 'restaurant depot', 'restaurantdepot', 'rd', 'jewel', 'aldi', 'parktoshop']
+        is_group1_vendor = any(name in vendor_lower for name in localgrocery_keywords)
         
         # Load Instacart CSV matching rules from rule_loader
         instacart_rules = {}
@@ -2171,8 +2184,9 @@ class ReceiptProcessor:
             vendor_key = vendor_key_map.get(vendor_key, vendor_key)
         
         # Check if this is a Group 1 vendor (Excel-based receipts)
-        is_group1_vendor = vendor_key and vendor_key in ['costco', 'restaurant_depot', 'parktoshop', 'jewel_osco', 'aldi', 'mariano'] or \
-                           'group1' in receipt.get('source_type', '').lower() or \
+        # group1 deprecated - check for localgrocery vendors directly
+        is_group1_vendor = vendor_key and vendor_key in ['costco', 'restaurant_depot', 'parktoshop', 'jewel_osco', 'aldi'] or \
+                           receipt.get('source_type') == 'localgrocery_based' or \
                            receipt.get('source_type') == 'excel'
         
         if is_group1_vendor and receipt.get('items_sold'):

@@ -1,0 +1,50 @@
+# Aldi PDF Layout Rules
+# OCR-based PDF parsing rules for Aldi receipts
+
+vendor_name: "ALDI"
+parsed_by: "aldi_pdf_v1"
+extraction_method: "ocr"  # image-based PDF, requires OCR
+
+# Summary section keywords
+summary_keywords:
+  - "SUBTOTAL"
+  - "TAX"
+  - "AMOUNT DUE"
+  - "TOTAL"
+
+# Skip keywords
+skip_keywords:
+  - "ALDI"
+  - "store #"
+  - "BROADWAY"
+  - "VISA"
+  - "DEBIT"
+
+# Item patterns
+item_patterns:
+  # Pattern: _ ITEM_NUMBER PRODUCT_NAME ... PRICE [optional suffix]
+  # Example: "_ 418510 Heavy Whip 32 02 10,78 FB"
+  - type: "aldi_item"
+    regex: "^_\\s+(\\d+)\\s+(.+?)\\s+(\\d+[.,]\\d{1,2})\\s*[A-Z]*\\s*$"
+    groups:
+      - item_number
+      - product_name
+      - total_price
+    description: "Aldi format: _ ITEM_NUMBER PRODUCT_NAME PRICE [optional suffix]"
+    field_mappings:
+      item_number: "item_number"
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      extract_uom: true
+      uom_patterns:
+        - "\\s+(\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
+      clean_product_name: true
+    case_insensitive: true
+
+# Total extraction patterns (handle comma decimal separator)
+total_patterns:
+  subtotal: "SUBTOTAL\\s+(\\d+[.,]\\d{1,2})"
+  tax: "(?:TAX|TAXABLE)\\s+.*?(\\d+[.,]\\d{1,2})"
+  total: "(?:AMOUNT\\s+DUE|TOTAL)\\s+(\\d+[.,]\\d{1,2})"
+

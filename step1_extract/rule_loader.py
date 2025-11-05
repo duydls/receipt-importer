@@ -155,27 +155,33 @@ class RuleLoader:
         
         return result
     
-    def load_group_rules(self, group: str = 'group1') -> Dict[str, Any]:
+    def load_group_rules(self, group: str = 'group2') -> Dict[str, Any]:
         """
         Load group-specific rules and merge with shared.yaml
         
         Args:
-            group: Group name ('group1' or 'group2')
+            group: Group name ('group2' only - group1 removed, localgrocery vendors use vendor-specific PDF rules)
             
         Returns:
-            Merged rules dictionary
+            Merged rules dictionary (shared rules only if group file doesn't exist)
         """
         # Load shared rules
         shared_rules = self._load_shared_rules()
         
-        # Load group-specific rules
-        group_file = self.rules_dir / f'{group}.yaml' if group.endswith('.yaml') else self.rules_dir / f'{group}.yaml'
+        # Note: group1.yaml and group1_excel.yaml removed - Excel files no longer supported for localgrocery vendors
+        # All localgrocery vendors now use PDF-only processing with vendor-specific YAML files (20_*.yaml, 21_*.yaml, etc.)
+        # Only group2 (Instacart) may have a fallback group2_pdf.yaml file
+        
+        if group == 'group1':
+            # group1 is deprecated - return shared rules only
+            logger.debug("Group1 is deprecated - localgrocery vendors use vendor-specific PDF rules")
+            return shared_rules
+        
+        # Load group2 rules (for Instacart PDF fallback, if exists)
+        # Try legacy folder first, then root
+        group_file = self.rules_dir / 'legacy' / 'group2_pdf.yaml'
         if not group_file.exists():
-            # Try alternative naming
-            if group == 'group1':
-                group_file = self.rules_dir / 'group1_excel.yaml'
-            elif group == 'group2':
-                group_file = self.rules_dir / 'group2_pdf.yaml'
+            group_file = self.rules_dir / 'group2_pdf.yaml'
         
         if group_file.exists():
             if self._should_reload_file(group_file.name, group_file):
@@ -186,21 +192,22 @@ class RuleLoader:
                 logger.debug(f"Loaded {group_file.name}")
             else:
                 group_rules = self._rules_cache.get(group_file.name, {})
+            
+            # Merge: group rules override shared rules
+            merged = self._merge_rules(shared_rules, group_rules)
+            
+            # If group rules specify inherits, respect it
+            if 'inherits' in group_rules and group_rules['inherits'] == 'shared.yaml':
+                # Already merged above
+                pass
+            
+            return merged
         else:
-            logger.warning(f"Group rules file not found: {group_file}")
-            group_rules = {}
-        
-        # Merge: group rules override shared rules
-        merged = self._merge_rules(shared_rules, group_rules)
-        
-        # If group rules specify inherits, respect it
-        if 'inherits' in group_rules and group_rules['inherits'] == 'shared.yaml':
-            # Already merged above
-            pass
-        
-        return merged
+            # Group file doesn't exist - return shared rules only
+            logger.debug(f"Group rules file not found: {group_file.name} (using shared rules only)")
+            return shared_rules
     
-    def get_vendor_rule(self, vendor_name: Optional[str], group: str = 'group1') -> Optional[Dict[str, Any]]:
+    def get_vendor_rule(self, vendor_name: Optional[str], group: str = 'group2') -> Optional[Dict[str, Any]]:
         """
         Get vendor-specific rules from group rules
         
@@ -235,7 +242,7 @@ class RuleLoader:
         
         return None
     
-    def get_validation_rules(self, group: str = 'group1') -> Dict[str, Any]:
+    def get_validation_rules(self, group: str = 'group2') -> Dict[str, Any]:
         """Get validation rules for a group"""
         rules = self.load_group_rules(group)
         return rules.get('validation', {})
@@ -245,9 +252,9 @@ class RuleLoader:
         """Load all rule files (legacy method - kept for backward compatibility)"""
         all_rules = {}
         
-        # Load YAML group rules
-        for group in ['group1', 'group2']:
-            all_rules[f'{group}_rules'] = self.load_group_rules(group)
+        # Load YAML group rules (only group2, group1 deprecated)
+        all_rules['group1_rules'] = {}  # Deprecated - localgrocery vendors use vendor-specific PDF rules
+        all_rules['group2_rules'] = self.load_group_rules('group2')
         
         # Return empty dicts for legacy rule names (markdown files removed, using YAML only)
         legacy_rule_names = [
@@ -306,9 +313,14 @@ class RuleLoader:
         return shared_rules.get('ai_fallback', {})
     
     def get_group1_vendors(self) -> list:
-        """Get list of Group 1 vendors from shared.yaml"""
-        shared_rules = self._load_shared_rules()
-        return shared_rules.get('group1_vendors', [])
+        """
+        Get list of group1 vendors from shared rules (DEPRECATED)
+        
+        Note: group1 is deprecated - localgrocery vendors now use vendor-specific PDF rules.
+        This method is kept for backward compatibility but returns empty list.
+        """
+        # Deprecated - group1 vendors now use vendor-specific PDF rules (20_*.yaml, 21_*.yaml, etc.)
+        return []
     
     def get_vendor_normalization_rules(self) -> Dict[str, Any]:
         """Get vendor normalization rules from 40_vendor_normalization.yaml"""
@@ -386,8 +398,8 @@ class RuleLoader:
         """
         layout_files = {
             'COSTCO': '20_costco_layout.yaml',
-            'RD': '21_rd_layout.yaml',
-            'RESTAURANT_DEPOT': '21_rd_layout.yaml',
+            'RD': '21_rd_pdf_layout.yaml',
+            'RESTAURANT_DEPOT': '21_rd_pdf_layout.yaml',
             'JEWEL': '22_jewel_layout.yaml',
             'JEWELOSCO': '22_jewel_layout.yaml',
             'MARIANOS': '22_jewel_layout.yaml',
