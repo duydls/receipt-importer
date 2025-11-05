@@ -191,6 +191,7 @@ class UnifiedPDFProcessor:
             'PARKTOSHOP': '24_parktoshop_pdf.yaml',
             'RD': '21_rd_pdf_layout.yaml',
             'RESTAURANT_DEPOT': '21_rd_pdf_layout.yaml',
+            'WISMETTAC': '31_wismettac_pdf.yaml',
         }
         
         yaml_file = vendor_file_map.get(vendor_code.upper())
@@ -691,6 +692,12 @@ class UnifiedPDFProcessor:
         items = []
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         
+        # Pre-process OCR text for Wismettac (clean OCR errors)
+        vendor_name = rules.get('vendor_name', '').upper()
+        if 'WISMETTAC' in vendor_name:
+            # Clean OCR errors: remove brackets, pipes, normalize spacing
+            lines = [self._clean_wismettac_ocr_line(line) for line in lines]
+        
         # Find summary section start (from rules)
         summary_keywords = rules.get('summary_keywords', ['SUBTOTAL', 'TAX', 'TOTAL'])
         summary_start = len(lines)
@@ -1105,6 +1112,16 @@ class UnifiedPDFProcessor:
             
             logger.debug(f"Quantity pattern didn't match next line: {repr(next_line)} (pattern: {quantity_pattern})")
         return None
+    
+    def _clean_wismettac_ocr_line(self, line: str) -> str:
+        """Clean Wismettac OCR line by removing brackets, pipes, and normalizing spacing"""
+        # Remove brackets and pipes
+        cleaned = line.replace('[', ' ').replace(']', ' ').replace('|', ' ')
+        # Remove multiple spaces
+        cleaned = ' '.join(cleaned.split())
+        # Normalize hyphens and dashes in numbers
+        cleaned = re.sub(r'(\d+)-(\d+)', r'\1.\2', cleaned)  # 1-00 -> 1.00
+        return cleaned
     
     def _extract_totals_from_text(self, text: str, rules: Dict[str, Any]) -> Dict[str, float]:
         """Extract subtotal, tax, and total from PDF text using rules (patterns from YAML)"""

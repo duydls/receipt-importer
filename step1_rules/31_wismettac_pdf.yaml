@@ -1,0 +1,161 @@
+# Wismettac Asian Foods, Inc. Invoice Layout Rules
+# Designed for parsing structured, fixed-column invoices (non-receipt format).
+
+vendor_name: "Wismettac Asian Foods, Inc."
+parsed_by: "wismettac_pdf_v1"
+extraction_method: "regex"
+
+# --- Invoice Metadata Patterns ---
+metadata_patterns:
+  # Invoice Numbers and Dates
+  invoice_number:
+    pattern: "INVOICE\\s*#:\\s*(\\d+)"
+    group: 1
+    field: receipt_number
+  
+  invoice_date:
+    pattern: "INVOICE\\s*DATE:\\s*(\\d{2}/\\d{2}/\\d{2})"
+    group: 1
+    field: transaction_date
+  
+  order_number:
+    pattern: "ORDER\\s*#:\\s*(\\d+)"
+    group: 1
+    field: order_number
+  
+  delivery_date:
+    pattern: "DELIVERY\\s*DATE:\\s*(\\d{2}/\\d{2}/\\d{2})"
+    group: 1
+    field: delivery_date
+  
+  due_date:
+    pattern: "DUE\\s*DATE:\\s*(\\d{2}/\\d{2}/\\d{2})"
+    group: 1
+    field: due_date
+  
+  payment_term:
+    pattern: "PAYMENT\\s*TERM:\\s*(Net\\s+\\d+)"
+    group: 1
+    field: payment_term
+  
+  # Customer and Sales Information
+  customer_po:
+    pattern: "CUSTOMER\\s+PO\\s*#\\s*/\\s*ADJ:\\s*([^\\n]*)"
+    group: 1
+    field: customer_po
+  
+  sales_rep:
+    pattern: "SALES\\s*REP:\\s*([^\\n]*)"
+    group: 1
+    field: sales_rep
+  
+  customer_name:
+    pattern: "UNI\\s+UNI\\s+BOBA\\s+UPTOWN\\s*\\(M\\s*&\\s*L\\s+NOODLE"
+    group: 0
+    field: customer_name
+  
+  customer_address:
+    pattern: "1130\\s+W\\s+ARGYLE\\s+ST\\s+CHICAGO,\\s+IL\\s+60616\\s+US"
+    group: 0
+    field: customer_address
+
+# --- Item Patterns ---
+# Format: [line_num] [ITEM#] [UPC (optional)] [QTY] [UOM] [DESCRIPTION...] [pack] [tax] [UNIT PRICE] [TOTAL]
+# Example: "12 28343 744271503012 1.00 Ea SOUP BASE SEASONED PORK FAT 2LB F 16/ 2 LB No 13.00 13.00"
+item_patterns:
+  - type: "wismettac_invoice_item"
+    # Pattern matches:
+    # Group 1: Line number (optional)
+    # Group 2: Item number (can have letter suffix like "87137A")
+    # Group 3: UPC (optional, 12 digits)
+    # Group 4: Quantity
+    # Group 5: UOM (Ea, Lbs, CS, etc.)
+    # Group 6: Description (everything until we see "No" followed by price)
+    # Group 7: Unit price
+    # Group 8: Total price
+    regex: "^\\s*(?:\\d+\\s+)?(\\d+[A-Z]?)\\s+(?:\\d{12}\\s+)?(\\d+\\.\\d{2})\\s+([A-Za-z]{2,4})\\s+(.+?)\\s+No\\s+(\\d+\\.\\d{2})\\s+(\\d+\\.\\d{2})\\s*$"
+    groups:
+      - item_number
+      - quantity
+      - uom
+      - product_name
+      - unit_price
+      - total_price
+    description: "Wismettac invoice item line with Item#, QTY, UOM, Description, Unit Price, and Total."
+    field_mappings:
+      item_number: "item_number"
+      quantity: "quantity"
+      uom: "purchase_uom"
+      product_name: "product_name"
+      unit_price: "unit_price"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true  # Remove extra whitespace
+      extract_uom: false  # UOM already extracted from pattern
+    case_insensitive: false
+
+# --- Total Extraction Patterns ---
+total_patterns:
+  # The Sub Total line (matches "Sub Total 288.29")
+  subtotal: "Sub\\s*Total\\s+(\\d+\\.\\d{2})"
+  # The Tax line (matches "Tax 0.00")
+  tax: "Tax\\s+(\\d+\\.\\d{2})"
+  # The Final Total (matches "Total (USD) Cash Price 288.29")
+  total: "Total\\s*\\(USD\\)\\s*Cash\\s*Price\\s+(\\d+\\.\\d{2})"
+
+# --- Summary Section Keywords ---
+summary_keywords:
+  - "Sub Total"
+  - "Tax"
+  - "Total (USD)"
+
+# --- Summary Section Exclude Keywords ---
+# Lines containing these keywords should NOT trigger summary section detection
+summary_exclude_keywords:
+  - "ITEM#"
+  - "UNIT PRICE TOTAL"
+  - "HEADER"
+
+# --- Skip Patterns ---
+skip_keywords:
+  - "Wismettac"
+  - "Asian Foods"
+  - "INVOICE"
+  - "ORDER"
+  - "DELIVERY"
+  - "DUE DATE"
+  - "PAYMENT TERM"
+  - "CUSTOMER PO"
+  - "SALES REP"
+  - "ITEM#"
+  - "QTY"
+  - "UOM"
+  - "DESCRIPTION"
+  - "PACK"
+  - "TAX"
+
+# --- Validation Rules ---
+validation:
+  required_fields:
+    - receipt_number
+    - transaction_date
+    - total
+  numeric_fields:
+    - subtotal
+    - tax_amount
+    - total
+    - unit_price
+    - quantity
+    - total_price
+  total_validation:
+    check_item_sum: true
+    check_grand_total: true
+    tolerance: 0.02
+
+# --- Notes ---
+notes:
+  - "Wismettac Asian Foods provides Asian food ingredients and supplies"
+  - "Invoice format is structured with fixed columns"
+  - "Item descriptions may span multiple columns and require fixed-column parsing"
+  - "OCR cleaning is applied to remove brackets, pipes, and normalize spacing"
+  - "Date format is MM/DD/YY (two-digit year)"

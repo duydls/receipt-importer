@@ -92,6 +92,14 @@ vendor_detection:
       vendor_code: "INSTACART"
       source_type: "instacart_based"
       confidence: 0.95
+    
+    wismettac:
+      patterns:
+        - "wismettac"
+        - "wismettac asian foods"
+      vendor_code: "WISMETTAC"
+      source_type: "localgrocery_based"
+      confidence: 0.95
   
   # Vendor identifiers by receipt content keywords
   content_keywords:
@@ -160,6 +168,17 @@ vendor_detection:
         - "your order from"
       vendor_code: "INSTACART"
       source_type: "instacart_based"
+      confidence: 0.90
+    
+    wismettac:
+      keywords:
+        - "wismettac"
+        - "wismettac asian foods"
+        - "wismettac asian foods, inc."
+        - "invoice #"
+        - "order #"
+      vendor_code: "WISMETTAC"
+      source_type: "localgrocery_based"
       confidence: 0.90
   
   # Fallback detection
