@@ -718,7 +718,16 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             
             # Get vendor code for vendor-specific validation
             vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-            is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+            upper_vendor = (vendor_code or '').upper()
+            is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
+            is_costco = 'COSTCO' in upper_vendor or 'COSTCO' in (receipt_data.get('vendor','').upper())
+            is_rd = 'RD' == upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor or 'RESTAURANT DEPOT' in (receipt_data.get('vendor','').upper())
+
+            # Vendor-specific display rule for unit_price:
+            # - Costco: display unit_price computed from total_price / quantity (KB price is only for inference)
+            # - RD: display unit_price from receipt as-is
+            if is_costco and qty_float > 0 and total_price_float > 0:
+                unit_price_float = round(total_price_float / qty_float, 2)
             
             # Calculate expected total (vendor-specific logic)
             if is_webstaurantstore:
