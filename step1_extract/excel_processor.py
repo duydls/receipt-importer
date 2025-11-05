@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Excel Processor - Vendor-based receipts (Costco, Jewel-Osco, RD, others)
-Processes Excel files using rule-driven layout application with legacy fallback.
+Excel Processor - BBI-based receipts only
+Processes Excel files using rule-driven layout application.
+
+Note: Excel files are no longer processed for localgrocery vendors (RD, Costco, Aldi, Jewel, Mariano's, Parktoshop).
+These vendors now use PDF files only. Only BBI-based receipts use Excel files.
 
 Rule-Driven Processing Flow:
 1. Vendor detection (handled by main.py via VendorDetector)
-2. Layout application (tries layout rules first: 20_*.yaml files)
+2. Layout application (tries layout rules first: 27_bbi_layout.yaml)
 3. Legacy processing (fallback if layout rules don't match)
 4. UoM extraction (always applied: 30_uom_extraction.yaml)
 
@@ -68,7 +71,9 @@ class ExcelProcessor:
             input_dir: Input directory path (for knowledge base location)
         """
         self.rule_loader = rule_loader
-        self.group_rules = rule_loader.load_group_rules('group1')
+        # Note: group1_excel.yaml removed - Excel files no longer supported for localgrocery vendors
+        # BBI uses its own layout (27_bbi_layout.yaml) loaded via layout_applier
+        self.group_rules = {}  # No longer loading group1 rules
         self.input_dir = Path(input_dir) if input_dir else None
         
         # Prepare config with knowledge base file path (from input folder)
@@ -130,13 +135,8 @@ class ExcelProcessor:
 
     @staticmethod
     def _vendor_header_fingerprint(vendor_code: Optional[str]) -> list:
-        vc = (vendor_code or "").upper()
-        if vc in ("RD", "RESTAURANT_DEPOT"):
-            return ["Item Description", "Extended Amount (USD)"]
-        if vc == "COSTCO":
-            return ["Item Description", "Extended Amount (USD)"]
-        if vc in ("JEWEL", "MARIANOS"):
-            return ["Item Description"]
+        # Vendor-specific fingerprints removed - Excel files no longer supported for localgrocery vendors
+        # BBI uses its own layout rules (27_bbi_layout.yaml)
         return []
 
     def _detect_header_row(self, df, vendor_code: Optional[str], max_scan: int = 30) -> int:
@@ -184,29 +184,17 @@ class ExcelProcessor:
         filename_lower = file_path.name.lower()
         path_lower = str(file_path).lower()
         
-        # Get vendor rules from group1_excel.yaml
-        vendors = self.group_rules.get('vendors', {})
-        
-        for vendor_name, vendor_config in vendors.items():
-            identifier = vendor_config.get('identifier', '').lower()
-            if identifier in filename_lower or identifier in path_lower:
-                return vendor_name
-        
-        # Fallback: check folder name
-        try:
-            folder_name = str(file_path.parent).lower()
-            for vendor_name, vendor_config in vendors.items():
-                identifier = vendor_config.get('identifier', '').lower()
-                if identifier in folder_name:
-                    return vendor_name
-        except:
-            pass
-        
+        # Vendor detection now handled by VendorDetector in main.py
+        # This method is kept for backward compatibility but no longer uses group1_excel.yaml
+        # BBI detection is handled via vendor detection rules
         return None
     
     def process_file(self, file_path: Path, detected_vendor_code: Optional[str] = None) -> Dict:
         """
         Process an Excel file using layout rules if available, fallback to legacy processor
+        
+        Note: Excel files are no longer processed for localgrocery vendors (RD, Costco, Aldi, Jewel, Parktoshop).
+        Only BBI-based receipts use Excel files now.
         
         Args:
             file_path: Path to Excel file
@@ -217,6 +205,9 @@ class ExcelProcessor:
         """
         try:
             import pandas as pd
+            
+            # Localgrocery vendors no longer use Excel files (PDF only)
+            localgrocery_vendors = ['COSTCO', 'RD', 'RESTAURANT_DEPOT', 'JEWEL', 'JEWELOSCO', 'ALDI', 'PARKTOSHOP']
             
             # Use detected_vendor_code if provided, otherwise try to detect from filename
             if self._force_vendor:
@@ -238,6 +229,18 @@ class ExcelProcessor:
                     'Mariano': 'MARIANOS',
                 }
                 vendor_code = vendor_code_map.get(vendor, vendor.upper() if vendor else None)
+            
+            # Reject localgrocery vendors (Excel no longer supported)
+            if vendor_code and vendor_code.upper() in localgrocery_vendors:
+                logger.warning(f"Excel files no longer supported for {vendor_code}. Use PDF files instead. Skipping: {file_path.name}")
+                return {
+                    'filename': file_path.name,
+                    'vendor': vendor_code,
+                    'items': [],
+                    'needs_review': True,
+                    'review_reasons': [f'Excel files no longer supported for {vendor_code}. Please use PDF files.'],
+                    'parsed_by': 'rejected_excel_format'
+                }
             
             if vendor_code:
                 # Try layout rules first
@@ -371,22 +374,8 @@ class ExcelProcessor:
                         except Exception as e:
                             logger.warning(f"UoM extraction failed for {file_path.name}: {e}; continuing with modern items")
                         
-                        # Enrich Costco items with unit_price, quantity, and size from knowledge base
-                        if vendor_code == 'COSTCO':
-                            try:
-                                receipt_data['items'] = self._enrich_costco_items(
-                                    receipt_data['items'],
-                                    receipt_data.get('items_sold')
-                                )
-                            except Exception as e:
-                                logger.warning(f"Costco enrichment failed for {file_path.name}: {e}; continuing with items as-is")
-                        
-                        # Enrich RD items with size from knowledge base
-                        elif vendor_code == 'RD' or vendor_code == 'RESTAURANT_DEPOT':
-                            try:
-                                receipt_data['items'] = self._enrich_rd_items(receipt_data['items'])
-                            except Exception as e:
-                                logger.warning(f"RD enrichment failed for {file_path.name}: {e}; continuing with items as-is")
+                        # Vendor-specific enrichment removed - Excel files no longer supported for localgrocery vendors
+                        # BBI items are enriched via knowledge base in receipt_processor if needed
                         
                         logger.info(f"[MODERN] Processed {file_path.name} using layout '{receipt_data.get('parsed_by')}' for {vendor_code}")
                         return receipt_data
@@ -421,9 +410,8 @@ class ExcelProcessor:
             receipt_data = self._legacy_processor.process_excel(str(file_path))
             
             # Preserve fields from vendor detection (merged by main.py after process_file returns)
-            # Fields listed in preserve_fields from group1_excel.yaml are not overwritten here
             
-            # Enhance with vendor rules from group1_excel.yaml if vendor detected (but don't overwrite preserved fields)
+            # Enhance with vendor info if vendor detected (but don't overwrite preserved fields)
             if vendor and not receipt_data.get('vendor'):
                 receipt_data['vendor'] = vendor
                 receipt_data['vendor_source'] = 'filename'
@@ -435,17 +423,16 @@ class ExcelProcessor:
                 receipt_data['detected_vendor_code'] = vendor_code
             
             # Mark as needs_review and add parsed_by if we fell back to legacy processor
-            parsed_by_value = self.group_rules.get('parsed_by', 'legacy_group1_excel')
-            receipt_data['parsed_by'] = parsed_by_value
+            receipt_data['parsed_by'] = receipt_data.get('parsed_by', 'legacy_excel_fallback')
             receipt_data['needs_review'] = True
             if 'review_reasons' not in receipt_data:
                 receipt_data['review_reasons'] = []
-            receipt_data['review_reasons'].append("step1: no modern layout matched, used legacy group rules")
+            receipt_data['review_reasons'].append("step1: no modern layout matched, used legacy excel processor")
             
             # Add parsed_by to all items
             if receipt_data.get('items'):
                 for item in receipt_data['items']:
-                    item['parsed_by'] = parsed_by_value
+                    item['parsed_by'] = receipt_data.get('parsed_by', 'legacy_excel_fallback')
             
             # Apply UoM extraction even for legacy processor
             if receipt_data.get('items'):

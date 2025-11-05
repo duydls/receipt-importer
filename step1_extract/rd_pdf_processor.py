@@ -76,7 +76,7 @@ class RDPDFProcessor:
         """Load OCR extraction patterns from YAML rules"""
         try:
             # Load RD layout rules from YAML
-            rd_layouts = self.rule_loader.load_rule_file_by_name('21_rd_layout.yaml')
+            rd_layouts = self.rule_loader.load_rule_file_by_name('21_rd_pdf_layout.yaml')
             if rd_layouts and 'rd_layouts' in rd_layouts:
                 # Find the PDF layout with OCR patterns
                 for layout in rd_layouts['rd_layouts']:
@@ -273,7 +273,6 @@ class RDPDFProcessor:
                         "explicit_horizontal_lines": [],
                         "snap_tolerance": 3,
                         "join_tolerance": 3,
-                        "edge_tolerance": 3,
                         "intersection_tolerance": 3,
                     })
                     if page_tables:

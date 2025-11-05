@@ -483,7 +483,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         # Check if vendor was detected from filename
         vendor_from_filename = receipt_data.get('vendor_source') == 'filename'
         # For Group 1 Excel files, if vendor_source is not set, check if vendor likely came from filename
-        if not vendor_from_filename and receipt_data.get('source_group') == 'group1':
+        # group1 deprecated - check for localgrocery vendors directly
+        if not vendor_from_filename and receipt_data.get('source_type') == 'localgrocery_based':
             # Check if filename contains vendor identifier patterns
             filename_lower = filename.lower()
             vendor_lower = vendor.lower() if vendor else ''
@@ -557,7 +558,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Detect if this is Group 1 (Excel-based) receipt
         source_group = receipt_data.get('source_group', '')
-        is_group1 = source_group == 'group1'
+        # group1 deprecated - check source_type instead
+        is_group1 = receipt_data.get('source_type') == 'localgrocery_based'
         
         # Add items
         for item in items:
@@ -607,7 +609,12 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             is_costco_or_rd = 'costco' in vendor_name or 'restaurant' in vendor_name or 'rd' == vendor_name.strip().lower()
             
             # Build unit information display
-            uom_display = purchase_uom.upper() if purchase_uom and purchase_uom != 'unknown' else 'UNKNOWN'
+            raw_uom_text = item.get('raw_uom_text')
+            if raw_uom_text:
+                # Prefer showing size/spec (raw_uom_text) as UoM display when available
+                uom_display = raw_uom_text
+            else:
+                uom_display = purchase_uom.upper() if purchase_uom and purchase_uom != 'unknown' else 'UNKNOWN'
             # Normalization spec fields (from 00_normalize.yaml)
             spec_pack = item.get('spec.pack') or (item.get('spec', {}).get('pack') if isinstance(item.get('spec', {}), dict) else None)
             spec_size = item.get('spec.size') or (item.get('spec', {}).get('size') if isinstance(item.get('spec', {}), dict) else None)
@@ -711,7 +718,16 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             
             # Get vendor code for vendor-specific validation
             vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-            is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+            upper_vendor = (vendor_code or '').upper()
+            is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
+            is_costco = 'COSTCO' in upper_vendor or 'COSTCO' in (receipt_data.get('vendor','').upper())
+            is_rd = 'RD' == upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor or 'RESTAURANT DEPOT' in (receipt_data.get('vendor','').upper())
+
+            # Vendor-specific display rule for unit_price:
+            # - Costco: display unit_price computed from total_price / quantity (KB price is only for inference)
+            # - RD: display unit_price from receipt as-is
+            if is_costco and qty_float > 0 and total_price_float > 0:
+                unit_price_float = round(total_price_float / qty_float, 2)
             
             # Calculate expected total (vendor-specific logic)
             if is_webstaurantstore:
