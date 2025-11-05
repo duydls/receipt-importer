@@ -170,6 +170,10 @@ class UnifiedPDFProcessor:
             if detected_vendor_code == 'COSTCO' and receipt_data.get('items'):
                 try:
                     receipt_data['items'] = self._infer_costco_quantities(receipt_data['items'])
+                    # Enrich size/spec and UOM from knowledge base
+                    receipt_data['items'] = self._enrich_costco_size_and_uom(receipt_data['items'])
+                    # Persist new KB entries when possible
+                    self._update_knowledge_base_costco(receipt_data['items'])
                 except Exception as e:
                     logger.debug(f"Costco quantity inference skipped: {e}")
 
@@ -1290,6 +1294,88 @@ class UnifiedPDFProcessor:
                 pass
             updated.append(item)
         return updated
+
+    def _enrich_costco_size_and_uom(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Set size/spec (raw_uom_text) and purchase_uom for Costco items from KB size text."""
+        kb = self._load_knowledge_base()
+        def _derive_uom(size_text: str) -> Optional[str]:
+            if not size_text:
+                return None
+            st = size_text.lower()
+            if any(u in st for u in [' lb', 'lbs', 'pound']):
+                return 'lb'
+            if 'fl oz' in st or 'floz' in st or 'oz' in st:
+                return 'oz'
+            if 'gal' in st or 'gallon' in st:
+                return 'gal'
+            if 'ct' in st or 'count' in st or 'unit' in st:
+                return 'ct'
+            return None
+        for item in items:
+            try:
+                item_number = str(item.get('item_number') or '').strip()
+                kb_entry = kb.get(item_number) if item_number else None
+                size_text = None
+                if isinstance(kb_entry, list) and len(kb_entry) >= 3:
+                    size_text = kb_entry[2]
+                # If KB has size/spec, set raw_uom_text
+                if size_text:
+                    item['raw_uom_text'] = size_text
+                    u = _derive_uom(size_text)
+                    if u:
+                        item['purchase_uom'] = u
+                else:
+                    # Try derive size from product_name as fallback
+                    pn = (item.get('product_name') or '')
+                    # Simple extraction like "3 LB", "2-lbs", "64-fl oz", "3000CT"
+                    import re as _re
+                    m = _re.search(r'(\d+(?:\.\d+)?)\s*(lb|lbs|fl\s*oz|oz|ct|gallon|gal)\b', pn, _re.I)
+                    if m:
+                        item['raw_uom_text'] = f"{m.group(1)} {m.group(2)}"
+                        u = _derive_uom(item['raw_uom_text'])
+                        if u:
+                            item['purchase_uom'] = u
+            except Exception:
+                pass
+        return items
+
+    def _update_knowledge_base_costco(self, items: List[Dict[str, Any]]) -> None:
+        """Append missing Costco items to KB with inferred unit price and optional size/spec."""
+        try:
+            kb_path = None
+            try:
+                kb_path = Path(self._legacy_processor.config.get('knowledge_base_file')) if getattr(self, '_legacy_processor', None) else None
+            except Exception:
+                kb_path = None
+            if not kb_path:
+                kb_path = Path('data/step1_input/knowledge_base.json')
+            kb = self._load_knowledge_base()
+            modified = False
+            for item in items:
+                try:
+                    item_number = str(item.get('item_number') or '').strip()
+                    if not item_number:
+                        continue
+                    if item_number in kb:
+                        continue
+                    unit_price = float(item.get('unit_price') or 0)
+                    if unit_price <= 0:
+                        continue
+                    product_name = (item.get('product_name') or '').strip()
+                    size_text = (item.get('raw_uom_text') or '').strip()
+                    entry = [product_name or item_number, 'Costco', size_text, unit_price]
+                    kb[item_number] = entry
+                    modified = True
+                except Exception:
+                    continue
+            if modified:
+                import json as _json
+                with open(kb_path, 'w') as f:
+                    _json.dump(kb, f, indent=2)
+                # Update cache
+                UnifiedPDFProcessor._kb_cache = kb
+        except Exception as e:
+            logger.debug(f"Knowledge base update skipped: {e}")
     
     def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
         """Extract items sold count from text (pattern from YAML)"""

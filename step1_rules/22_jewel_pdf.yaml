@@ -48,8 +48,10 @@ quantity_pattern: "Quantity:\\s*(\\d+(?:\\.\\d+)?)"
 # Total extraction patterns
 total_patterns:
   subtotal: "Subtotal\\s+\\$?(\\d+\\.\\d{2})"
-  tax: "(?:Sales\\s+Tax|Taxes?\\s+and\\s+Fees?)\\s+\\$?(\\d+\\.\\d{2})"
-  total: "^Total\\s+\\$?(\\d+\\.\\d{2})(?:\\s|$)"  # Must be start of line, not "Total Items"
+  # Only capture Sales Tax; ignore "Taxes and Fees" line in emails
+  tax: "Sales\\s+Tax\\s+\\$?(\\d+\\.\\d{2})"
+  # Match either "Total $9.19" or fallback to "Amount $9.19"; allow optional leading spaces
+  total: "^\\s*(?:Total|Amount)\\s+\\$?(\\d+\\.\\d{2})(?:\\s|$)"  # Avoid matching "Total Items"
 
 extract_transaction_date: true
 date_pattern: "(\\d{2}/\\d{2}/\\d{4})"
