@@ -785,13 +785,34 @@ class UnifiedPDFProcessor:
                                     match_found = False
                                     continue
                             
-                            # Extract quantity from next line if specified (from rules)
+                            # Extract quantity and unit price from next line if specified (from rules)
                             if pattern_def.get('quantity_from_next_line'):
-                                quantity = self._extract_quantity_from_next_line(lines, line_idx, rules)
-                                if quantity:
-                                    item['quantity'] = quantity
-                                    item['unit_price'] = item['total_price'] / quantity if quantity > 0 else item['total_price']
-                                consumed_lines += 1 
+                                qty_info = self._extract_quantity_from_next_line(lines, line_idx, pattern_def)
+                                if qty_info:
+                                    quantity = qty_info.get('quantity')
+                                    unit_price = qty_info.get('unit_price')
+                                    if unit_price:
+                                        item['unit_price'] = unit_price
+                                        # If quantity not found but unit_price found, calculate from total_price
+                                        if not quantity and 'total_price' in item and unit_price > 0:
+                                            quantity = item['total_price'] / unit_price
+                                            item['quantity'] = round(quantity, 2)
+                                            logger.debug(f"Calculated quantity from total_price/unit_price: {quantity}")
+                                    if quantity:
+                                        item['quantity'] = quantity
+                                    elif unit_price and 'total_price' in item and unit_price > 0:
+                                        # Fallback: calculate quantity from total_price / unit_price
+                                        quantity = item['total_price'] / unit_price
+                                        item['quantity'] = round(quantity, 2)
+                                        logger.debug(f"Calculated quantity from total_price/unit_price: {quantity}")
+                                    consumed_lines += 1
+                                else:
+                                    # If no quantity found, still consume the line if it looks like a quantity line
+                                    if line_idx + 1 < len(lines):
+                                        next_line = lines[line_idx + 1]
+                                        # Check if next line looks like a quantity line (has "x" or "@" with numbers)
+                                        if re.search(r'[x@].*\d+[.,]\d', next_line, re.IGNORECASE):
+                                            consumed_lines += 1 
                             
                             items.append(item)
                             line_idx += consumed_lines
@@ -1034,17 +1055,55 @@ class UnifiedPDFProcessor:
         logger.debug(f"No multiline product name found (consumed {lines_consumed} lines)")
         return None, 0
     
-    def _extract_quantity_from_next_line(self, lines: List[str], current_idx: int, rules: Dict[str, Any]) -> Optional[float]:
-        """Extract quantity from next line (pattern from YAML rules)"""
+    def _extract_quantity_from_next_line(self, lines: List[str], current_idx: int, pattern_def: Dict[str, Any]) -> Optional[Dict[str, float]]:
+        """Extract quantity and unit price from next line (pattern from YAML rules)
+        
+        Returns:
+            Dict with 'quantity' and 'unit_price' keys, or None if not found
+        """
         if current_idx + 1 >= len(lines):
             return None
         
         next_line = lines[current_idx + 1]
-        # Get quantity pattern from rules (default is generic)
-        quantity_pattern = rules.get('quantity_pattern', r'Quantity:\s*(\d+(?:\.\d+)?)')
+        # Get quantity pattern from pattern_def (supports both quantity and unit price)
+        quantity_pattern = pattern_def.get('quantity_pattern', r'(\d+)\s*(?:x|@)\s*(\d+[.,]\d{1,2})')
+        
         match = re.search(quantity_pattern, next_line, re.IGNORECASE)
         if match:
-            return float(match.group(1))
+            result = {}
+            # Extract quantity (first group)
+            if match.lastindex >= 1:
+                try:
+                    result['quantity'] = float(match.group(1))
+                except (ValueError, IndexError):
+                    pass
+            
+            # Extract unit price (second group)
+            if match.lastindex >= 2:
+                try:
+                    unit_price_str = match.group(2).replace(',', '.').replace('$', '').strip()
+                    result['unit_price'] = float(unit_price_str)
+                except (ValueError, IndexError):
+                    pass
+            
+            if result:
+                logger.debug(f"Extracted quantity/unit_price from next line: {result} (line: {repr(next_line)})")
+                return result
+        else:
+            # Try alternative pattern: just look for "x" or "@" followed by unit price
+            # This handles OCR errors where quantity might be misread (e.g., "é x 5.39")
+            alt_pattern = r'[x@]\s*(\d+[.,]\d{1,2})'
+            alt_match = re.search(alt_pattern, next_line, re.IGNORECASE)
+            if alt_match:
+                try:
+                    unit_price_str = alt_match.group(1).replace(',', '.').replace('$', '').strip()
+                    result = {'unit_price': float(unit_price_str)}
+                    logger.debug(f"Extracted unit_price only from next line: {result} (line: {repr(next_line)})")
+                    return result
+                except (ValueError, IndexError):
+                    pass
+            
+            logger.debug(f"Quantity pattern didn't match next line: {repr(next_line)} (pattern: {quantity_pattern})")
         return None
     
     def _extract_totals_from_text(self, text: str, rules: Dict[str, Any]) -> Dict[str, float]:
@@ -1068,33 +1127,300 @@ class UnifiedPDFProcessor:
                 except ValueError:
                     logger.debug(f"Could not convert subtotal value: {cleaned_val}")
         
-        # Extract tax (pattern from YAML)
-        if 'tax' in total_patterns:
-            tax_match = re.search(total_patterns['tax'], text, re.IGNORECASE | re.MULTILINE)
-            if tax_match:
-                cleaned_val = tax_match.group(1).replace(',', '.').replace('$', '')
-                try:
-                    totals['tax'] = float(cleaned_val)
-                except ValueError:
-                    logger.debug(f"Could not convert tax value: {cleaned_val}")
+        # Extract tax - try multiple patterns and sum them
+        tax_amount = 0.0
         
-        # Extract total (pattern from YAML, handle special cases like "7 07" -> 7.07)
+        # Try main tax pattern (can match multiple times)
+        if 'tax' in total_patterns:
+            tax_matches = re.finditer(total_patterns['tax'], text, re.IGNORECASE | re.MULTILINE)
+            for tax_match in tax_matches:
+                try:
+                    cleaned_val = tax_match.group(1).replace(',', '.').replace('$', '').strip()
+                    tax_value = float(cleaned_val)
+                    tax_amount += tax_value
+                    logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax'")
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Could not convert tax value: {e}")
+        
+        # Try water tax pattern (separate)
+        if 'tax_water' in total_patterns:
+            tax_water_match = re.search(total_patterns['tax_water'], text, re.IGNORECASE | re.MULTILINE)
+            if tax_water_match:
+                try:
+                    cleaned_val = tax_water_match.group(1).replace(',', '.').replace('$', '').strip()
+                    tax_value = float(cleaned_val)
+                    tax_amount += tax_value
+                    logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax_water'")
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Could not convert tax_water value: {e}")
+        
+        # Use combined tax pattern if main pattern didn't find anything (fallback)
+        if tax_amount == 0.0 and 'tax_combined' in total_patterns:
+            tax_combined_matches = re.finditer(total_patterns['tax_combined'], text, re.IGNORECASE | re.MULTILINE)
+            for tax_match in tax_combined_matches:
+                try:
+                    cleaned_val = tax_match.group(1).replace(',', '.').replace('$', '').strip()
+                    tax_value = float(cleaned_val)
+                    tax_amount += tax_value
+                    logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax_combined'")
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Could not convert tax_combined value: {e}")
+        
+        if tax_amount > 0.0:
+            totals['tax'] = tax_amount
+            logger.debug(f"Total tax extracted: ${tax_amount:.2f}")
+        
+        # Extract total (pattern from YAML, handle special cases like "7 07" -> 7.07 or "11,02" -> 11.02)
         if 'total' in total_patterns:
             total_match = re.search(total_patterns['total'], text, re.IGNORECASE | re.MULTILINE)
             if total_match:
-                # Check if we have two groups (dollars and cents separately)
+                # Check if we have two groups (dollars and cents separately - handles comma as decimal)
                 if len(total_match.groups()) >= 2:
                     dollars = total_match.group(1)
                     cents = total_match.group(2)
                     totals['total'] = float(f"{dollars}.{cents}")
-                else:
-                    cleaned_val = total_match.group(1).replace(',', '.').replace('$', '')
+                elif len(total_match.groups()) == 1:
+                    # Single group - handle comma as decimal separator
+                    cleaned_val = total_match.group(1).replace(',', '.').replace('$', '').strip()
                     try:
                         totals['total'] = float(cleaned_val)
                     except ValueError:
                         logger.debug(f"Could not convert total value: {cleaned_val}")
         
+        # For Aldi: SUBTOTAL is before tax, AMOUNT DUE is the real total (after tax)
+        # If we have both subtotal and total, verify the math
+        vendor_name = rules.get('vendor_name', '').upper()
+        if vendor_name == 'ALDI':
+            if totals['subtotal'] > 0:
+                expected_total = totals['subtotal'] + totals['tax']
+                # If total was not extracted or doesn't match expected, use AMOUNT DUE (subtotal + tax)
+                if totals['total'] == 0.0 or abs(totals['total'] - expected_total) > 0.10:
+                    # AMOUNT DUE should be the real total (subtotal + tax)
+                    # Recalculate total from subtotal + tax
+                    totals['total'] = expected_total
+                    logger.debug(f"Aldi: Set total to subtotal + tax: ${totals['total']:.2f} (subtotal: ${totals['subtotal']:.2f}, tax: ${totals['tax']:.2f})")
+                else:
+                    logger.debug(f"Aldi: Total matches expected: ${totals['total']:.2f} = ${totals['subtotal']:.2f} + ${totals['tax']:.2f}")
+        
         return totals
+    
+    def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
+        """Extract items sold count from text (pattern from YAML)"""
+        items_sold_pattern = rules.get('items_sold_pattern', r'TOTAL NUMBER OF ITEMS SOLD\s*=\s*(\d+)')
+        match = re.search(items_sold_pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+        return None
+    
+    def _extract_transaction_date(self, text: str, rules: Dict[str, Any]) -> Optional[str]:
+        """Extract transaction date from text (pattern from YAML)"""
+        date_pattern = rules.get('date_pattern', r'(\d{2}/\d{2}/\d{4})')
+        match = re.search(date_pattern, text)
+        if match:
+            return match.group(1)
+        return None
+    
+    def _enrich_items(self, items: List[Dict], vendor_code: str) -> List[Dict]:
+        """Enrich items with knowledge base data"""
+        if not self._legacy_processor:
+            return items
+        
+        # Preserve multiline-extracted product names before enrichment
+        # (enrichment might overwrite them if KB lookup finds a match)
+        preserved_names = {}
+        for item in items:
+            if item.get('product_name') and len(item.get('product_name', '').split()) > 1:
+                # Multi-word product names are likely from multiline extraction - preserve them
+                item_number = item.get('item_number', '')
+                if item_number:
+                    preserved_names[item_number] = item.get('product_name')
+        
+        try:
+            if hasattr(self._legacy_processor, 'enrich_with_vendor_kb'):
+                enriched_items = self._legacy_processor.enrich_with_vendor_kb(
+                    items,
+                    vendor_code=vendor_code
+                )
+                # Restore preserved multiline product names if they were overwritten
+                for item in enriched_items:
+                    item_number = item.get('item_number', '')
+                    if item_number in preserved_names:
+                        # Check if enrichment shortened the name (likely overwrote multiline name)
+                        original_name = preserved_names[item_number]
+                        current_name = item.get('product_name', '')
+                        if len(original_name.split()) > len(current_name.split()):
+                            # Original name had more words - restore it
+                            item['product_name'] = original_name
+                            logger.debug(f"Restored multiline product name for item {item_number}: '{original_name}'")
+                return enriched_items
+        except Exception as e:
+            logger.warning(f"Error enriching items: {e}")
+        
+        return items
+    
+    def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
+        """Extract items sold count from text (pattern from YAML)"""
+        items_sold_pattern = rules.get('items_sold_pattern', r'TOTAL NUMBER OF ITEMS SOLD\s*=\s*(\d+)')
+        match = re.search(items_sold_pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+        return None
+    
+    def _extract_transaction_date(self, text: str, rules: Dict[str, Any]) -> Optional[str]:
+        """Extract transaction date from text (pattern from YAML)"""
+        date_pattern = rules.get('date_pattern', r'(\d{2}/\d{2}/\d{4})')
+        match = re.search(date_pattern, text)
+        if match:
+            return match.group(1)
+        return None
+    
+    def _enrich_items(self, items: List[Dict], vendor_code: str) -> List[Dict]:
+        """Enrich items with knowledge base data"""
+        if not self._legacy_processor:
+            return items
+        
+        # Preserve multiline-extracted product names before enrichment
+        # (enrichment might overwrite them if KB lookup finds a match)
+        preserved_names = {}
+        for item in items:
+            if item.get('product_name') and len(item.get('product_name', '').split()) > 1:
+                # Multi-word product names are likely from multiline extraction - preserve them
+                item_number = item.get('item_number', '')
+                if item_number:
+                    preserved_names[item_number] = item.get('product_name')
+        
+        try:
+            if hasattr(self._legacy_processor, 'enrich_with_vendor_kb'):
+                enriched_items = self._legacy_processor.enrich_with_vendor_kb(
+                    items,
+                    vendor_code=vendor_code
+                )
+                # Restore preserved multiline product names if they were overwritten
+                for item in enriched_items:
+                    item_number = item.get('item_number', '')
+                    if item_number in preserved_names:
+                        # Check if enrichment shortened the name (likely overwrote multiline name)
+                        original_name = preserved_names[item_number]
+                        current_name = item.get('product_name', '')
+                        if len(original_name.split()) > len(current_name.split()):
+                            # Original name had more words - restore it
+                            item['product_name'] = original_name
+                            logger.debug(f"Restored multiline product name for item {item_number}: '{original_name}'")
+                return enriched_items
+        except Exception as e:
+            logger.warning(f"Error enriching items: {e}")
+        
+        return items
+    
+    def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
+        """Extract items sold count from text (pattern from YAML)"""
+        items_sold_pattern = rules.get('items_sold_pattern', r'TOTAL NUMBER OF ITEMS SOLD\s*=\s*(\d+)')
+        match = re.search(items_sold_pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+        return None
+    
+    def _extract_transaction_date(self, text: str, rules: Dict[str, Any]) -> Optional[str]:
+        """Extract transaction date from text (pattern from YAML)"""
+        date_pattern = rules.get('date_pattern', r'(\d{2}/\d{2}/\d{4})')
+        match = re.search(date_pattern, text)
+        if match:
+            return match.group(1)
+        return None
+    
+    def _enrich_items(self, items: List[Dict], vendor_code: str) -> List[Dict]:
+        """Enrich items with knowledge base data"""
+        if not self._legacy_processor:
+            return items
+        
+        # Preserve multiline-extracted product names before enrichment
+        # (enrichment might overwrite them if KB lookup finds a match)
+        preserved_names = {}
+        for item in items:
+            if item.get('product_name') and len(item.get('product_name', '').split()) > 1:
+                # Multi-word product names are likely from multiline extraction - preserve them
+                item_number = item.get('item_number', '')
+                if item_number:
+                    preserved_names[item_number] = item.get('product_name')
+        
+        try:
+            if hasattr(self._legacy_processor, 'enrich_with_vendor_kb'):
+                enriched_items = self._legacy_processor.enrich_with_vendor_kb(
+                    items,
+                    vendor_code=vendor_code
+                )
+                # Restore preserved multiline product names if they were overwritten
+                for item in enriched_items:
+                    item_number = item.get('item_number', '')
+                    if item_number in preserved_names:
+                        # Check if enrichment shortened the name (likely overwrote multiline name)
+                        original_name = preserved_names[item_number]
+                        current_name = item.get('product_name', '')
+                        if len(original_name.split()) > len(current_name.split()):
+                            # Original name had more words - restore it
+                            item['product_name'] = original_name
+                            logger.debug(f"Restored multiline product name for item {item_number}: '{original_name}'")
+                return enriched_items
+        except Exception as e:
+            logger.warning(f"Error enriching items: {e}")
+        
+        return items
+
+        return items
+    
+    def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
+        """Extract items sold count from text (pattern from YAML)"""
+        items_sold_pattern = rules.get('items_sold_pattern', r'TOTAL NUMBER OF ITEMS SOLD\s*=\s*(\d+)')
+        match = re.search(items_sold_pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+        return None
+    
+    def _extract_transaction_date(self, text: str, rules: Dict[str, Any]) -> Optional[str]:
+        """Extract transaction date from text (pattern from YAML)"""
+        date_pattern = rules.get('date_pattern', r'(\d{2}/\d{2}/\d{4})')
+        match = re.search(date_pattern, text)
+        if match:
+            return match.group(1)
+        return None
+    
+    def _enrich_items(self, items: List[Dict], vendor_code: str) -> List[Dict]:
+        """Enrich items with knowledge base data"""
+        if not self._legacy_processor:
+            return items
+        
+        # Preserve multiline-extracted product names before enrichment
+        # (enrichment might overwrite them if KB lookup finds a match)
+        preserved_names = {}
+        for item in items:
+            if item.get('product_name') and len(item.get('product_name', '').split()) > 1:
+                # Multi-word product names are likely from multiline extraction - preserve them
+                item_number = item.get('item_number', '')
+                if item_number:
+                    preserved_names[item_number] = item.get('product_name')
+        
+        try:
+            if hasattr(self._legacy_processor, 'enrich_with_vendor_kb'):
+                enriched_items = self._legacy_processor.enrich_with_vendor_kb(
+                    items,
+                    vendor_code=vendor_code
+                )
+                # Restore preserved multiline product names if they were overwritten
+                for item in enriched_items:
+                    item_number = item.get('item_number', '')
+                    if item_number in preserved_names:
+                        # Check if enrichment shortened the name (likely overwrote multiline name)
+                        original_name = preserved_names[item_number]
+                        current_name = item.get('product_name', '')
+                        if len(original_name.split()) > len(current_name.split()):
+                            # Original name had more words - restore it
+                            item['product_name'] = original_name
+                            logger.debug(f"Restored multiline product name for item {item_number}: '{original_name}'")
+                return enriched_items
+        except Exception as e:
+            logger.warning(f"Error enriching items: {e}")
+        
+        return items
     
     def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
         """Extract items sold count from text (pattern from YAML)"""

@@ -1,50 +1,149 @@
 # Aldi PDF Layout Rules
-# OCR-based PDF parsing rules for Aldi receipts
+# OCR-based PDF parsing rules for Aldi receipts (Complete Data Extraction)
 
 vendor_name: "ALDI"
-parsed_by: "aldi_pdf_v1"
-extraction_method: "ocr"  # image-based PDF, requires OCR
+parsed_by: "aldi_pdf_v3_complete"
+extraction_method: "ocr"
 
-# Summary section keywords
+# --- Summary section keywords ---
 summary_keywords:
   - "SUBTOTAL"
-  - "TAX"
+  - "Taxable"
+  - "Water Tax"
   - "AMOUNT DUE"
   - "TOTAL"
 
-# Skip keywords
+# --- Skip keywords ---
 skip_keywords:
   - "ALDI"
+  - "Store #"
   - "store #"
   - "BROADWAY"
+  - "Debit"
   - "VISA"
-  - "DEBIT"
+  - "ITEMS"
+  - "Your cashier"
+  - "Ref/Seq"
+  - "Ref/Seaq"
+  - "Auth #"
+  - "AID"
+  - "TVR"
+  - "TAD"
+  - "TST"
+  - "ARC"
+  - "EntryMode"
+  - "++APPROVED++"
+  - "PIN"
+  - "Like ALDI"
+  - "Tell ALDI"
+  - "www."
+  - "drawing"
+  - "Must be"
+  - "No purchase"
+  - "Sign up"
+  - "emails"
+  - "sneak peek"
+  - "weekly ad"
+  - "https://"
+  - "OTHER"
 
-# Item patterns
+# --- Item patterns (Updated to extract item number, quantity, and unit price) ---
 item_patterns:
-  # Pattern: _ ITEM_NUMBER PRODUCT_NAME ... PRICE [optional suffix]
-  # Example: "_ 418510 Heavy Whip 32 02 10,78 FB"
-  - type: "aldi_item"
-    regex: "^_\\s+(\\d+)\\s+(.+?)\\s+(\\d+[.,]\\d{1,2})\\s*[A-Z]*\\s*$"
+  # 1. Pattern: Item with Item Number and QTY x UNIT_PRICE on separate line (From aldi_0905.pdf)
+  # Line 1: "_ 418510 Heavy Whip 32 02 10.78 FB"
+  # Line 2: "é x 5.39" (next line with quantity and unit price)
+  - type: "aldi_item_with_next_line_qty"
+    regex: "^_\\s*(\\d{6})\\s+(.+?)\\s+(\\d+[.,]\\d{1,2})\\s+([A-Z]{2})\\s*$"
     groups:
       - item_number
       - product_name
       - total_price
-    description: "Aldi format: _ ITEM_NUMBER PRODUCT_NAME PRICE [optional suffix]"
+      - code
+    description: "Aldi format: _ ITEM_NUMBER PRODUCT_NAME TOTAL_PRICE CODE (qty x unit_price on next line)"
+    quantity_from_next_line: true
+    quantity_pattern: "[^\\d]*(\\d+)\\s*x\\s*(\\d+[.,]\\d{1,2})"
     field_mappings:
       item_number: "item_number"
       product_name: "product_name"
       total_price: "total_price"
     post_process:
       extract_uom: true
-      uom_patterns:
-        - "\\s+(\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
       clean_product_name: true
+      extract_quantity_from_next_line: true
     case_insensitive: true
 
-# Total extraction patterns (handle comma decimal separator)
-total_patterns:
-  subtotal: "SUBTOTAL\\s+(\\d+[.,]\\d{1,2})"
-  tax: "(?:TAX|TAXABLE)\\s+.*?(\\d+[.,]\\d{1,2})"
-  total: "(?:AMOUNT\\s+DUE|TOTAL)\\s+(\\d+[.,]\\d{1,2})"
+  # 2. Pattern: Product name and price with quantity on next line (From aldi_sample.pdf)
+  # Line 1: "Tajin Fruit Season 2.02 FB"
+  # Line 2: "6 @ 2.20" (optional)
+  - type: "aldi_product_price_code"
+    regex: "^(.+?)\\s+(\\d+[.,]\\d{1,2})\\s+([A-Z]{2})\\s*$"
+    groups:
+      - product_name
+      - total_price
+      - code
+    description: "Aldi format: PRODUCT_NAME PRICE CODE (qty @ unit_price may be on next line)"
+    quantity_from_next_line: true
+    quantity_pattern: "(\\d+)\\s*@\\s*(\\d+[.,]\\d{1,2})"
+    field_mappings:
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      extract_uom: true
+      clean_product_name: true
+      extract_quantity_from_next_line: true
+    case_insensitive: true
 
+  # 3. Pattern: Quantity @ Unit Price line (standalone, from aldi_sample.pdf)
+  # Example: "6 @ 2.20"
+  - type: "aldi_qty_at_price"
+    regex: "^\\s*(\\d+)\\s*@\\s*(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - quantity
+      - unit_price
+    description: "Aldi format: QUANTITY @ UNIT_PRICE (standalone line, may be paired with previous product)"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+    post_process:
+      extract_uom: false
+    case_insensitive: true
+    is_quantity_line: true  # Mark this as a quantity line that should be merged with previous item
+
+  # 4. Pattern: Quantity x Unit Price line (standalone, from aldi_0905.pdf)
+  # Example: "é x 5.39" (OCR may show "é" instead of "2")
+  - type: "aldi_qty_x_price"
+    regex: "^[^\\d]*(\\d+)\\s*x\\s*(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - quantity
+      - unit_price
+    description: "Aldi format: [prefix] QUANTITY x UNIT_PRICE (standalone line, may be paired with previous item)"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+    post_process:
+      extract_uom: false
+    case_insensitive: true
+    is_quantity_line: true  # Mark this as a quantity line that should be merged with previous item
+
+# --- Total extraction patterns ---
+total_patterns:
+  # SUBTOTAL = total before tax (this is what we use as subtotal)
+  subtotal: "SUBTOTAL\\s+(\\d+[.,]\\d{1,2})"
+  # Tax patterns (multiple to handle different formats)
+  # Pattern 1: B-Taxable, B:Taxable, or B Taxable @2.250% followed by tax amount
+  # Handles: "B-Taxable 92 .250% 0.37", "B Taxable @2.250% 0.24", "B:Taxable @2.250% 0.24"
+  tax: "(?:B[-:\\s]Taxable|F[-:]Water\\s+Taxable).*?(\\d+[.,]\\d{1,2})\\s*$"
+  # Pattern 2: Chicago Water Tax amount (handles OCR typo "Chicage")
+  tax_water: "(?:(?:Chicago|Chicage)\\s+Water\\s+Tax)\\s+(\\d+[.,]\\d{1,2})"
+  # Combined tax (sum of all tax lines)
+  tax_combined: "(?:B[-:]Taxable|F[-:]Water\\s+Taxable|Chicago\\s+Water\\s+Tax).*?(\\d+[.,]\\d{1,2})"
+  # AMOUNT DUE = total (tax included) - handles comma as decimal separator (e.g., "11,02" -> 11.02)
+  total: "(?:AMOUNT\\s+(?:DUE|QUE)|TOTAL\\s*~?)\\s*(\\d+)[,.](\\d{1,2})"
+
+# --- Store Detail Patterns ---
+metadata_patterns:
+  store_address: "(\\d+)\\s+N\\.\\s+BROADWAY\\s*(?:\\([^)]+\\))?"
+  store_phone: "(\\d{3}-\\d{3}-\\d{4})"
+  transaction_date_time: "(\\d{2}/\\d{2}/\\d{2}|\\d{2}/\\d{2}/\\d{4})\\s+\\d{2}:\\d{2}"
+  cashier: "cashier\\s+today\\s+was\\s+(\\w+)"
+  total_items: "(\\d+)\\s+ITEMS"
