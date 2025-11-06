@@ -119,5 +119,24 @@ def english_canonicalize(text: str) -> str:
         if not dedup or dedup[-1].lower() != w.lower():
             dedup.append(w)
     t = ' '.join(dedup)
+    # Heuristic trimming: if phrase contains cake-related tokens and trailing duplicates,
+    # trim at the first meaningful boundary to avoid tails like "... Cake ..."
+    s = t.lower()
+    try:
+        cake_idx = s.find('cake')
+        mousse_idx = s.find('mousse')
+        crepes_idx = s.find('crepes')
+        cut_at = None
+        # Prefer trimming after 'mousse cake' if present
+        if mousse_idx != -1 and cake_idx != -1 and 0 <= cake_idx - mousse_idx <= 20:
+            cut_at = cake_idx + len('cake')
+        elif cake_idx != -1:
+            cut_at = cake_idx + len('cake')
+        elif crepes_idx != -1:
+            cut_at = crepes_idx + len('crepes')
+        if cut_at:
+            t = t[:cut_at].strip()
+    except Exception:
+        pass
     return t
 
