@@ -34,6 +34,11 @@ class CategoryClassifier:
         self.amazon_rules = rule_loader.load_rule_file_by_name('58_category_maps_amazon.yaml')
         self.keyword_rules = rule_loader.load_rule_file_by_name('59_category_keywords.yaml')
         self.classification_overrides = rule_loader.load_rule_file_by_name('99_classification_overrides.yaml')
+        # Optional: Wismettac online category mapping
+        try:
+            self.wismettac_map = rule_loader.load_rule_file_by_name('wismettac_category_map.yaml')
+        except Exception:
+            self.wismettac_map = {"maps": []}
         
         # Extract relevant sections
         self.l1_categories = self.l1_rules.get('categories_l1', {}).get('l1_categories', [])
@@ -109,6 +114,19 @@ class CategoryClassifier:
                 result = self._apply_source_map(item, source_type)
                 if result:
                     return result
+
+            # Vendor-scoped online lookup (Wismettac) before vendor_overrides
+            if ((vendor_code or '').upper() == 'WISMETTAC') and stage == 'vendor_overrides':
+                # 1) Map using vendor_category if present (offline enrichment support)
+                vc = (item.get('vendor_category') or '').strip()
+                if vc:
+                    mapped = self._map_wismettac_category_string(vc)
+                    if mapped:
+                        return mapped
+                # 2) Try live/name-based lookup
+                online = self._apply_wismettac_lookup(item)
+                if online:
+                    return online
             
             
             
@@ -137,6 +155,96 @@ class CategoryClassifier:
         
         # Should never reach here, but safety fallback
         return self._apply_fallback(item)
+
+    def _map_wismettac_category_string(self, category_text: str) -> Optional[Dict[str, Any]]:
+        if not category_text:
+            return None
+        for rule in self.wismettac_map.get('maps', []):
+            pat = rule.get('match')
+            if pat and re.search(pat, category_text, re.IGNORECASE):
+                l2 = rule.get('l2')
+                if l2:
+                    return self._build_result(
+                        l2_category=l2,
+                        source='wismettac_vendor_category',
+                        rule_id='wismettac_vendor_category_map',
+                        confidence=0.92
+                    )
+        return None
+
+    def _apply_wismettac_lookup(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Use Wismettac online catalog by item number to get category → map to L2."""
+        try:
+            from .wismettac_client import WismettacClient
+        except Exception:
+            return None
+        item_no = (item.get('item_number') or '').strip()
+        if not item_no:
+            return None
+        try:
+            client = WismettacClient()
+            prod = client.lookup_product(item_no)
+            # Enrich item fields when available
+            if prod and prod.name and not item.get('product_name'):
+                item['product_name'] = prod.name
+            if prod and prod.pack_size_raw:
+                item['pack_size_raw'] = prod.pack_size_raw
+            if prod and prod.pack is not None:
+                item['pack_case_qty'] = prod.pack
+            if prod and prod.each_qty is not None:
+                item['each_qty'] = prod.each_qty
+            if prod and prod.each_uom:
+                item['each_uom'] = prod.each_uom
+            if prod and prod.barcode:
+                item['upc'] = prod.barcode
+            if prod and prod.detail_url:
+                item['vendor_detail_url'] = prod.detail_url
+            # If no pack info from site, try to parse from product name string
+            if not item.get('pack_size_raw'):
+                try:
+                    from .wismettac_client import parse_pack_size
+                    p, q, u = parse_pack_size(item.get('product_name') or '')
+                    if p is not None or q is not None or u:
+                        item['pack_size_raw'] = item.get('product_name')
+                        if p is not None:
+                            item['pack_case_qty'] = p
+                        if q is not None:
+                            item['each_qty'] = q
+                        if u:
+                            item['each_uom'] = u
+                except Exception:
+                    pass
+
+            # Map by site Category first (only if available)
+            if prod and prod.category:
+                category = prod.category
+                for rule in self.wismettac_map.get('maps', []):
+                    pat = rule.get('match')
+                    if pat and re.search(pat, category, re.IGNORECASE):
+                        l2 = rule.get('l2')
+                        if l2:
+                            return self._build_result(
+                                l2_category=l2,
+                                source='wismettac_online',
+                                rule_id='wismettac_online_map',
+                                confidence=0.90
+                            )
+        except Exception:
+            pass
+        # Name-based fallback mapping regardless of online success
+        text = (item.get('canonical_name') or item.get('product_name') or '')
+        for rule in self.wismettac_map.get('name_maps', []):
+            pat = rule.get('match')
+            if pat and re.search(pat, text, re.IGNORECASE):
+                l2 = rule.get('l2')
+                if l2:
+                    return self._build_result(
+                        l2_category=l2,
+                        source='wismettac_name_fallback',
+                        rule_id='wismettac_name_map',
+                        confidence=0.85
+                    )
+        return None
 
     
     

@@ -157,3 +157,6 @@ overrides:
       L2_code: "C32"
     weight: 74
 
+  # --- Wismettac vendor-specific mappings ---
+  # Pruned in favor of online category mapping via wismettac_category_map.yaml
+
