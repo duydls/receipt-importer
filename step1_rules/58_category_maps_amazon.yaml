@@ -100,16 +100,16 @@ category_maps_amazon:
     
     # Specific: Barcode/UPC label rolls (Zebra/Rollo compatible) → Labels & Stickers
     - match:
-        item_title_regex: '(?i)\\b(barcode|UPC)\\s*labels?\\b|(?i)\\blabel\\s*rolls?\\b|(?i)\\b(Zebra|Rollo)\\b'
+        item_title_regex: '(?i)\\b(label|labels|barcode|upc|zebra|rollo)\\b|(?i)\\b(UPC|barcode)[^\n]{0,80}?labels?\\b'
       map_to_l2: C23
-      priority: 68
+      priority: 120
       notes: Amazon-specific labeling products (barcode/UPC, Zebra/Rollo)
 
     # Specific: Water filters (e.g., 3M HF20-S) → Filters & Disposables
     - match:
-        item_title_regex: '(?i)\\bwater\\s*filter\\b|(?i)\\bHF20(-|\\s*)S\\b|(?i)\\b3M\\b'
+        item_title_regex: '(?i)\\b(water\\s*filter|3M|HF\\d+\\s*-?S)\\b'
       map_to_l2: C32
-      priority: 70
+      priority: 120
       notes: Equipment filters like 3M HF20-S
 
     # Backup: Retail snacks by brand/keywords (low priority)
