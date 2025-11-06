@@ -16,7 +16,7 @@ metadata_patterns:
   invoice_date:
     pattern: "INVOICE\\s*DATE:\\s*(\\d{2}/\\d{2}/\\d{2})"
     group: 1
-    field: transaction_date
+    field: invoice_date
   
   order_number:
     pattern: "ORDER\\s*#:\\s*(\\d+)"
@@ -26,7 +26,7 @@ metadata_patterns:
   delivery_date:
     pattern: "DELIVERY\\s*DATE:\\s*(\\d{2}/\\d{2}/\\d{2})"
     group: 1
-    field: delivery_date
+    field: transaction_date  # Use delivery_date for transaction_date
   
   due_date:
     pattern: "DUE\\s*DATE:\\s*(\\d{2}/\\d{2}/\\d{2})"
@@ -138,7 +138,7 @@ skip_keywords:
 validation:
   required_fields:
     - receipt_number
-    - transaction_date
+    - transaction_date  # Uses delivery_date
     - total
   numeric_fields:
     - subtotal
@@ -159,3 +159,4 @@ notes:
   - "Item descriptions may span multiple columns and require fixed-column parsing"
   - "OCR cleaning is applied to remove brackets, pipes, and normalize spacing"
   - "Date format is MM/DD/YY (two-digit year)"
+  - "Uses delivery_date for transaction_date (not invoice_date)"

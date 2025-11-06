@@ -1,0 +1,139 @@
+# Classification Overrides (Highest Priority)
+# Vendor-specific and product-specific classification rules that override default keyword matching
+# Uses taxonomy codes (L1_code/L2_code) instead of free-text names
+# Loaded last in priority order: 57 → 58 → 59 → 99
+
+version: 1
+
+overrides:
+  # Packaging (BBI)
+  - id: bbi_packaging_lids
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\blids?\\b"
+      - "杯盖|杯蓋|盖子|蓋子"
+    set:
+      L1_code: "A03"
+      L2_code: "C26"
+    weight: 96
+
+  - id: bbi_packaging_cup_holder
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\b(4\\s*-?\\s*cup\\s*holder|cup\\s*holder)\\b"
+      - "杯托|杯架|手提杯托"
+    set:
+      L1_code: "A03"
+      L2_code: "C22"
+    weight: 96
+
+  # Frozen snacks (Pulmuone corn dog)
+  - id: pulmuone_corn_dog
+    when_vendor_in: ["YS_Pulmuone", "Pulmuone", "UNI_Pulmuone"]
+    when_name_matches:
+      - "(?i)\\bcorn\\s*dog\\b|\\bpotato\\s*corn\\s*dog\\b"
+      - "玉米热狗|玉米熱狗|芝士热狗|芝士熱狗|奶酪热狗|奶酪熱狗"
+    set:
+      L1_code: "A02"
+      L2_code: "C21"
+    weight: 97
+
+  # Powder Creamer -> C06 (Creamer & Powders)
+  - id: powder_creamer
+    when_name_matches:
+      - "(?i)(\\bpowder\\b.*\\bcreamer\\b|\\bcreamer\\b.*\\bpowder\\b)"
+      - "奶油.*粉|粉.*奶油|奶精.*粉|粉.*奶精"
+    set:
+      L1_code: "A01"
+      L2_code: "C06"
+    weight: 95
+
+  # Powders (BBI) – use C06 and tag subtype for reporting if needed
+  - id: bbi_powder_banana_flavoring
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)(\\bpowder\\b.*\\bbanana\\b|\\bbanana\\b.*\\bpowder\\b)"
+      - "香蕉.*粉|粉.*香蕉"
+    set:
+      L1_code: "A01"
+      L2_code: "C06"
+      l2_subtype: "Flavoring"
+    weight: 90
+
+  - id: bbi_powder_puer_matcha_mocha_premix
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\bpowder\\b.*(puer|puerh|matcha)|\\bmatcha\\s*mocha\\b"
+      - "抹茶.*粉|普洱.*粉"
+    set:
+      L1_code: "A01"
+      L2_code: "C06"
+      l2_subtype: "Premix"
+    weight: 90
+
+  # Marinade (BBI) – ensure C12 exists in taxonomy
+  - id: bbi_chicken_marinade
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\bmarinade\\b"
+      - "腌料|醃料"
+    set:
+      L1_code: "A01"
+      L2_code: "C12"
+    weight: 90
+
+  # Cakes & Mousse (UNI_Mousse; English + Chinese) - cross-line tolerant (E) Belt-and-suspenders
+  - id: cakes_mousse_uni_mousse
+    when_vendor_in: ["UNI_Mousse"]
+    when_name_matches:
+      - "(?i)(?ms)\\bmousse\\b[\\s\\S]*?\\bcake\\b"
+      - "(?i)(?ms)\\bcheese\\b[\\s\\S]*?\\bcake\\b"
+      - "(?i)\\bmille\\s*crepes?\\b"
+      - "(?ms)慕斯[\\s\\S]*?蛋糕|芝士[\\s\\S]*?蛋糕|乳酪[\\s\\S]*?蛋糕|蛋糕卷|瑞士卷|千层|千層"
+      - "(?i)\\bcake\\b"
+    unless_name_matches:
+      - "(?i)\\bcup\\s*cake\\b"
+    set:
+      L1_code: "A02"
+      L2_code: "C20"
+    weight: 99
+
+  # Cakes & Mousse (BBI)
+  - id: bbi_cakes_mousse
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\bcake\\b|\\bcheese\\s*cake\\b|\\bmousse\\b"
+      - "蛋糕|芝士蛋糕|乳酪蛋糕|慕斯|慕絲"
+    set:
+      L1_code: "A02"
+      L2_code: "C20"
+    weight: 98
+
+  # Jelly/Jam/Purée -> Toppings & Jellies (higher weight than fruit heuristic)
+  - id: jelly_jam_puree_toppings
+    when_name_matches:
+      - "(?i)\\b(jelly|jam|pur[ée]e)\\b"
+    set:
+      L1_code: "A01"
+      L2_code: "C08"
+    weight: 95
+
+  # Corn Dog (vendor-agnostic fallback) - use C21 for Frozen Snacks
+  - id: corndog_mapping_agnostic
+    when_name_matches:
+      - "(?i)\\bcorn\\s*dog\\b"
+    set:
+      L1_code: "A02"
+      L2_code: "C21"
+    weight: 90
+
+  # Aluminum Tray -> C40 (Smallwares & Equipment)
+  - id: aluminum_tray_equipment
+    when_name_matches:
+      - "(?i)\\b(aluminum\\s+tray|food\\s+tray|serving\\s+tray|baking\\s+tray)\\b"
+      - "铝盘|铝托盘|烤盘"
+    set:
+      L1_code: "A05"
+      L2_code: "C40"
+    weight: 95
+

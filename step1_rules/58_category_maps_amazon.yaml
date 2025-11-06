@@ -58,13 +58,13 @@ category_maps_amazon:
     
     - match:
         item_title_regex: '(?i)\b(cup|cups)\b'
-      map_to_l2: C20  # Cups & Lids
+      map_to_l2: C26  # Cups & Lids
       priority: 95
       notes: Cups
     
     - match:
         item_title_regex: '(?i)\b(lid|lids)\b'
-      map_to_l2: C20  # Cups & Lids
+      map_to_l2: C26  # Cups & Lids
       priority: 95
       notes: Lids
     
@@ -76,19 +76,19 @@ category_maps_amazon:
     
     - match:
         item_title_regex: '(?i)\b(bag|bags)\b'
-      map_to_l2: C21  # Bags & Trays
+      map_to_l2: C24  # Bags & Trays
       priority: 90
       notes: Bags
     
     - match:
         item_title_regex: '(?i)\b(tray|trays)\b'
-      map_to_l2: C21  # Bags & Trays
+      map_to_l2: C24  # Bags & Trays
       priority: 90
       notes: Trays
     
     - match:
         item_title_regex: '(?i)\b(sleeve|sleeves)\b'
-      map_to_l2: C20  # Cups & Lids
+      map_to_l2: C26  # Cups & Lids
       priority: 90
       notes: Cup sleeves
     
@@ -220,7 +220,7 @@ category_maps_amazon:
     
     - match:
         item_title_regex: '(?i)\b(paper|pen|marker|tape|stapler|folder|file|printer)\b'
-      map_to_l2: C60  # Office/Admin
+      map_to_l2: C60  # Office/Admin/Uniform
       priority: 80
       notes: Office supplies
     
@@ -264,7 +264,7 @@ category_maps_amazon:
     
     - match:
         category: 'Office Products'
-      map_to_l2: C60  # Office/Admin
+      map_to_l2: C60  # Office/Admin/Uniform
       priority: 50
       notes: Office category fallback
     

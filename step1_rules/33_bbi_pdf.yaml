@@ -1,0 +1,283 @@
+# One YAML to parse all UNI_* receipts by routing by filename
+
+router:
+  - name: "BBI_Main"
+    file_match: "^UNI_IL_UT_.*\\.pdf$"
+    use: "rule_sets.bbi_main"
+  
+  - name: "Mousse_Block"
+    file_match: "^UNI_UT_.*Mousse.*\\.pdf$"
+    use: "rule_sets.mousse"
+  
+  - name: "YS_or_Pulmuone"
+    file_match: "^UNI_UT_.*(YS|Pulmuone).*\\.pdf$"
+    use: "rule_sets.ys_pulmuone"
+
+rule_sets:
+  bbi_main:
+    vendor_name: "BBI"
+    parsed_by: "bbi_pdf_v2"
+    extraction_method: "regex"
+    regex_flags: ["MULTILINE","UNICODE","DOTALL"]
+    
+    metadata_patterns:
+      invoice_number:
+        pattern: "(?:Invoice\\s*#:?)\\s*([A-Za-z0-9_\\- ]+)"
+        group: 1
+        field: invoice_number
+        case_insensitive: true
+      
+      transaction_date_long:
+        pattern: "(?:Date|Invoice\\s+Date)\\s*[:\\s]+([A-Za-z]+\\s+\\d{1,2},\\s*\\d{4})"
+        group: 1
+        field: transaction_date
+        case_insensitive: true
+      
+      transaction_date_numeric:
+        pattern: "(?:Date|Invoice\\s+Date)\\s*[:\\s]+(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})"
+        group: 1
+        field: transaction_date
+        case_insensitive: true
+    
+    item_patterns:
+      # Pattern 1: Multiline format - product name can span multiple lines before prices
+      # Format: "2.00 Product Name Line 1\nProduct Name Line 2\n$ 18.00    $          36.00"
+      # Or: "2.00\nProduct Name Line 1\nProduct Name Line 2\n$ 18.00    $          36.00"
+      - type: "block_qty_desc_prices"
+        regex: "(?ms)^\\s*(\\d+(?:\\.\\d+)?)\\s+([\\s\\S]*?)\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s*$"
+        multiline: true
+        groups:
+          - quantity
+          - product_name
+          - unit_price
+          - total_price
+        field_mappings:
+          quantity: "quantity"
+          product_name: "product_name"
+          unit_price: "unit_price"
+          total_price: "total_price"
+      
+      # Pattern 2: Regular single-line: Qty  Description  Unit Price  Line Total
+      # Supports both "$ 18.00" and "18.00 $" formats, thousands separators, and parentheses negatives.
+      - type: "qty_desc_price_total_flexible"
+        regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s*$"
+        groups:
+          - quantity
+          - product_name
+          - unit_price
+          - total_price
+        field_mappings:
+          quantity: "quantity"
+          product_name: "product_name"
+          unit_price: "unit_price"
+          total_price: "total_price"
+      
+      # Pattern 3: No-charge / free items (e.g., giveaways)
+      # Must have quantity at start, then description, then $ - $ - (no date lines)
+      - type: "qty_desc_no_charge"
+        regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+(?:No\\s+Charge\\s+)?(?:\\$\\s*)?-\\s+(?:\\$\\s*)?-\\s*$"
+        groups:
+          - quantity
+          - product_name
+        field_mappings:
+          quantity: "quantity"
+          product_name: "product_name"
+          unit_price: "0.00"
+          total_price: "0.00"
+        conditions:
+          - "product_name should not contain date pattern (dd.mm.yyyy)"
+    
+    skip_keywords:
+      - "^\\s*Qty\\s+Item\\s*#\\s+Description\\s+Unit\\s+Price\\s+Discount\\s+Line\\s+Total"
+      - "^\\s*Payment\\s+Method"
+      - "^\\s*Logo"
+      - "^\\s*Sold\\s+to:"
+      - "^\\s*Invoice\\s+#"  # Invoice header
+      - "^\\s*Subtotal\\b"
+      - "^\\s*Tax\\b"
+      - "^\\s*Total\\b"
+      - "^\\s*Grand\\s+Total\\b"
+      - "^\\s*Amount\\s+Due\\b"
+      - "^\\s*Balance\\s+Due\\b"
+      - "^\\s*\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s*$"  # numeric date line like 09.11.2025 or 3.11.2025
+    
+    summary_keywords:
+      - "Subtotal"
+      - "Sub\\s*Total"
+      - "Sales\\s*Tax"
+      - "Grand\\s*Total"
+      - "Amount\\s*Due"
+      - "Balance\\s*Due"
+    
+    total_patterns:
+      subtotal:
+        pattern: "(?:Subtotal|Sub\\s*Total)\\s*[:\\s]*(?:\\$\\s*)?(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)"
+        group: 1
+        case_insensitive: true
+      
+      total:
+        pattern: "(?:Total|Grand\\s*Total|Amount\\s*Due|Balance\\s*Due)\\s*[:\\s]*(?:\\$\\s*)?(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)"
+        group: 1
+        case_insensitive: true
+    
+    validation:
+      min_items: 1
+      max_items: 2000
+    
+    notes:
+      - "Extraction only; UoM vs Pack decision happens downstream using the baseline."
+  
+  mousse:
+    vendor_name: "UNI_Mousse"
+    parsed_by: "mousse_pdf_v1"
+    extraction_method: "regex"
+    regex_flags: ["MULTILINE","UNICODE","DOTALL"]
+    
+    # Normalization: NFKC normalization only (keep Chinese characters)
+    normalization:
+      - type: "nfkc"
+    
+    metadata_patterns:
+      invoice_number:
+        pattern: "(?:Invoice\\s*#:?)\\s*([A-Za-z0-9_\\- ]+)"
+        group: 1
+        field: invoice_number
+        case_insensitive: true
+      
+      transaction_date_long:
+        pattern: "(?:Date|Invoice\\s+Date)\\s*[:\\s]+([A-Za-z]+\\s+\\d{1,2},\\s*\\d{4})"
+        group: 1
+        field: transaction_date
+        case_insensitive: true
+    
+    item_patterns:
+      # Pattern 1: Robust single-line format (anchor on qty + two prices)
+      # Format: "2.00       巧克力慕斯蛋糕Chocolate Mousse Cake $ 18.00    $          36.00"
+      # Anchors: start-of-line qty, then description, then $ unit_price $ total_price
+      - type: "qty_desc_price_total_single_line"
+        regex: "^\\s*(\\d+(?:\\.\\d{1,2})?)\\s+(?:(?:[A-Za-z0-9#-]+)\\s+)?(.+?)\\s+\\$\\s*(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)\\s+\\$\\s*(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)\\s*$"
+        groups:
+          - quantity
+          - product_name
+          - unit_price
+          - total_price
+        field_mappings:
+          quantity: "quantity"
+          product_name: "product_name"
+          unit_price: "unit_price"
+          total_price: "total_price"
+        case_insensitive: false
+      
+      # Pattern 2: Product name on its own line, then quantity/prices on next line
+      # Format: "Golden Buds Mousse\n2.00 $ 18.00 $ 36.00"
+      # Use lookahead to match product name when next line has qty + prices
+      - type: "desc_then_qty_price"
+        regex: "^\\s*(.+?)\\s*$"
+        groups:
+          - product_name
+        field_mappings:
+          product_name: "product_name"
+        conditions:
+          - "next_line_matches: ^\\s*\\d+(?:\\.\\d{1,2})?\\s+\\$"
+        case_insensitive: false
+    
+    skip_keywords:
+      - "^\\s*Payment\\s+Method"
+      - "^\\s*Logo"
+      - "^\\s*Sold\\s+to:"
+      - "^\\s*Subtotal\\b"
+      - "^\\s*Tax\\b"
+      - "^\\s*Total\\b"
+      - "^\\s*Grand\\s+Total\\b"
+    
+    summary_keywords:
+      - "Subtotal"
+      - "Total"
+      - "Grand\\s*Total"
+      - "Amount\\s*Due"
+    
+    total_patterns:
+      subtotal:
+        pattern: "(?:Subtotal|Sub\\s*Total)\\s*[:\\s]*(?:\\$\\s*)?(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)"
+        group: 1
+        case_insensitive: true
+      
+      total:
+        pattern: "(?:Total|Grand\\s*Total|Amount\\s*Due)\\s*[:\\s]*(?:\\$\\s*)?(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)"
+        group: 1
+        case_insensitive: true
+    
+    validation:
+      min_items: 1
+      max_items: 2000
+    
+    notes:
+      - "Extraction only; downstream code decides UoM vs Pack using the baseline."
+      - "Chinese characters are preserved in product_name for better processing."
+  
+  ys_pulmuone:
+    vendor_name: "YS_Pulmuone"
+    parsed_by: "ys_pulmuone_pdf_v1"
+    extraction_method: "regex"
+    regex_flags: ["MULTILINE","UNICODE"]
+    
+    metadata_patterns:
+      invoice_number:
+        pattern: "(?:Invoice\\s*#:?)\\s*([A-Za-z0-9_\\- ]+)"
+        group: 1
+        field: invoice_number
+        case_insensitive: true
+      
+      transaction_date_long:
+        pattern: "(?:Date|Invoice\\s+Date)\\s*[:\\s]+([A-Za-z]+\\s+\\d{1,2},\\s*\\d{4})"
+        group: 1
+        field: transaction_date
+        case_insensitive: true
+    
+    item_patterns:
+      - type: "simple_line_with_dollar_after"
+        regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s*$"
+        groups:
+          - quantity
+          - product_name
+          - unit_price
+          - total_price
+        field_mappings:
+          quantity: "quantity"
+          product_name: "product_name"
+          unit_price: "unit_price"
+          total_price: "total_price"
+    
+    skip_keywords:
+      - "^\\s*Qty\\s+Item\\s*#\\s+Description\\s+Unit\\s+Price\\s+Discount\\s+Line\\s+Total"
+      - "^\\s*Payment\\s+Method"
+      - "^\\s*Logo"
+      - "^\\s*Sold\\s+to:"
+      - "^\\s*Subtotal\\b"
+      - "^\\s*Tax\\b"
+      - "^\\s*Total\\b"
+      - "^\\s*Grand\\s+Total\\b"
+    
+    summary_keywords:
+      - "Subtotal"
+      - "Total"
+      - "Grand\\s*Total"
+      - "Amount\\s*Due"
+    
+    total_patterns:
+      subtotal:
+        pattern: "(?:Subtotal|Sub\\s*Total)\\s*[:\\s]*(?:\\$\\s*)?(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)"
+        group: 1
+        case_insensitive: true
+      
+      total:
+        pattern: "(?:Total|Grand\\s*Total|Amount\\s*Due)\\s*[:\\s]*(?:\\$\\s*)?(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)"
+        group: 1
+        case_insensitive: true
+    
+    validation:
+      min_items: 1
+      max_items: 2000
+    
+    notes:
+      - "Extraction only; UoM vs Pack is decided later against the baseline."

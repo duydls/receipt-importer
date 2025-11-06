@@ -24,15 +24,18 @@ STEP1_RULES_DIR = 'step1_rules'
 STEP2_INPUT_DIR = 'data/step1_output'
 STEP2_OUTPUT_DIR = 'data/step2_output'
 
-STEP3_INPUT_DIR = 'data/step2_output'
+STEP3_INPUT_DIR = 'data/step1_output'
 STEP3_OUTPUT_DIR = 'data/step3_output'
+
+STEP4_INPUT_DIR = 'data/step3_output'
+STEP4_OUTPUT_DIR = 'data/step4_output'
 
 # Database Dump File Path
 DB_DUMP_JSON = 'data/products_uom_analysis.json'
 
 # Mapping Files
-PRODUCT_MAPPING_FILE = 'data/step2_output/product_name_mapping.json'
-FRUIT_CONVERSION_FILE = 'data/step2_output/fruit_weight_conversion.json'
+PRODUCT_MAPPING_FILE = 'data/step3_output/product_name_mapping.json'
+FRUIT_CONVERSION_FILE = 'data/step3_output/fruit_weight_conversion.json'
 
 # Vendor/Partner Settings
 DEFAULT_VENDOR = {

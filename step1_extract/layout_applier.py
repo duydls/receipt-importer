@@ -707,8 +707,16 @@ class LayoutApplier:
         # Convert to list of dicts
         items = []
         for idx, row in product_rows.iterrows():
+            product_name = str(row.get('product_name', '')).strip()
+            
+            # Remove "NO CHARGE" from product_name for BBI items
+            if vendor_code == 'BBI':
+                import re
+                product_name = re.sub(r'\bno\s+charge\b', '', product_name, flags=re.IGNORECASE)
+                product_name = re.sub(r'\s+', ' ', product_name).strip()  # Clean up extra spaces
+            
             item = {
-                'product_name': str(row.get('product_name', '')).strip(),
+                'product_name': product_name,
                 'quantity': float(row.get('quantity', 1.0)),
                 'unit_price': float(row.get('unit_price', 0.0)),
                 'total_price': float(row.get('total_price', 0.0)),
@@ -895,6 +903,14 @@ class LayoutApplier:
             item['quantity'] = float(qty)
             item['unit_price'] = float(up)
             item['total_price'] = float(tp)
+            
+            # Remove "NO CHARGE" from product_name for BBI items
+            if vendor_code == 'BBI' and 'product_name' in item:
+                import re
+                product_name = item['product_name']
+                product_name = re.sub(r'\bno\s+charge\b', '', product_name, flags=re.IGNORECASE)
+                product_name = re.sub(r'\s+', ' ', product_name).strip()  # Clean up extra spaces
+                item['product_name'] = product_name
             
             # Add parsed_by from layout
             parsed_by = layout.get('parsed_by')

@@ -42,21 +42,21 @@ category_maps_instacart:
     - match:
         department: 'produce'
         category_path: 'vegetable'
-      map_to_l2: C12  # Fresh Vegetables
+      map_to_l2: C16  # Fresh Vegetables
       priority: 90
       notes: Fresh vegetables from produce department
     
     - match:
         department: 'produce'
         aisle: 'vegetable'
-      map_to_l2: C12  # Fresh Vegetables
+      map_to_l2: C16  # Fresh Vegetables
       priority: 85
       notes: Fresh vegetable aisle
     
     - match:
         department: 'produce'
         text_contains: ['lettuce', 'spinach', 'tomato', 'cucumber', 'carrot', 'celery', 'onion', 'pepper', 'broccoli', 'cauliflower', 'cabbage', 'kale', 'chard']
-      map_to_l2: C12  # Fresh Vegetables
+      map_to_l2: C16  # Fresh Vegetables
       priority: 80
       notes: Common fresh vegetables
     

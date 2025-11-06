@@ -185,6 +185,21 @@ categories_l2:
         - and_contains: ['fruit', 'peach', 'cocktail']
     
     - id: C12
+      name: Seasonings & Marinades
+      description: Seasonings, marinades, and flavoring ingredients
+      examples:
+        - Marinades, seasonings
+        - Spice blends, flavoring powders
+        - Sauce bases
+      synonyms:
+        - seasoning
+        - marinade
+        - spice
+        - flavoring
+      vendor_hints:
+        - title_contains: ['marinade', 'seasoning', 'spice', 'flavoring']
+    
+    - id: C16
       name: Fresh Vegetables
       description: Fresh, non-frozen vegetables
       examples:
@@ -260,36 +275,24 @@ categories_l2:
         - Use this for items purchased for resale, not for ingredient use
         - Examples: Lotus Biscoff cookies, candy bars, packaged snacks
     
-    # ===== PACKAGING (C20-C23) =====
+    # ===== FINISHED GOODS (C20) =====
     
     - id: C20
-      name: Cups & Lids
-      description: Beverage cups, lids, and sleeves
+      name: Cakes & Mousse
+      description: Finished cakes, mousses, and baked goods
       examples:
-        - Plastic cups, paper cups
-        - Dome lids, flat lids
-        - Cup sleeves
+        - Cakes, cheesecakes
+        - Mousses, mousse cakes
+        - Baked desserts
       synonyms:
-        - cup
-        - lid
-        - sleeve
+        - cake
+        - cheesecake
+        - mousse
+        - baked
       vendor_hints:
-        - title_contains: ['cup', 'lid', 'sleeve', 'tumbler']
+        - title_contains: ['cake', 'cheesecake', 'mousse', 'baked']
     
-    - id: C21
-      name: Bags & Trays
-      description: Bags, trays, boxes, and containers
-      examples:
-        - Plastic bags, paper bags
-        - Food trays
-        - To-go boxes
-      synonyms:
-        - bag
-        - tray
-        - box
-        - container
-      vendor_hints:
-        - title_contains: ['bag', 'tray', 'box', 'container', 'carton']
+    # ===== PACKAGING (C22-C26) =====
     
     - id: C22
       name: Utensils & Misc Packaging
@@ -299,6 +302,7 @@ categories_l2:
         - Spoons, forks, knives
         - Napkins (for customers)
         - Stirrers
+        - Cup holders, carriers
       synonyms:
         - straw
         - utensil
@@ -306,6 +310,7 @@ categories_l2:
         - fork
         - napkin
         - stirrer
+        - holder
       vendor_hints:
         - title_contains: ['straw', 'utensil', 'spoon', 'fork', 'knife', 'napkin', 'stirrer', 'holder']
     
@@ -321,6 +326,49 @@ categories_l2:
         - sticker
       vendor_hints:
         - title_contains: ['label', 'sticker', 'barcode']
+    
+    - id: C21
+      name: Frozen Snacks
+      description: Frozen prepared snacks and appetizers
+      examples:
+        - Frozen corn dogs
+        - Frozen appetizers
+        - Frozen prepared snacks
+      synonyms:
+        - frozen snack
+        - prepared snack
+        - appetizer
+      vendor_hints:
+        - title_contains: ['frozen', 'snack', 'appetizer', 'corn dog']
+    
+    - id: C24
+      name: Bags & Trays
+      description: Bags, trays, boxes, and containers
+      examples:
+        - Plastic bags, paper bags
+        - Food trays
+        - To-go boxes
+      synonyms:
+        - bag
+        - tray
+        - box
+        - container
+      vendor_hints:
+        - title_contains: ['bag', 'tray', 'box', 'container', 'carton']
+    
+    - id: C26
+      name: Cups & Lids
+      description: Beverage cups, lids, and sleeves
+      examples:
+        - Plastic cups, paper cups
+        - Dome lids, flat lids
+        - Cup sleeves
+      synonyms:
+        - cup
+        - lid
+        - sleeve
+      vendor_hints:
+        - title_contains: ['cup', 'lid', 'sleeve', 'tumbler']
     
     # ===== NON-FOOD CONSUMABLES (C30-C32) =====
     
@@ -370,13 +418,16 @@ categories_l2:
         - Prep tools
         - Storage containers
         - Small appliances
+        - Aluminum trays, baking trays
+        - Kitchen tools
       synonyms:
         - equipment
         - tool
         - utensil
         - appliance
+        - tray
       vendor_hints:
-        - title_contains: ['equipment', 'tool', 'utensil', 'container', 'storage', 'organizer', 'rack', 'holder']
+        - title_contains: ['equipment', 'tool', 'utensil', 'container', 'storage', 'organizer', 'rack', 'holder', 'tray', 'aluminum tray', 'baking tray']
     
     - id: C41
       name: Countertop Organizers & Holders
@@ -418,19 +469,26 @@ categories_l2:
     # ===== OFFICE (C60) =====
     
     - id: C60
-      name: Office/Admin
-      description: Office supplies and administrative items
+      name: Office/Admin/Uniform
+      description: Office supplies, administrative items, and uniforms
       examples:
         - Paper, pens, markers
         - Tape, scissors
         - Printer supplies
+        - Uniforms (caps, hoodies, aprons, shirts)
+        - Company apparel
       synonyms:
         - office
         - paper
         - pen
         - tape
+        - uniform
+        - cap
+        - hoodie
+        - apron
+        - apparel
       vendor_hints:
-        - title_contains: ['paper', 'pen', 'marker', 'tape', 'stapler', 'folder', 'file', 'printer']
+        - title_contains: ['paper', 'pen', 'marker', 'tape', 'stapler', 'folder', 'file', 'printer', 'uniform', 'cap', 'hoodie', 'apron', 'shirt', 'apparel']
 
     - id: C61
       name: POS Paper & Register Supplies

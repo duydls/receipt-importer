@@ -11,7 +11,7 @@ from typing import Dict, Optional, List
 from difflib import SequenceMatcher
 
 try:
-    from step2_mapping.query_database import connect_to_database
+    from step3_mapping.query_database import connect_to_database
     DB_AVAILABLE = True
 except ImportError:
     DB_AVAILABLE = False
