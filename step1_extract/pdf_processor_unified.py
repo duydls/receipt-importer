@@ -908,9 +908,29 @@ class UnifiedPDFProcessor:
                         # Check conditions if specified (from rules)
                         conditions = pattern_def.get('conditions', [])
                         if conditions:
-                            if not self._check_conditions(line, match, item_data, conditions):
-                                match_found = False
-                                continue
+                            # Special handling for next_line_matches condition
+                            if any(cond.startswith('next_line_matches:') for cond in conditions):
+                                # Check if next line matches the pattern
+                                if line_idx + 1 >= len(lines):
+                                    match_found = False
+                                    continue
+                                next_line = lines[line_idx + 1].strip()
+                                pattern_str = next((cond.split(':', 1)[1].strip() for cond in conditions if cond.startswith('next_line_matches:')), None)
+                                if pattern_str:
+                                    if not re.match(pattern_str, next_line):
+                                        match_found = False
+                                        continue
+                                    # Extract quantity and prices from next line
+                                    qty_price_match = re.match(r'^\s*(\d+(?:\.\d{1,2})?)\s+\$?\s*(\d+(?:\.\d{2})?)\s+\$?\s*(\d+(?:\.\d{2})?)\s*$', next_line)
+                                    if qty_price_match:
+                                        item_data['quantity'] = qty_price_match.group(1)
+                                        item_data['unit_price'] = qty_price_match.group(2)
+                                        item_data['total_price'] = qty_price_match.group(3)
+                                        consumed_lines = 2  # Current line + next line
+                            else:
+                                if not self._check_conditions(line, match, item_data, conditions):
+                                    match_found = False
+                                    continue
                         
                         # Build item using mapping rules
                         item = self._build_item_from_match(item_data, pattern_def, match_text if pattern_def.get('multiline') else line, rules)
@@ -967,7 +987,12 @@ class UnifiedPDFProcessor:
                                         next_line = lines[line_idx + 1]
                                         # Check if next line looks like a quantity line (has "x" or "@" with numbers)
                                         if re.search(r'[x@].*\d+[.,]\d', next_line, re.IGNORECASE):
-                                            consumed_lines += 1 
+                                            consumed_lines += 1
+                            
+                            # Update raw_line to include next line if quantity/prices were extracted from next line
+                            if pattern_type == 'desc_then_qty_price' and line_idx + 1 < len(lines):
+                                next_line = lines[line_idx + 1]
+                                item['raw_line'] = f"{line}\n{next_line}" 
                             
                             items.append(item)
                             line_idx += consumed_lines

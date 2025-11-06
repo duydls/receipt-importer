@@ -167,6 +167,19 @@ rule_sets:
           unit_price: "unit_price"
           total_price: "total_price"
         case_insensitive: false
+      
+      # Pattern 2: Product name on its own line, then quantity/prices on next line
+      # Format: "Golden Buds Mousse\n2.00 $ 18.00 $ 36.00"
+      # Use lookahead to match product name when next line has qty + prices
+      - type: "desc_then_qty_price"
+        regex: "^\\s*(.+?)\\s*$"
+        groups:
+          - product_name
+        field_mappings:
+          product_name: "product_name"
+        conditions:
+          - "next_line_matches: ^\\s*\\d+(?:\\.\\d{1,2})?\\s+\\$"
+        case_insensitive: false
     
     skip_keywords:
       - "^\\s*Payment\\s+Method"
