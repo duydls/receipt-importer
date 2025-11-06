@@ -30,13 +30,6 @@ category_maps_amazon:
     
     - match:
         unspsc_family: 'Beverages'
-        item_title_regex: '(?i)\b(coconut\s+milk|almond\s+milk|soy\s+milk|oat\s+milk|oatmilk|soymilk|plant[-\s]*based\s+milk|non[-\s]*dairy\s+milk)\b'
-      map_to_l2: C04  # Dairy & Milk
-      priority: 100
-      notes: Non-dairy milk beverages (plant-based)
-    
-    - match:
-        unspsc_family: 'Beverages'
       map_to_l2: C33  # Retail Snacks & Beverages
       priority: 90
       notes: Other beverages for resale
