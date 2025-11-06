@@ -5,10 +5,11 @@
 version: 1
 
 overrides:
-  # BBI: map any "Cake" item to Cakes & Mousse (finished goods)
+  # BBI: map any "Cake" or "Mousse" item to Cakes & Mousse (finished goods)
   - when_vendor_in: ["BBI"]
     when_name_matches: 
       - "(?i)\\bcake\\b"
+      - "(?i)\\bmousse\\b"
       - "蛋糕"
     set:
       L1: "A02 - COGS–Finished Goods"
