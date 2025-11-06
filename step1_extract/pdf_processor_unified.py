@@ -897,11 +897,15 @@ class UnifiedPDFProcessor:
                         conditions = pattern_def.get('conditions', [])
                         if conditions:
                             # A) Additional validation: product_name should not contain date patterns
+                            # But only reject if date appears on its own line (not as part of product code)
                             product_name = item_data.get('product_name', '')
-                            if product_name and re.search(r'\d{1,2}\.\d{1,2}\.\d{4}', product_name):
-                                # Skip if product_name contains a date (likely merged with date line)
-                                match_found = False
-                                continue
+                            if product_name:
+                                # Check if product_name contains a date on its own line (newline before date)
+                                # This indicates merging, not a product code
+                                if re.search(r'\n\s*\d{1,2}\.\d{1,2}\.\d{4}', product_name):
+                                    # Skip if product_name contains a date on its own line (merged with date line)
+                                    match_found = False
+                                    continue
                             
                             if not self._check_conditions(line, match, item_data, conditions):
                                 match_found = False
