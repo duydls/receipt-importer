@@ -28,10 +28,9 @@ class WismettacProduct:
 class WismettacClient:
     BASE = "https://ecatalog.wismettacusa.com"
 
-    def __init__(self, cache_dir: Path | str = "data/cache/wismettac", verify_ssl: bool = True):
+    def __init__(self, cache_dir: Path | str = "data/cache/wismettac"):
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.verify_ssl = verify_ssl
 
     def _cache_path(self, key: str) -> Path:
         h = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
@@ -60,7 +59,7 @@ class WismettacClient:
             return cached
         url = f"{self.BASE}/products.php"
         params = {"keyword": item_number, "branch": branch}
-        resp = requests.get(url, params=params, timeout=timeout, verify=self.verify_ssl)
+        resp = requests.get(url, params=params, timeout=timeout)
         resp.raise_for_status()
         data = self._parse_search(resp.text)
         if data:
@@ -73,7 +72,7 @@ class WismettacClient:
         cached = self._read_cache(key)
         if cached:
             return cached
-        resp = requests.get(detail_url, timeout=timeout, verify=self.verify_ssl)
+        resp = requests.get(detail_url, timeout=timeout)
         resp.raise_for_status()
         data = self._parse_detail(resp.text)
         if data is not None:
