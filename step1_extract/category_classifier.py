@@ -34,6 +34,11 @@ class CategoryClassifier:
         self.amazon_rules = rule_loader.load_rule_file_by_name('58_category_maps_amazon.yaml')
         self.keyword_rules = rule_loader.load_rule_file_by_name('59_category_keywords.yaml')
         self.classification_overrides = rule_loader.load_rule_file_by_name('99_classification_overrides.yaml')
+        # Optional: Wismettac online category mapping
+        try:
+            self.wismettac_map = rule_loader.load_rule_file_by_name('wismettac_category_map.yaml')
+        except Exception:
+            self.wismettac_map = {"maps": []}
         
         # Extract relevant sections
         self.l1_categories = self.l1_rules.get('categories_l1', {}).get('l1_categories', [])
@@ -109,6 +114,12 @@ class CategoryClassifier:
                 result = self._apply_source_map(item, source_type)
                 if result:
                     return result
+
+            # Vendor-scoped online lookup (Wismettac) before vendor_overrides
+            if ((vendor_code or '').upper() == 'WISMETTAC') and stage == 'vendor_overrides':
+                online = self._apply_wismettac_lookup(item)
+                if online:
+                    return online
             
             
             
@@ -137,6 +148,52 @@ class CategoryClassifier:
         
         # Should never reach here, but safety fallback
         return self._apply_fallback(item)
+
+    def _apply_wismettac_lookup(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Use Wismettac online catalog by item number to get category → map to L2."""
+        try:
+            from .wismettac_client import WismettacClient
+        except Exception:
+            return None
+        item_no = (item.get('item_number') or '').strip()
+        if not item_no:
+            return None
+        try:
+            client = WismettacClient()
+            prod = client.lookup_product(item_no)
+            if not prod:
+                return None
+            # Enrich item fields when missing
+            if prod.name and not item.get('product_name'):
+                item['product_name'] = prod.name
+            if prod.pack_size_raw:
+                item['pack_size_raw'] = prod.pack_size_raw
+            if prod.pack is not None:
+                item['pack_case_qty'] = prod.pack
+            if prod.each_qty is not None:
+                item['each_qty'] = prod.each_qty
+            if prod.each_uom:
+                item['each_uom'] = prod.each_uom
+            if prod.barcode:
+                item['upc'] = prod.barcode
+            if prod.detail_url:
+                item['vendor_detail_url'] = prod.detail_url
+            # Map category
+            category = (prod.category or '')
+            for rule in self.wismettac_map.get('maps', []):
+                pat = rule.get('match')
+                if pat and re.search(pat, category, re.IGNORECASE):
+                    l2 = rule.get('l2')
+                    if l2:
+                        return self._build_result(
+                            l2_category=l2,
+                            source='wismettac_online',
+                            rule_id='wismettac_online_map',
+                            confidence=0.90
+                        )
+        except Exception:
+            return None
+        return None
 
     
     
