@@ -30,10 +30,10 @@ category_maps_amazon:
     
     - match:
         unspsc_family: 'Beverages'
-        item_title_regex: '(?i)\b(coconut milk|oat milk|almond milk|soy milk)\b'
+        item_title_regex: '(?i)\b(coconut\s+milk|almond\s+milk|soy\s+milk|oat\s+milk|oatmilk|soymilk|plant[-\s]*based\s+milk|non[-\s]*dairy\s+milk)\b'
       map_to_l2: C04  # Dairy & Milk
       priority: 100
-      notes: Non-dairy milk beverages
+      notes: Non-dairy milk beverages (plant-based)
     
     - match:
         unspsc_family: 'Beverages'
@@ -144,10 +144,10 @@ category_maps_amazon:
     # ===== DAIRY =====
     
     - match:
-        item_title_regex: '(?i)\b(milk|coconut milk|oat milk|almond milk|soy milk)\b'
+        item_title_regex: '(?i)\b((?:cow|whole|2%|skim|dairy)\s+milk|milk)\b'
       map_to_l2: C04  # Dairy & Milk
       priority: 90
-      notes: Milk products
+      notes: Dairy milk (generic). Plant-based variants are matched by higher-priority rule above.
     
     - match:
         item_title_regex: '(?i)\b(cream|creamer|half-and-half|half & half)\b'
