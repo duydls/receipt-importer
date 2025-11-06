@@ -117,6 +117,13 @@ class CategoryClassifier:
 
             # Vendor-scoped online lookup (Wismettac) before vendor_overrides
             if ((vendor_code or '').upper() == 'WISMETTAC') and stage == 'vendor_overrides':
+                # 1) Map using vendor_category if present (offline enrichment support)
+                vc = (item.get('vendor_category') or '').strip()
+                if vc:
+                    mapped = self._map_wismettac_category_string(vc)
+                    if mapped:
+                        return mapped
+                # 2) Try live/name-based lookup
                 online = self._apply_wismettac_lookup(item)
                 if online:
                     return online
@@ -148,6 +155,22 @@ class CategoryClassifier:
         
         # Should never reach here, but safety fallback
         return self._apply_fallback(item)
+
+    def _map_wismettac_category_string(self, category_text: str) -> Optional[Dict[str, Any]]:
+        if not category_text:
+            return None
+        for rule in self.wismettac_map.get('maps', []):
+            pat = rule.get('match')
+            if pat and re.search(pat, category_text, re.IGNORECASE):
+                l2 = rule.get('l2')
+                if l2:
+                    return self._build_result(
+                        l2_category=l2,
+                        source='wismettac_vendor_category',
+                        rule_id='wismettac_vendor_category_map',
+                        confidence=0.92
+                    )
+        return None
 
     def _apply_wismettac_lookup(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Use Wismettac online catalog by item number to get category → map to L2."""
