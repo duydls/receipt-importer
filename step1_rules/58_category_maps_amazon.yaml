@@ -210,6 +210,13 @@ category_maps_amazon:
       priority: 98
       notes: Straw holders are non-food consumables used in service area
     
+    # Specific: Sand bags for canopy stabilization → equipment/smallwares
+    - match:
+        item_title_regex: '(?i)\b(sand\s*bags?)\b.*\b(canopy|canopies|tent)\b'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 97
+      notes: Sand bags used to stabilize canopy/tent legs considered equipment
+
     - match:
         item_title_regex: '(?i)\b(container|storage|organizer|rack|holder)\b'
       map_to_l2: C40  # Smallwares & Equipment
