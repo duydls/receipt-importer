@@ -472,6 +472,18 @@ class CSVProcessor:
             'picked_weight': row.get('Picked Weight', ''),
             'product_category': row.get('Product Category Name', ''),
             'item_id': row.get('Item ID', ''),
+            # Category fields from Instacart CSV for classification
+            'department': row.get('Department Name', '').strip(),
+            'aisle': row.get('Aisle Name', '').strip(),
+            'l1_category_name': row.get('L1 Category Name', '').strip(),
+            'l2_category_name': row.get('L2 Category Name', '').strip(),
+            'l3_category_name': row.get('L3 Category Name', '').strip(),
+            # Build category_path from hierarchy for matching
+            'category_path': ' '.join(filter(None, [
+                row.get('L3 Category Name', '').strip(),
+                row.get('L2 Category Name', '').strip(),
+                row.get('Product Category Name', '').strip(),
+            ])).lower(),
         }
         
         # Merge any extra fields from size parsing (like count_per_package)
