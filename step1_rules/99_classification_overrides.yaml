@@ -128,7 +128,7 @@ overrides:
       - "(?i)\\b(aluminum\\s+tray|food\\s+tray|serving\\s+tray|baking\\s+tray)\\b"
       - "铝盘|铝托盘|烤盘"
     set:
-      L1_code: "A04"
+      L1_code: "A05"
       L2_code: "C40"
     weight: 95
 
