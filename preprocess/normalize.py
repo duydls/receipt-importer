@@ -16,6 +16,49 @@ import unicodedata
 _CJK_RE = re.compile(r'[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]')
 
 
+def fold_ws(text: str) -> str:
+    """
+    Fold whitespace (newlines/tabs/multiple spaces into single space).
+    Keep CJK characters. Normalize to NFKC.
+    
+    Args:
+        text: Text to normalize
+        
+    Returns:
+        Text with whitespace collapsed, CJK preserved
+    """
+    t = unicodedata.normalize('NFKC', text or "")
+    t = t.replace('–', '-').replace('—', '-').replace('×', 'x')
+    return re.sub(r'\s+', ' ', t).strip()
+
+
+def normalize_item_name(item: dict) -> None:
+    """
+    Normalize item name by applying alias and folding whitespace.
+    Sets canonical_name and raw_name_original.
+    
+    Args:
+        item: Item dictionary to normalize
+    """
+    raw = (item.get("display_name") or item.get("product_name") or "").strip()
+    
+    # Apply alias
+    try:
+        from step1_extract.alias_loader import apply_aliases
+        raw = apply_aliases(raw, keep_cjk=True)
+    except ImportError:
+        # Fallback if alias_loader location is different
+        try:
+            from kb.aliase.alias_loader import apply_aliases
+            raw = apply_aliases(raw, keep_cjk=True)
+        except ImportError:
+            pass
+    
+    # Fold whitespace (keep CJK)
+    item["canonical_name"] = fold_ws(raw)
+    item["raw_name_original"] = raw
+
+
 def strip_cjk(text: str) -> str:
     """
     Strip Chinese/Japanese/Korean characters and punctuation from text.

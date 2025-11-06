@@ -602,6 +602,14 @@ def process_files(
                 for item in items:
                     item['quantity_display'] = _format_bbi_quantity_display(item)
                 
+                # Stitch wrapped descriptions for UNI_Mousse (re-attach stray tail lines like "Cake")
+                vendor = receipt_data.get('vendor_name', '')
+                if vendor == 'UNI_Mousse' or 'MOUSSE' in vendor.upper():
+                    from repairs.stitch_wrapped_desc import stitch_wrapped_descriptions
+                    items = stitch_wrapped_descriptions(items, vendor)
+                    receipt_data['items'] = items
+                    logger.debug(f"  Applied stitch repair for {receipt_id}: {len(items)} items after stitching")
+                
                 bbi_based_data[receipt_id] = receipt_data
     
     ### Process Amazon-based files (CSV-first approach)
@@ -909,6 +917,33 @@ def process_files(
                     receipt_data['items'] = apply_name_hygiene_batch(items)
             except Exception as e:
                 logger.warning(f"Error applying name hygiene to {receipt_id}: {e}", exc_info=True)
+    
+    ### Normalize item names (fold whitespace, apply alias, keep CJK) BEFORE classification
+    logger.info("Normalizing item names (fold whitespace, keep CJK)...")
+    
+    from preprocess.normalize import normalize_item_name
+    
+    # Normalize all items (sets canonical_name with fold_ws)
+    for receipts_data in [
+        localgrocery_based_data,
+        instacart_based_data,
+        bbi_based_data,
+        amazon_based_data,
+        webstaurantstore_based_data,
+        wismettac_based_data,
+        odoo_based_data,
+    ]:
+        if not receipts_data:
+            continue
+        
+        for receipt_id, receipt_data in receipts_data.items():
+            try:
+                items = receipt_data.get('items', [])
+                if items:
+                    for item in items:
+                        normalize_item_name(item)
+            except Exception as e:
+                logger.warning(f"Error normalizing names for {receipt_id}: {e}", exc_info=True)
     
     ### Apply Category Classification (Feature 14)
     logger.info("Applying category classification to all items...")

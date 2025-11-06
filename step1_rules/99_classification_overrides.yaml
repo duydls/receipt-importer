@@ -82,12 +82,17 @@ overrides:
       L2_code: "C12"
     weight: 90
 
-  # Cakes & Mousse (UNI_Mousse; English + Chinese)
+  # Cakes & Mousse (UNI_Mousse; English + Chinese) - cross-line tolerant
   - id: cakes_mousse_uni_mousse
     when_vendor_in: ["UNI_Mousse"]
     when_name_matches:
-      - "(?i)\\bcake\\b|\\bcheese\\s*cake\\b|\\bmousse\\b"
-      - "蛋糕|芝士蛋糕|乳酪蛋糕|慕斯|慕絲|蛋糕卷|瑞士卷"
+      - "(?i)(?ms)\\bmousse\\b[\\s\\S]*?\\bcake\\b"
+      - "(?i)(?ms)\\bcheese\\b[\\s\\S]*?\\bcake\\b"
+      - "(?i)\\bmille\\s*crepes?\\b"
+      - "(?ms)慕斯[\\s\\S]*?蛋糕|芝士[\\s\\S]*?蛋糕|乳酪[\\s\\S]*?蛋糕|蛋糕卷|瑞士卷|千层|千層"
+      - "(?i)\\bcake\\b"
+    unless_name_matches:
+      - "(?i)\\bcup\\s*cake\\b"
     set:
       L1_code: "A02"
       L2_code: "C20"

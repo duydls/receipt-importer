@@ -387,20 +387,13 @@ def apply_name_hygiene(item: Dict[str, Any]) -> Dict[str, Any]:
     from .alias_loader import apply_aliases
     aliased_name = apply_aliases(clean_name, keep_cjk=True)
     
-    # Strip CJK characters from canonical_name (keep English, drop Chinese)
-    from preprocess.normalize import strip_cjk
-    canonical_name = strip_cjk(aliased_name)
-    
-    # Fallback to aliased_name if strip_cjk returns empty
-    if not canonical_name or not canonical_name.strip():
-        canonical_name = aliased_name.strip()
-    
     # Set clean_name and display_name (canonical short name)
     item['clean_name'] = clean_name
     item['display_name'] = clean_name  # Display name policy: canonical short name
     
-    # Set canonical_name with CJK stripped (for size-join and classification)
-    item['canonical_name'] = canonical_name
+    # Note: canonical_name will be set by normalize_item_name() before classification
+    # It uses fold_ws() which keeps CJK characters and collapses whitespace
+    # This ensures "Mousse\nCake" becomes "Mousse Cake" for matching
     
     # Preserve original product_name
     # product_name is already in item, so we don't need to set it

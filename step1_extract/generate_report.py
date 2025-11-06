@@ -687,9 +687,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Derive display fields (quantity, size, UoM) once, use everywhere
             item.update(derive_display_fields(item))
             
-            # Use clean_name (from name hygiene) for display, fall back to product_name
-            # Note: clean_name has UPC/Item# stripped out for classification
-            product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', 'Unknown Product')
+            # Use display_name or canonical_name or product_name for display (avoid blank rows)
+            product_name = item.get('display_name') or item.get('canonical_name') or item.get('product_name') or '(unnamed)'
             quantity = item.get('quantity', 0)
             # Use purchase_uom if available, otherwise fallback to raw_uom_text from Excel
             purchase_uom = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
