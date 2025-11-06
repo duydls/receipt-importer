@@ -64,24 +64,13 @@ category_maps_amazon:
       priority: 130
       notes: Water filter commodity
 
-    # Plant-based coconut milk under Beverages → use C04 purchasing bucket
-    - match:
-        unspsc_family: 'Beverages'
-        item_title_regex: '(?i)\bcoconut\s+milk\b'
-      map_to_l2: C04  # Dairy & Milk (purchasing bucket, non-dairy)
-      priority: 125
-      notes: Coconut milk beverages routed to C04 per purchasing grouping
+    
     
     # ===== PACKAGING ===== (vendor-agnostic keywords handle these)
     
     # ===== TEA & COFFEE ===== (handled by global keywords)
 
-    # ===== NUTS / INGREDIENTS =====
-    - match:
-        item_title_regex: '(?i)\b(almond|almonds|sliced almonds|raw almonds|unsalted almonds)\b'
-      map_to_l2: C15  # Other Ingredients (nuts)
-      priority: 96
-      notes: Nuts like almonds are ingredients
+    # ===== NUTS / INGREDIENTS ===== (handled by global keywords)
     
     # ===== SYRUPS =====
     
@@ -107,20 +96,7 @@ category_maps_amazon:
     
     # ===== CLEANING ===== (handled by global keywords)
     
-    # ===== SMALLWARES & EQUIPMENT =====
-    # Specific override: Straw holder should be treated as Non-food Consumables (C31)
-    - match:
-        item_title_regex: '(?i)\bstraw\s+holder\b'
-      map_to_l2: C31  # Gloves & Food Service Supplies (Non-food Consumables)
-      priority: 98
-      notes: Straw holders are non-food consumables used in service area
-    
-    # Specific: Sand bags for canopy stabilization → equipment/smallwares
-    - match:
-        item_title_regex: '(?i)\b(sand\s*bags?)\b.*\b(canopy|canopies|tent)\b'
-      map_to_l2: C40  # Smallwares & Equipment
-      priority: 97
-      notes: Sand bags used to stabilize canopy/tent legs considered equipment
+    # ===== SMALLWARES & EQUIPMENT ===== (handled by global keywords/overrides)
 
     
     
