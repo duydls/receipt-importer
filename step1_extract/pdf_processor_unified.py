@@ -1044,20 +1044,8 @@ class UnifiedPDFProcessor:
                                         except re.error as e:
                                             logger.warning(f"Invalid regex pattern in normalization: {pattern_str}: {e}")
                     
-                    # Strip CJK characters from product_name for BBI/Mousse (fallback)
-                    # Only apply if normalization didn't already handle it or if value is empty after normalization
-                    if target_field == 'product_name':
-                        vendor_name = rules.get('vendor_name', '').upper()
-                        if 'BBI' in vendor_name or 'MOUSSE' in vendor_name or 'UNI_MOUSSE' in vendor_name:
-                            # If cleaned_value is empty after normalization, try to get English part from original
-                            if not cleaned_value.strip():
-                                original_value = str(value).strip() if value else ''
-                                if original_value:
-                                    # Try to extract English text (non-CJK characters)
-                                    cleaned_value = self._strip_cjk_characters(original_value)
-                            else:
-                                # Value still has content, apply CJK stripping as additional cleanup
-                                cleaned_value = self._strip_cjk_characters(cleaned_value)
+                    # Note: CJK characters are now preserved in product_name for better processing
+                    # (User preference: keeping Chinese characters is acceptable)
                     
                     # Set field if it has content (or is numeric)
                     if cleaned_value or target_field in ['unit_price', 'total_price', 'quantity']:

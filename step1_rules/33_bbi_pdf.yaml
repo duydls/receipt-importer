@@ -112,13 +112,9 @@ rule_sets:
     extraction_method: "regex"
     regex_flags: ["MULTILINE","UNICODE","DOTALL"]
     
-    # Normalization: NFKC and remove CJK characters from description blocks
+    # Normalization: NFKC normalization only (keep Chinese characters)
     normalization:
       - type: "nfkc"
-      - type: "regex_sub"
-        pattern: "[\\u3400-\\u4DBF\\u4E00-\\u9FFF\\u3000-\\u303F\\uFF00-\\uFFEF]+"
-        replacement: ""
-        fields: ["product_name","raw_line"]
     
     metadata_patterns:
       invoice_number:
@@ -215,7 +211,7 @@ rule_sets:
     
     notes:
       - "Extraction only; downstream code decides UoM vs Pack using the baseline."
-      - "CJK characters are stripped from product_name using normalization rules."
+      - "Chinese characters are preserved in product_name for better processing."
   
   ys_pulmuone:
     vendor_name: "YS_Pulmuone"
