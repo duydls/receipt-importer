@@ -9,7 +9,6 @@ category_keywords:
   # Pipeline execution order
   pipeline_order:
     - source_map        # Source-specific rules (Instacart/Amazon)
-    - external_lookup   # FDC/OFF (optional, flagged)
     - vendor_overrides  # Vendor-specific hints from L2 catalog
     - keywords          # Global keyword rules (this file)
     - heuristics        # Smart classifiers (fruit/packaging/topping)
