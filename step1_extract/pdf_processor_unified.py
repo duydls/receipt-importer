@@ -900,8 +900,31 @@ class UnifiedPDFProcessor:
                         if item:
                             if pattern_def.get('multiline'):
                                 item['raw_line'] = match_text[:match.end()] if match else match_text
+                                # Change 1: Look ahead for continuation text after prices (handles split descriptions)
+                                # Example: "Golden Buds Mousse\n2.00 $ 18.00 $ 36.00\nCake"
+                                if line_idx + consumed_lines < len(lines) and line_idx + consumed_lines < summary_start:
+                                    continuation_line = lines[line_idx + consumed_lines].strip()
+                                    # If next line is text continuation (not quantity/price, not summary), append it
+                                    if continuation_line and not re.match(r'^\s*\d+\.\d+', continuation_line) and not any(kw in continuation_line.lower() for kw in ['subtotal', 'total', 'tax', 'payment', 'sold']):
+                                        product_name = item.get('product_name', '')
+                                        if product_name and not product_name.endswith(continuation_line):
+                                            item['product_name'] = f'{product_name} {continuation_line}'.strip()
+                                            consumed_lines += 1  # Consume continuation line
+                                            item['raw_line'] = '\n'.join(lines[line_idx:line_idx + consumed_lines])
                             else:
                                 item['raw_line'] = line
+                                # Change 2: Also look ahead for continuation text after single-line matches
+                                # Handles cases where description is split: "Golden Buds Mousse\n2.00 $ 18.00 $ 36.00\nCake"
+                                if line_idx + 1 < len(lines) and line_idx + 1 < summary_start:
+                                    next_line = lines[line_idx + 1].strip()
+                                    # If next line looks like quantity+price, check the line after that for continuation
+                                    if next_line and re.match(r'^\s*\d+\.\d+', next_line) and line_idx + 2 < len(lines) and line_idx + 2 < summary_start:
+                                        continuation_line = lines[line_idx + 2].strip()
+                                        if continuation_line and not re.match(r'^\s*\d+\.\d+', continuation_line) and not any(kw in continuation_line.lower() for kw in ['subtotal', 'total', 'tax', 'payment', 'sold']):
+                                            product_name = item.get('product_name', '')
+                                            if product_name and not product_name.endswith(continuation_line):
+                                                item['product_name'] = f'{product_name} {continuation_line}'.strip()
+                                                item['raw_line'] = '\n'.join([line, next_line, continuation_line])
                         
                         if item:
                             # Handle multiline continuation (product name on following lines)
@@ -1050,6 +1073,22 @@ class UnifiedPDFProcessor:
                     # Set field if it has content (or is numeric)
                     if cleaned_value or target_field in ['unit_price', 'total_price', 'quantity']:
                         item[target_field] = cleaned_value
+        
+        # Handle special case: combine product name parts (for patterns with product_name_part1 and product_name_part2)
+        if 'product_name_part1' in item and 'product_name_part2' in item:
+            part1 = item.get('product_name_part1', '').strip()
+            part2 = item.get('product_name_part2', '').strip()
+            # Only combine if part2 doesn't look like a quantity/price line
+            if part2 and not re.match(r'^\s*\d+\.\d+', part2):
+                item['product_name'] = f'{part1} {part2}'.strip()
+            else:
+                item['product_name'] = part1
+            # Clean up temporary fields
+            item.pop('product_name_part1', None)
+            item.pop('product_name_part2', None)
+        elif 'product_name_part1' in item:
+            item['product_name'] = item.get('product_name_part1', '').strip()
+            item.pop('product_name_part1', None)
         
         # Apply post-processing rules (from YAML)
         if pattern_def.get('post_process'):
