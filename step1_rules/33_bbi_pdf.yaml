@@ -18,7 +18,7 @@ rule_sets:
     vendor_name: "BBI"
     parsed_by: "bbi_pdf_v2"
     extraction_method: "regex"
-    regex_flags: ["MULTILINE","UNICODE"]
+    regex_flags: ["MULTILINE","UNICODE","DOTALL"]
     
     metadata_patterns:
       invoice_number:
@@ -40,7 +40,24 @@ rule_sets:
         case_insensitive: true
     
     item_patterns:
-      # Regular line: Qty  Description  Unit Price  Line Total
+      # Pattern 1: Multiline format - product name can span multiple lines before prices
+      # Format: "2.00 Product Name Line 1\nProduct Name Line 2\n$ 18.00    $          36.00"
+      # Or: "2.00\nProduct Name Line 1\nProduct Name Line 2\n$ 18.00    $          36.00"
+      - type: "block_qty_desc_prices"
+        regex: "(?ms)^\\s*(\\d+(?:\\.\\d+)?)\\s+([\\s\\S]*?)\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s*$"
+        multiline: true
+        groups:
+          - quantity
+          - product_name
+          - unit_price
+          - total_price
+        field_mappings:
+          quantity: "quantity"
+          product_name: "product_name"
+          unit_price: "unit_price"
+          total_price: "total_price"
+      
+      # Pattern 2: Regular single-line: Qty  Description  Unit Price  Line Total
       # Supports both "$ 18.00" and "18.00 $" formats, thousands separators, and parentheses negatives.
       - type: "qty_desc_price_total_flexible"
         regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s+(?:\\$\\s*)?\\(?(\\-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2})\\)?(?:\\s*\\$)?\\s*$"
@@ -55,7 +72,7 @@ rule_sets:
           unit_price: "unit_price"
           total_price: "total_price"
       
-      # No-charge / free items (e.g., giveaways)
+      # Pattern 3: No-charge / free items (e.g., giveaways)
       - type: "qty_desc_no_charge"
         regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+(?:No\\s+Charge\\s+)?(?:\\$\\s*)?-\\s+(?:\\$\\s*)?-\\s*$"
         groups:
