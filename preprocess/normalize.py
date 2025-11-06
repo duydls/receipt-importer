@@ -87,3 +87,37 @@ def strip_cjk(text: str) -> str:
     
     return s
 
+
+def english_canonicalize(text: str) -> str:
+    """
+    Produce an English-only canonical name using aliases and CJK stripping.
+    Also collapses accidental duplicated phrases like "X X" or "X X" where X is the full name.
+    """
+    if not text:
+        return text
+    t = text
+    # Apply aliases first to ensure Chinese names are replaced with English
+    try:
+        from step1_extract.alias_loader import apply_aliases
+        t = apply_aliases(t, keep_cjk=True)
+    except Exception:
+        pass
+    # Remove CJK to keep English-only for classification matching
+    t = strip_cjk(t)
+    # Normalize whitespace and symbols
+    t = fold_ws(t)
+    # Collapse duplicate full-phrase repetition (e.g., "Chocolate Mousse Cake Chocolate Mousse Cake")
+    mid = len(t) // 2
+    if len(t) > 4 and len(t) % 2 == 0:
+        first, second = t[:mid].strip(), t[mid:].strip()
+        if first and first == second:
+            t = first
+    # Collapse consecutive duplicate words
+    parts = t.split(' ')
+    dedup = []
+    for w in parts:
+        if not dedup or dedup[-1].lower() != w.lower():
+            dedup.append(w)
+    t = ' '.join(dedup)
+    return t
+

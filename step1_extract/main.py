@@ -951,7 +951,7 @@ def process_files(
     ### Normalize item names (fold whitespace, apply alias, keep CJK) BEFORE classification
     logger.info("Normalizing item names (fold whitespace, keep CJK)...")
     
-    from preprocess.normalize import normalize_item_name
+    from preprocess.normalize import normalize_item_name, english_canonicalize
     
     # Normalize all items (sets canonical_name with fold_ws)
     for receipts_data in [
@@ -972,6 +972,10 @@ def process_files(
                 if items:
                     for item in items:
                         normalize_item_name(item)
+                        # For BBI/UNI_Mousse vendors, force English-only canonical names to stabilize classification
+                        vendor_name = (receipt_data.get('vendor_name') or receipt_data.get('vendor') or '').strip()
+                        if vendor_name in ('BBI', 'UNI_Mousse'):
+                            item['canonical_name'] = english_canonicalize(item.get('canonical_name', ''))
             except Exception as e:
                 logger.warning(f"Error normalizing names for {receipt_id}: {e}", exc_info=True)
     
