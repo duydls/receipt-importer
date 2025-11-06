@@ -103,6 +103,13 @@ def fetch_wismettac_by_keyword(keyword: str, branch: str = "3", verify: bool = T
                 data["category"] = val
             elif (lk.startswith("brand") or lk.startswith("brand name")) and "brand" not in data:
                 data["brand"] = val
+            elif lk.startswith("pack size") and "packSizeRaw" not in data:
+                data["packSizeRaw"] = val
+            elif "minimum order" in lk and "minOrderQty" not in data:
+                data["minOrderQty"] = val
+            elif "barcode" in lk and "barcode" not in data:
+                mm = re.search(r"([0-9]{8,14})", val)
+                data["barcode"] = mm.group(1) if mm else val
 
         # Breadcrumb-based fallback for Category
         if "category" not in data:
@@ -125,13 +132,6 @@ def fetch_wismettac_by_keyword(keyword: str, branch: str = "3", verify: bool = T
                         if val and ':' not in val:
                             data['brand'] = val
                             break
-            elif lk.startswith("pack size") and "packSizeRaw" not in data:
-                data["packSizeRaw"] = val
-            elif "minimum order" in lk and "minOrderQty" not in data:
-                data["minOrderQty"] = val
-            elif "barcode" in lk and "barcode" not in data:
-                mm = re.search(r"([0-9]{8,14})", val)
-                data["barcode"] = mm.group(1) if mm else val
 
     return data
 
