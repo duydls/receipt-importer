@@ -192,6 +192,12 @@ class CategoryClassifier:
             if match['aisle'].lower() not in item_aisle:
                 return False
         
+        # Check l3_category_name (direct mapping from Instacart CSV)
+        if 'l3_category_name' in match:
+            item_l3 = item.get('l3_category_name', '').lower()
+            if match['l3_category_name'].lower() != item_l3:
+                return False
+        
         # Check text_contains (against product_name)
         if 'text_contains' in match:
             product_name = item.get('product_name', '').lower()
