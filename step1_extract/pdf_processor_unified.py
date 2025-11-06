@@ -1086,6 +1086,24 @@ class UnifiedPDFProcessor:
             item['product_name'] = item.get('product_name_part1', '').strip()
             item.pop('product_name_part1', None)
         
+        # Truncate product name if it's split by price: keep only first part, ignore trailing parts
+        # Example: "Golden Buds Mousse\n2.00 $ 18.00\nCake" -> "Golden Buds Mousse"
+        product_name = item.get('product_name', '').strip()
+        if product_name:
+            # Check if product_name contains a newline followed by price pattern (quantity + $)
+            # This indicates the name was split by the price column
+            # Pattern: look for newline, then optional whitespace, then digit(s).digit(s) followed by $ sign
+            split_pattern = r'\n\s*\d+(?:\.\d+)?\s+\$'
+            if re.search(split_pattern, product_name):
+                # Split at the first occurrence of price pattern
+                # Keep only the first part (before the split)
+                parts = re.split(split_pattern, product_name, 1)
+                first_part = parts[0].strip() if parts else ''
+                # Only update if first part is not empty (to avoid empty product names)
+                if first_part:
+                    item['product_name'] = first_part
+                    logger.debug(f"Truncated product name split by price: '{product_name[:50]}...' -> '{first_part}'")
+        
         # Apply post-processing rules (from YAML)
         if pattern_def.get('post_process'):
             item = self._apply_post_process(item, pattern_def.get('post_process'), line, rules)
