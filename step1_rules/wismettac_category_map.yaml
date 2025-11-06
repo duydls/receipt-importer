@@ -14,5 +14,20 @@ maps:
     l2: C16
   - match: '(?i)Frozen\s*(Snacks|Foods|Appetizer|Karaage|Takoyaki|Fish\s*Cake|Narutomaki|Chashu)'
     l2: C21
+  - match: '(?i)\bCANNED\s*VEG'
+    l2: C15
+
+# Fallback when site Category is unavailable: map by product name tokens
+name_maps:
+  - match: '(?i)\bsoup\s*base\b|\btonkotsu\b|\bmiso\b|\bshoyu\b|\bpork\s*fat\b|\bgarlic\b|\boroshi\b'
+    l2: C03
+  - match: '(?i)\bnoodle\b|\bramen\b|\bshinuchi\b'
+    l2: C07
+  - match: '(?i)\bnori\b|\bseaweed\b'
+    l2: C15
+  - match: '(?i)\bmenma\b|\bbamboo\s*shoot\b|\bcorn\b'
+    l2: C16
+  - match: '(?i)\bkaraage\b|\btakoyaki\b|\bchashu\b|\bnarutomaki\b|\bfish\s*cake\b'
+    l2: C21
 
 
