@@ -101,6 +101,8 @@ def fetch_wismettac_by_keyword(keyword: str, branch: str = "3", verify: bool = T
                 data["itemNumber"] = mm.group(1) if mm else val
             elif lk.startswith("category") and "category" not in data:
                 data["category"] = val
+            elif lk.startswith("brand") and "brand" not in data:
+                data["brand"] = val
             elif lk.startswith("pack size") and "packSizeRaw" not in data:
                 data["packSizeRaw"] = val
             elif "minimum order" in lk and "minOrderQty" not in data:
