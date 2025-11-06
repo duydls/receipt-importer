@@ -139,3 +139,21 @@ overrides:
       L2_code: "C40"
     weight: 95
 
+  # --- Amazon-specific cleanup (low conflict, source-scoped) ---
+  - id: amazon_labels_barcode_override
+    when_source_type_in: ["amazon_based"]
+    when_name_matches:
+      - "(?i)\\b(label|labels|barcode|upc|zebra|rollo)\\b"
+      - "(?i)\\b(UPC|barcode)[^\n]{0,80}?labels?\\b"
+    set:
+      L2_code: "C23"
+    weight: 74
+
+  - id: amazon_water_filter_override
+    when_source_type_in: ["amazon_based"]
+    when_name_matches:
+      - "(?i)\\b(water\\s*filter|3M|HF\\d+\\s*-?S)\\b"
+    set:
+      L2_code: "C32"
+    weight: 74
+
