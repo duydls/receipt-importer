@@ -985,7 +985,7 @@ def process_files(
     try:
         from pathlib import Path as _Path
         import json as _json
-        enrich_path = _Path(output_dir) / 'wismettac_based' / 'wismettac_enrichment.json'
+        enrich_path = _Path(wismettac_based_output_dir) / 'wismettac_enrichment.json'
         if enrich_path.exists() and wismettac_based_data:
             with open(enrich_path, 'r', encoding='utf-8') as f:
                 wismettac_enrich = _json.load(f)
