@@ -51,6 +51,7 @@ class CategoryClassifier:
         self.review_threshold = pipeline_config.get('review_threshold', 0.60)
         self.fallback_l2 = pipeline_config.get('fallback_l2', 'C99')
         
+        
         logger.info(f"CategoryClassifier initialized with {len(self.l1_categories)} L1 and {len(self.l2_categories)} L2 categories")
     
     def classify_items(self, items: List[Dict[str, Any]], source_type: str = None, vendor_code: str = None) -> List[Dict[str, Any]]:
@@ -109,6 +110,8 @@ class CategoryClassifier:
                 if result:
                     return result
             
+            
+            
             elif stage == 'vendor_overrides':
                 result = self._apply_vendor_overrides(item, vendor_code, source_type)
                 if result:
@@ -134,6 +137,8 @@ class CategoryClassifier:
         
         # Should never reach here, but safety fallback
         return self._apply_fallback(item)
+
+    
     
     def _apply_source_map(self, item: Dict[str, Any], source_type: str) -> Optional[Dict[str, Any]]:
         """Apply source-specific rules (Instacart/Amazon)"""

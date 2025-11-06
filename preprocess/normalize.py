@@ -87,3 +87,56 @@ def strip_cjk(text: str) -> str:
     
     return s
 
+
+def english_canonicalize(text: str) -> str:
+    """
+    Produce an English-only canonical name using aliases and CJK stripping.
+    Also collapses accidental duplicated phrases like "X X" or "X X" where X is the full name.
+    """
+    if not text:
+        return text
+    t = text
+    # Apply aliases first to ensure Chinese names are replaced with English
+    try:
+        from step1_extract.alias_loader import apply_aliases
+        t = apply_aliases(t, keep_cjk=True)
+    except Exception:
+        pass
+    # Remove CJK to keep English-only for classification matching
+    t = strip_cjk(t)
+    # Normalize whitespace and symbols
+    t = fold_ws(t)
+    # Collapse duplicate full-phrase repetition (e.g., "Chocolate Mousse Cake Chocolate Mousse Cake")
+    mid = len(t) // 2
+    if len(t) > 4 and len(t) % 2 == 0:
+        first, second = t[:mid].strip(), t[mid:].strip()
+        if first and first == second:
+            t = first
+    # Collapse consecutive duplicate words
+    parts = t.split(' ')
+    dedup = []
+    for w in parts:
+        if not dedup or dedup[-1].lower() != w.lower():
+            dedup.append(w)
+    t = ' '.join(dedup)
+    # Heuristic trimming: if phrase contains cake-related tokens and trailing duplicates,
+    # trim at the first meaningful boundary to avoid tails like "... Cake ..."
+    s = t.lower()
+    try:
+        cake_idx = s.find('cake')
+        mousse_idx = s.find('mousse')
+        crepes_idx = s.find('crepes')
+        cut_at = None
+        # Prefer trimming after 'mousse cake' if present
+        if mousse_idx != -1 and cake_idx != -1 and 0 <= cake_idx - mousse_idx <= 20:
+            cut_at = cake_idx + len('cake')
+        elif cake_idx != -1:
+            cut_at = cake_idx + len('cake')
+        elif crepes_idx != -1:
+            cut_at = crepes_idx + len('crepes')
+        if cut_at:
+            t = t[:cut_at].strip()
+    except Exception:
+        pass
+    return t
+
