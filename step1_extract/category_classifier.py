@@ -312,8 +312,8 @@ class CategoryClassifier:
         # Apply classification overrides from YAML file
         override_rules = self.classification_overrides.get('overrides', [])
         if override_rules:
-            # Use clean_name if available (from name hygiene), otherwise fall back to product_name
-            product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
+            # Use canonical_name first (with aliases applied), fall back to clean_name/product_name
+            product_name = item.get('canonical_name') or item.get('clean_name') or item.get('product_name', '')
             # Use passed source_type or fall back to item's source_type
             if not source_type:
                 source_type = item.get('_source_type', '')
@@ -338,7 +338,7 @@ class CategoryClassifier:
                 if not vendor_match and not source_match:
                     continue
                 
-                # Check name patterns
+                # Check name patterns (using canonical_name which has aliases applied)
                 name_patterns = rule.get('when_name_matches', [])
                 name_matched = False
                 for pattern in name_patterns:

@@ -42,9 +42,9 @@ def _format_bbi_quantity_uom(item: Dict) -> str:
     Format quantity/UoM for BBI orders with Pack-aware display
     
     Returns formatted string like:
-    - "2 packs (500 pc/pack)" for Pack-priced items
-    - "30 bag (50g*12/bag)" for UoM-priced items with multi-unit spec
-    - "60 kg (≈ 3 packs × 20*1 kg)" for UoM-priced items with pack hint
+    - "6 packs (18*4-pc)" for Pack-priced items
+    - "30 bag" for UoM-priced items (no pack hints for < 2 packs)
+    - "60 kg (≈ 3 packs × 20*1 kg)" for UoM-priced items with 2+ packs hint
     """
     quantity = item.get('quantity', 0)
     pricing_unit = item.get('pricing_unit', '')  # 'Pack' or 'UoM'
@@ -58,14 +58,13 @@ def _format_bbi_quantity_uom(item: Dict) -> str:
     baseline_pack_size = item.get('baseline_pack_size') or (baseline_match.get('pack_size', '') if isinstance(baseline_match, dict) else '')
     baseline_pack_count = item.get('baseline_pack_count') or (baseline_match.get('pack_count', 1) if isinstance(baseline_match, dict) else 1)
     baseline_uom_raw = item.get('baseline_uom') or (baseline_match.get('uom_raw', '') if isinstance(baseline_match, dict) else '')
-    raw_uom_text = item.get('raw_uom_text', '')
     
     # Format quantity (remove trailing zeros)
     qty_float = float(quantity) if quantity else 0.0
     qty_display = f"{qty_float:g}" if qty_float == int(qty_float) else f"{qty_float:.2f}".rstrip('0').rstrip('.')
     
     if pricing_unit == 'Pack':
-        # Pack-priced: "N pack(s) (PACK_SIZE)"
+        # Pack-priced: "N packs (PACK_SIZE)"
         pack_size = baseline_pack_size or ''
         if pack_size:
             # Pluralize "pack" when N > 1
@@ -76,33 +75,24 @@ def _format_bbi_quantity_uom(item: Dict) -> str:
             return f"{qty_display} {pack_word}"
     
     else:
-        # UoM-priced: "N UOM" with optional hints
+        # UoM-priced: "N uom" only, add pack hint only if 2+ packs
         uom_display = purchase_uom_normalized or 'unknown'
         
-        # Check for multi-unit string in raw_uom_text or baseline_uom_raw
-        import re
-        multi_unit_hint = ''
-        if raw_uom_text:
-            # Check if it contains patterns like "50g*12-bag" or "20*1-kg"
-            if re.search(r'\d+[*×]\d+', raw_uom_text):
-                multi_unit_hint = f"({raw_uom_text})"
-        elif baseline_uom_raw:
-            if re.search(r'\d+[*×]\d+', baseline_uom_raw):
-                multi_unit_hint = f"({baseline_uom_raw})"
-        
-        # Check if quantity is divisible by pack_count (show pack hint)
+        # Check if quantity is divisible by pack_count (show pack hint only if 2+ packs)
         pack_hint = ''
         if baseline_pack_count and baseline_pack_count > 1 and qty_float > 0:
             packs = qty_float / baseline_pack_count
-            if packs == int(packs) and packs > 0:
-                # Quantity is exactly divisible by pack_count
+            if packs >= 2 and packs == int(packs):
+                # Quantity is 2+ packs and exactly divisible by pack_count
                 pack_label = baseline_uom_raw or purchase_uom_normalized
                 pack_hint = f" (≈ {int(packs)} packs × {pack_label})"
+            elif packs >= 2:
+                # Quantity is 2+ packs but not exact multiple
+                pack_label = baseline_uom_raw or purchase_uom_normalized
+                pack_hint = f" (≈ {packs:.1f} packs × {pack_label})"
         
-        # Combine UoM display with hints
+        # Return just "N uom" with optional pack hint (no other hints)
         result = f"{qty_display} {uom_display}"
-        if multi_unit_hint:
-            result += f" {multi_unit_hint}"
         if pack_hint:
             result += pack_hint
         
@@ -698,16 +688,26 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             is_costco_or_rd = 'costco' in vendor_name or 'restaurant' in vendor_name or 'rd' == vendor_name.strip().lower()
             
             # Build unit information display
-            raw_uom_text = item.get('raw_uom_text')
-            if raw_uom_text:
-                # Prefer showing size/spec (raw_uom_text) as UoM display when available
-                uom_display = raw_uom_text
+            # Get vendor code for BBI-specific logic
+            vendor_code_for_badge = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
+            upper_vendor_for_badge = (vendor_code_for_badge or '').upper()
+            is_bbi_for_badge = 'BBI' in upper_vendor_for_badge
+            
+            # For BBI items, check if pack-priced and show "UoM: pack" badge
+            pricing_unit = item.get('pricing_unit', '')
+            if is_bbi_for_badge and pricing_unit == 'Pack':
+                uom_display = 'pack'
             else:
-                # Safely convert purchase_uom to string and uppercase
-                if purchase_uom and isinstance(purchase_uom, str) and purchase_uom != 'unknown':
-                    uom_display = purchase_uom.upper()
+                raw_uom_text = item.get('raw_uom_text')
+                if raw_uom_text:
+                    # Prefer showing size/spec (raw_uom_text) as UoM display when available
+                    uom_display = raw_uom_text
                 else:
-                    uom_display = 'UNKNOWN'
+                    # Safely convert purchase_uom to string and uppercase
+                    if purchase_uom and isinstance(purchase_uom, str) and purchase_uom != 'unknown':
+                        uom_display = purchase_uom.upper()
+                    else:
+                        uom_display = 'UNKNOWN'
             # Normalization spec fields (from 00_normalize.yaml)
             spec_pack = item.get('spec.pack') or (item.get('spec', {}).get('pack') if isinstance(item.get('spec', {}), dict) else None)
             spec_size = item.get('spec.size') or (item.get('spec', {}).get('size') if isinstance(item.get('spec', {}), dict) else None)

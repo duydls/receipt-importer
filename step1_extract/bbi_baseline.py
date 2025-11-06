@@ -32,7 +32,19 @@ class BBIBaseline:
         """
         self.baseline_file = Path(baseline_file)
         self.baseline_data: List[Dict[str, any]] = []
+        self._alias_loader = None  # Lazy load alias loader
         self.load_baseline()
+    
+    def _get_alias_loader(self):
+        """Lazy load alias loader"""
+        if self._alias_loader is None:
+            try:
+                from .alias_loader import apply_aliases
+                self._alias_loader = apply_aliases
+            except ImportError:
+                logger.warning("Alias loader not available")
+                self._alias_loader = lambda x, **kwargs: x
+        return self._alias_loader
     
     def load_baseline(self) -> bool:
         """Load baseline data from BBI_Size.xlsx"""
@@ -140,8 +152,14 @@ class BBIBaseline:
                         except (ValueError, AttributeError):
                             logger.debug(f"Could not parse Pack Price: {pack_price_val}")
                 
+                # Apply aliases to description before storing (for matching)
+                description_raw = str(row[column_map['description']]).strip() if pd.notna(row[column_map['description']]) else ''
+                apply_aliases = self._get_alias_loader()
+                description_normalized = apply_aliases(description_raw, keep_cjk=True)
+                
                 item = {
-                    'description': str(row[column_map['description']]).strip() if pd.notna(row[column_map['description']]) else '',
+                    'description': description_normalized,  # Store normalized description
+                    'description_raw': description_raw,  # Keep original for reference
                     'uom': uom_unit,  # Use extracted unit (e.g., "pc", "Roll")
                     'uom_raw': uom_raw,  # Keep original for reference
                     'uom_price': uom_price,
@@ -272,7 +290,7 @@ class BBIBaseline:
         Find matching baseline item by description using fuzzy matching
         
         Args:
-            description: Product description from receipt
+            description: Product description from receipt (will be normalized with aliases)
             threshold: Minimum similarity score (default: 0.6, lowered for better matching)
         
         Returns:
@@ -281,11 +299,15 @@ class BBIBaseline:
         if not self.baseline_data:
             return None
         
-        description_lower = description.lower().strip()
+        # Apply aliases to description before matching
+        apply_aliases = self._get_alias_loader()
+        description_normalized = apply_aliases(description, keep_cjk=True)
+        description_lower = description_normalized.lower().strip()
         best_match = None
         best_score = 0.0
         
         for item in self.baseline_data:
+            # Use normalized description for matching (already normalized in load_baseline)
             baseline_desc = item['description'].lower().strip()
             
             # Calculate similarity

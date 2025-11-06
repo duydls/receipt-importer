@@ -1,0 +1,7 @@
+version: 1
+aliases:
+  - match: ["Potate Corn Dog"]
+    canonical: "Potato Corn Dog"
+  - match: ["Corndog", "Korean Corndog"]
+    canonical: "Corn Dog"
+

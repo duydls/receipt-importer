@@ -380,13 +380,17 @@ def apply_name_hygiene(item: Dict[str, Any]) -> Dict[str, Any]:
     # Strip UPC, Item#, and size/spec from product_name to create clean_name
     clean_name = clean_product_name(product_name, upc=upc, item_number=item_number, size_spec=size_spec)
     
+    # Apply alias mappings (fix typos like "Potate → Potato") before setting canonical_name
+    # Keep Chinese characters as requested
+    from .alias_loader import apply_aliases
+    canonical_name = apply_aliases(clean_name, keep_cjk=True)
+    
     # Set clean_name and display_name (canonical short name)
     item['clean_name'] = clean_name
     item['display_name'] = clean_name  # Display name policy: canonical short name
     
-    # Also set canonical_name for compatibility (if not already set)
-    if 'canonical_name' not in item:
-        item['canonical_name'] = clean_name
+    # Set canonical_name with aliases applied
+    item['canonical_name'] = canonical_name
     
     # Preserve original product_name
     # product_name is already in item, so we don't need to set it
