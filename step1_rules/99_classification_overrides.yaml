@@ -157,3 +157,61 @@ overrides:
       L2_code: "C32"
     weight: 74
 
+  # --- Wismettac vendor-specific mappings ---
+  - id: wismettac_soup_base
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bsoup\\s*base\\b"
+      - "(?i)\\btonkotsu\\b|\\bmiso\\b|\\bshoyu\\b|\\bpork\\s*fat\\b"
+    set:
+      L2_code: "C03"  # Seasonings & Marinades
+    weight: 92
+
+  - id: wismettac_noodles
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bnoodle\\b|\\bramen\\b|\\bshinuchi\\b"
+    set:
+      L2_code: "C07"  # Grains & Starches
+    weight: 90
+
+  - id: wismettac_nori_seaweed
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bnori\\b|\\bseaweed\\b"
+    set:
+      L2_code: "C15"  # Other Ingredients
+    weight: 88
+
+  - id: wismettac_bamboo_shoot_menma
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bmenma\\b|\\bbamboo\\s*shoot\\b"
+    set:
+      L2_code: "C16"  # Fresh Vegetables (best available bucket for veg items)
+    weight: 86
+
+  - id: wismettac_canned_corn
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bsweet\\s*kernel\\s*corn\\b|\\bA10\\s*.*corn\\b"
+    set:
+      L2_code: "C16"  # Vegetables bucket
+    weight: 85
+
+  - id: wismettac_frozen_finished_goods
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bkaraage\\b|\\btakoyaki\\b|\\bchashu\\b|\\bnarutomaki\\b|\\bfish\\s*cake\\b"
+    set:
+      L2_code: "C21"  # Frozen Snacks / Finished Goods
+    weight: 90
+
+  - id: wismettac_garlic_grated
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bgarlic\\b|\\boroshi\\b"
+    set:
+      L2_code: "C03"  # Treat grated garlic as seasoning
+    weight: 86
+
