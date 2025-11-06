@@ -5,24 +5,22 @@
 version: 1
 
 overrides:
-  # BBI: map any "Cake" or "Mousse" item to Cakes & Mousse (finished goods)
-  - when_vendor_in: ["BBI"]
-    when_name_matches: 
+  # BBI: map any "Cake"/"Mousse" item to Cakes & Mousse (finished goods)
+  - when_vendor_in: ["BBI"]   # ensure vendor is normalized to exactly "BBI"
+    when_name_matches:
       - "(?i)\\bcake\\b"
+      - "(?i)\\bcheese\\s*cake\\b"   # cheesecake / cheese cake
       - "(?i)\\bmousse\\b"
       - "蛋糕"
+      - "芝士蛋糕"
+      - "慕斯"
     set:
       L1: "A02 - COGS–Finished Goods"
       L2: "C20 - Cakes & Mousse"
     weight: 98  # outrank flavor/ingredient rules
-  
-  # Note: If using source_type: "bbi" instead of vendor, use:
+
+  # If your pipeline uses source_type instead of vendor, mirror rule:
   # - when_source_type_in: ["bbi"]
-  #   when_name_matches: [...]
-  #   set: {...}
-
-notes:
-  - "(?i)\\bcake\\b" is case-insensitive and avoids matching "cupcake" accidentally. If you want cupcakes too, add "(?i)\\bcup\\s*cake\\b"
-  - Keep weight high (98) so this wins over generic flavor or ingredient rules
-  - If pipeline uses source_type: "bbi" instead of vendor value, mirror the same rule with when_source_type_in: ["bbi"]
-
+  #   when_name_matches: [ ...same patterns... ]
+  #   set: { L1: "...", L2: "..." }
+  #   weight: 98
