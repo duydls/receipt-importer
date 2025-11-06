@@ -379,11 +379,12 @@ class CategoryClassifier:
                 confidence = min(weight / 100.0, 1.0)
                 
                 if l2_category:
+                    # Use rule ID if available, otherwise generate one
+                    rule_id = rule.get('id', f"override_{rule.get('when_vendor_in', rule.get('when_source_type_in', ['unknown']))[0].lower()}_cake")
                     return self._build_result(
                         l2_category=l2_category,
-                        l1_category=l1_category or self.l2_to_l1_map.get(l2_category, 'A99'),
                         source='classification_override',
-                        rule_id=f"override_{rule.get('when_vendor_in', rule.get('when_source_type_in', ['unknown']))[0].lower()}_cake",
+                        rule_id=rule_id,
                         confidence=confidence
                     )
         
