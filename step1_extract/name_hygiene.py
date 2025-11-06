@@ -380,16 +380,26 @@ def apply_name_hygiene(item: Dict[str, Any]) -> Dict[str, Any]:
     # Strip UPC, Item#, and size/spec from product_name to create clean_name
     clean_name = clean_product_name(product_name, upc=upc, item_number=item_number, size_spec=size_spec)
     
-    # Apply alias mappings (fix typos like "Potate → Potato") before setting canonical_name
-    # Keep Chinese characters as requested
+    # Preserve original for audit
+    item['raw_name_original'] = product_name
+    
+    # Apply alias mappings (fix typos like "Potate → Potato")
     from .alias_loader import apply_aliases
-    canonical_name = apply_aliases(clean_name, keep_cjk=True)
+    aliased_name = apply_aliases(clean_name, keep_cjk=True)
+    
+    # Strip CJK characters from canonical_name (keep English, drop Chinese)
+    from preprocess.normalize import strip_cjk
+    canonical_name = strip_cjk(aliased_name)
+    
+    # Fallback to aliased_name if strip_cjk returns empty
+    if not canonical_name or not canonical_name.strip():
+        canonical_name = aliased_name.strip()
     
     # Set clean_name and display_name (canonical short name)
     item['clean_name'] = clean_name
     item['display_name'] = clean_name  # Display name policy: canonical short name
     
-    # Set canonical_name with aliases applied
+    # Set canonical_name with CJK stripped (for size-join and classification)
     item['canonical_name'] = canonical_name
     
     # Preserve original product_name

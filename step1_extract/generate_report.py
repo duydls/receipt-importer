@@ -37,6 +37,49 @@ def _normalize_uom(uom: str) -> str:
     return uom_lower
 
 
+def _num(v):
+    """Convert value to number (int if integer, float otherwise)"""
+    try:
+        f = float(v)
+        return int(f) if f.is_integer() else f
+    except Exception:
+        return None
+
+
+def derive_display_fields(it: dict) -> dict:
+    """
+    Derive display fields for quantity, size, and UoM.
+    Returns dict with display_quantity, display_size, display_uom.
+    """
+    pricing = (it.get("pricing_unit") or "").strip()
+    qty = _num(it.get("quantity"))
+    
+    # Optional: infer quantity only if missing but prices exist
+    if qty is None:
+        up, tp = _num(it.get("unit_price")), _num(it.get("total_price"))
+        if up and tp:
+            q = tp / up
+            qty = int(round(q)) if abs(q - round(q)) < 1e-6 else q
+    
+    if pricing == "Pack":
+        size = (it.get("baseline_pack_size")
+                or (it.get("baseline_match") or {}).get("pack_size")
+                or (it.get("raw_uom_text") or "").strip()
+                or None)
+        uom = "pack"
+    else:
+        size = ((it.get("baseline_match") or {}).get("uom_raw")
+                or (it.get("raw_uom_text") or "").strip()
+                or (it.get("baseline_uom") or "").strip()
+                or (it.get("purchase_uom") or "").strip()
+                or None)
+        uom = (it.get("purchase_uom") or it.get("baseline_uom") or "").strip().lower()
+        if uom in ("each", "ea"):  # normalize
+            uom = "pc"
+    
+    return {"display_quantity": qty, "display_size": size, "display_uom": uom}
+
+
 def _format_bbi_quantity_display(item: Dict) -> str:
     """
     Format quantity display for BBI orders with Pack semantics
@@ -641,6 +684,9 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Add items
         for item in items:
+            # Derive display fields (quantity, size, UoM) once, use everywhere
+            item.update(derive_display_fields(item))
+            
             # Use clean_name (from name hygiene) for display, fall back to product_name
             # Note: clean_name has UPC/Item# stripped out for classification
             product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', 'Unknown Product')
@@ -686,42 +732,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             vendor_name = receipt_data.get('vendor', '').lower()
             is_costco_or_rd = 'costco' in vendor_name or 'restaurant' in vendor_name or 'rd' == vendor_name.strip().lower()
             
-            # Build unit information display
-            # Get vendor code for BBI-specific logic
-            vendor_code_for_badge = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-            upper_vendor_for_badge = (vendor_code_for_badge or '').upper()
-            is_bbi_for_badge = 'BBI' in upper_vendor_for_badge
-            
-            # For BBI items, check if pack-priced and show "UoM: pack" badge
-            pricing_unit = item.get('pricing_unit', '')
-            if is_bbi_for_badge and pricing_unit == 'Pack':
-                uom_display = 'pack'
-            else:
-                raw_uom_text = item.get('raw_uom_text')
-                if raw_uom_text:
-                    # Prefer showing size/spec (raw_uom_text) as UoM display when available
-                    uom_display = raw_uom_text
-                else:
-                    # Safely convert purchase_uom to string and uppercase
-                    if purchase_uom and isinstance(purchase_uom, str) and purchase_uom != 'unknown':
-                        uom_display = purchase_uom.upper()
-                    else:
-                        uom_display = 'UNKNOWN'
-            # Normalization spec fields (from 00_normalize.yaml)
-            spec_pack = item.get('spec.pack') or (item.get('spec', {}).get('pack') if isinstance(item.get('spec', {}), dict) else None)
-            spec_size = item.get('spec.size') or (item.get('spec', {}).get('size') if isinstance(item.get('spec', {}), dict) else None)
-            spec_uom  = item.get('spec.uom')  or (item.get('spec', {}).get('uom')  if isinstance(item.get('spec', {}), dict) else None)
-            spec_str = ''
-            if spec_size and spec_uom:
-                try:
-                    p = int(spec_pack) if spec_pack not in (None, '', 0, '0') else None
-                except Exception:
-                    p = None
-                if p:
-                    spec_str = f"{p}×{spec_size} {spec_uom}"
-                else:
-                    spec_str = f"{spec_size} {spec_uom}"
-            spec_html = f'<span class="unit-badge" style="margin-left:10px;">Spec: {spec_str}</span>' if spec_str else ''
+            # Build unit information display (for detailed unit info section only)
+            # Note: Main display uses display_quantity, display_size, display_uom from derive_display_fields
             exclude_cogs_badge = '<span style="background:#f5c6cb;color:#721c24;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">Excluded from COGS</span>' if item.get('exclude_from_cogs') else ''
             no_charge_badge = '<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">No Charge</span>' if is_no_charge else ''
             
@@ -785,39 +797,26 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     {', '.join(unit_info_parts)}
                 </div>'''
             
-            # Get vendor code for vendor-specific validation (needed before BBI formatting)
-            vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-            upper_vendor = (vendor_code or '').upper()
-            is_bbi = 'BBI' in upper_vendor
-            
-            # BBI-specific: Use Pack-aware quantity/UoM formatting
-            # Create quantity_display field and use it in the template
-            if is_bbi:
-                # Use quantity_display if already set, otherwise format it
-                quantity_display = item.get('quantity_display') or _format_bbi_quantity_display(item)
-                unit_str = f" {quantity_display}"
-            # Use Size instead of UoM for price display, but use picked weight + UoM for weight items (like bananas)
-            elif _should_use_picked_weight(item, picked_weight_rules):
-                # For weight items with picked_weight, use picked_weight + UoM instead of size
-                picked_weight = item.get('picked_weight', '')
-                try:
-                    picked_weight_float = float(picked_weight)
-                    # Display picked_weight with UoM (format: "3.61-lb")
-                    unit_str = f"-{purchase_uom}" if purchase_uom and purchase_uom != 'unknown' else ""
-                    # Update quantity to use picked_weight for display
-                    quantity = picked_weight_float
-                except (ValueError, TypeError):
-                    # Fallback to size if picked_weight can't be parsed (already formatted)
-                    unit_str = f" {size}" if size else (f"-{purchase_uom}" if purchase_uom and purchase_uom != 'unknown' else "")
-            else:
-                # Default: use Size instead of UoM for price display (already formatted)
-                unit_str = f" {size}" if size else (f"-{purchase_uom}" if purchase_uom and purchase_uom != 'unknown' else "")
-            
             # Validate: Check if unit_price × quantity equals total_price
             # Convert to floats for comparison (handle None/0 values)
             qty_float = float(quantity) if quantity else 0.0
             unit_price_float = float(unit_price) if unit_price else 0.0
             total_price_float = float(total_price) if total_price else 0.0
+            
+            # Get vendor code for vendor-specific validation
+            vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
+            upper_vendor = (vendor_code or '').upper()
+            is_bbi = 'BBI' in upper_vendor
+            
+            # Get display fields (already derived above)
+            display_quantity = item.get('display_quantity')
+            display_size = item.get('display_size')
+            display_uom = item.get('display_uom', '')
+            
+            # Format display values for template
+            quantity_str = str(display_quantity) if display_quantity is not None else str(qty_float)
+            size_str = str(display_size) if display_size else '—'
+            uom_str = str(display_uom) if display_uom else '—'
             
             # Get vendor-specific flags (vendor_code and upper_vendor already set above for BBI check)
             is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
@@ -878,15 +877,14 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     </div>
                     <div class="item-details">
                         <div style="font-size: 1em; margin-bottom: 5px;">
-                            <strong>Quantity:</strong> {qty_float:g}{unit_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f} {quality_flags_html}
+                            <strong>Quantity:</strong> {quantity_str}&nbsp;&nbsp;<strong>Size:</strong> {size_str}&nbsp;&nbsp;<strong>UoM:</strong> {uom_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f} {quality_flags_html}
                         </div>
                         <div style="font-size: 0.9em; color: #666; margin-top: 3px;">
                             Calculation: {calculation_display} {'✅' if price_match else '❌'}
                         </div>
                         {price_warning}
                     <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
-                        <span class="unit-badge">UoM: {uom_display}</span>
-                        {spec_html}
+                        <span class="unit-badge">UoM: {uom_str if uom_str != '—' else '—'}</span>
                         {exclude_cogs_badge}
                     </div>
                         {_get_category_badge_html(item)}

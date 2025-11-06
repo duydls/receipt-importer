@@ -44,16 +44,6 @@ overrides:
       L2: "C08 - Toppings & Jellies"
     weight: 95   # Higher weight than fruit heuristic (0.85) to ensure it wins
 
-  # Corn Dog (Pulmuone or vendor-agnostic) -> Appropriate category
-  - id: corndog_mapping
-    when_vendor_in: ["YS_Pulmuone", "Pulmuone"]
-    when_name_matches:
-      - "(?i)\\bcorn\\s*dog\\b"
-    set:
-      L1: "A02 - COGS–Finished Goods"
-      L2: "C05 - Prepared Foods"
-    weight: 95
-
   # Corn Dog (vendor-agnostic fallback)
   - id: corndog_mapping_agnostic
     when_name_matches:
@@ -62,3 +52,64 @@ overrides:
       L1: "A02 - COGS–Finished Goods"
       L2: "C05 - Prepared Foods"
     weight: 90   # Lower weight than vendor-specific rule
+
+  # --- Packaging (BBI) ---
+  - id: bbi_packaging_lids
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\blids?\\b"      # Lid / Lids
+    set:
+      L1: "A02 - COGS–Packaging"
+      L2: "C20 - Cups & Lids"
+    weight: 96
+
+  - id: bbi_packaging_cup_holder
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\b(4\\s*-?\\s*cup\\s*holder|cup\\s*holder)\\b"
+    set:
+      L1: "A02 - COGS–Packaging"
+      L2: "C22 - Utensils & Misc Packaging"
+    weight: 96
+
+  # --- Frozen snacks (Pulmuone corn dog) ---
+  - id: pulmuone_corn_dog
+    when_vendor_in: ["YS_Pulmuone", "Pulmuone", "UNI_Pulmuone"]
+    when_name_matches:
+      - "(?i)\\bcorn\\s*dog\\b"
+      - "(?i)\\bpotato\\s*corn\\s*dog\\b"
+    set:
+      L1: "A02 - COGS–Finished Goods"
+      L2: "C21 - Frozen Snacks"
+    weight: 97
+
+  # --- Powders (BBI) ---
+  - id: bbi_powder_banana_flavoring
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)(\\bpowder\\b.*\\bbanana\\b|\\bbanana\\b.*\\bpowder\\b)"
+    set:
+      L1: "A01 - COGS–Ingredients"
+      L2: "C06 - Creamer & Powders"
+    weight: 90
+
+  - id: bbi_powder_puer_matcha_mocha_premix
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\bpowder\\b.*(puer|puerh|matcha).*"
+      - "(?i)\\bmatcha\\s*mocha\\b"
+    set:
+      L1: "A01 - COGS–Ingredients"
+      L2: "C06 - Creamer & Powders"
+    weight: 90
+
+  # --- Marinade (BBI) ---
+  - id: bbi_chicken_marinade
+    when_vendor_in: ["BBI"]
+    when_name_matches:
+      - "(?i)\\bmarinade\\b"
+      - "腌料"
+    set:
+      L1: "A01 - COGS–Ingredients"
+      L2: "C03 - Jam/Purée"
+    weight: 90

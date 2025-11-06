@@ -152,10 +152,13 @@ class BBIBaseline:
                         except (ValueError, AttributeError):
                             logger.debug(f"Could not parse Pack Price: {pack_price_val}")
                 
-                # Apply aliases to description before storing (for matching)
+                # Apply aliases and strip CJK from description before storing (for matching)
                 description_raw = str(row[column_map['description']]).strip() if pd.notna(row[column_map['description']]) else ''
                 apply_aliases = self._get_alias_loader()
-                description_normalized = apply_aliases(description_raw, keep_cjk=True)
+                description_aliased = apply_aliases(description_raw, keep_cjk=True)
+                # Strip CJK characters for normalized matching (keep English, drop Chinese)
+                from preprocess.normalize import strip_cjk
+                description_normalized = strip_cjk(description_aliased) or description_aliased.strip()
                 
                 item = {
                     'description': description_normalized,  # Store normalized description
@@ -299,9 +302,13 @@ class BBIBaseline:
         if not self.baseline_data:
             return None
         
-        # Apply aliases to description before matching
+        # Description should already have aliases and CJK stripped (from canonical_name)
+        # But we'll apply aliases again just in case, then strip CJK
         apply_aliases = self._get_alias_loader()
-        description_normalized = apply_aliases(description, keep_cjk=True)
+        description_aliased = apply_aliases(description, keep_cjk=True)
+        # Strip CJK characters for normalized matching (keep English, drop Chinese)
+        from preprocess.normalize import strip_cjk
+        description_normalized = strip_cjk(description_aliased) or description_aliased.strip()
         description_lower = description_normalized.lower().strip()
         best_match = None
         best_score = 0.0
