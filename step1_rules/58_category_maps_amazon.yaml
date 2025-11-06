@@ -117,6 +117,13 @@ category_maps_amazon:
       map_to_l2: C01  # Tea & Coffee
       priority: 95
       notes: Coffee products
+
+    # ===== NUTS / INGREDIENTS =====
+    - match:
+        item_title_regex: '(?i)\b(almond|almonds|sliced almonds|raw almonds|unsalted almonds)\b'
+      map_to_l2: C15  # Other Ingredients (nuts)
+      priority: 96
+      notes: Nuts like almonds are ingredients
     
     # ===== SYRUPS =====
     
