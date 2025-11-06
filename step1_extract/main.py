@@ -478,14 +478,67 @@ def process_files(
         for file_path in bbi_based_files:
             receipt_id, receipt_data = process_bbi_file(file_path)
             if receipt_data:
+                items = receipt_data.get('items', [])
+                
+                # Fill missing quantity safely for BBI items (only when blank)
+                inferred_count = 0
+                for item in items:
+                    quantity = item.get('quantity')
+                    unit_price = item.get('unit_price')
+                    total_price = item.get('total_price')
+                    
+                    # Check if quantity is missing/non-numeric
+                    quantity_is_valid = False
+                    try:
+                        if quantity is not None:
+                            qty_float = float(quantity)
+                            if qty_float > 0:
+                                quantity_is_valid = True
+                    except (ValueError, TypeError):
+                        quantity_is_valid = False
+                    
+                    # Only fill if quantity is missing/non-numeric and both unit_price and total_price are present
+                    if not quantity_is_valid and unit_price is not None and total_price is not None:
+                        try:
+                            unit_price_float = float(unit_price)
+                            total_price_float = float(total_price)
+                            
+                            if unit_price_float > 0:
+                                # Calculate qty = total_price / unit_price
+                                qty = total_price_float / unit_price_float
+                                
+                                # If abs(qty - round(qty)) < 1e-6, use int(round(qty))
+                                if abs(qty - round(qty)) < 1e-6:
+                                    qty = int(round(qty))
+                                else:
+                                    qty = round(qty, 3)
+                                
+                                item['quantity'] = qty
+                                item['needs_quantity_review'] = True
+                                # Store metadata about the inference for future processing
+                                item['quantity_inferred'] = True
+                                item['quantity_inferred_from'] = {
+                                    'unit_price': unit_price_float,
+                                    'total_price': total_price_float,
+                                    'calculation': f"{total_price_float:.2f} / {unit_price_float:.2f} = {qty}"
+                                }
+                                inferred_count += 1
+                                logger.debug(f"  Inferred quantity for '{item.get('product_name', '')}': {qty} (from ${total_price_float:.2f} / ${unit_price_float:.2f})")
+                        except (ValueError, TypeError, ZeroDivisionError):
+                            # Skip if calculation fails
+                            pass
+                
+                if inferred_count > 0:
+                    logger.info(f"  ✓ Inferred quantity for {inferred_count}/{len(items)} items (marked needs_quantity_review)")
+                
                 # Apply UoM/Pack determination if baseline is available
                 if bbi_baseline:
-                    items = receipt_data.get('items', [])
                     determined_count = 0
                     uom_set_count = 0
                     
                     for item in items:
-                        product_name = item.get('product_name', '')
+                        # Use canonical_name (with aliases applied) for matching, fall back to product_name
+                        product_name = item.get('canonical_name') or item.get('product_name', '')
                         unit_price = item.get('unit_price', 0.0)
                         quantity = item.get('quantity', 0.0)
                         
@@ -493,6 +546,7 @@ def process_files(
                         baseline_item = None
                         if product_name:
                             # Use lower threshold for matching (0.6 instead of 0.8)
+                            # Note: find_match already applies aliases, but we're using canonical_name which already has aliases
                             baseline_item = bbi_baseline.find_match(product_name, threshold=0.6)
                         
                         if baseline_item:
@@ -542,6 +596,11 @@ def process_files(
                         logger.info(f"  ✓ Set UoM from baseline for {uom_set_count}/{len(items)} items")
                     if determined_count > 0:
                         logger.info(f"  ✓ Determined pricing unit for {determined_count}/{len(items)} items")
+                
+                # Set quantity_display for all BBI items (after UoM/Pack determination)
+                from .generate_report import _format_bbi_quantity_display
+                for item in items:
+                    item['quantity_display'] = _format_bbi_quantity_display(item)
                 
                 bbi_based_data[receipt_id] = receipt_data
     

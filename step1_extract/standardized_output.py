@@ -241,6 +241,8 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
         needs_review_reasons.extend(item.get('review_reasons', []))
     if item.get('needs_category_review', False):
         needs_review_reasons.append('low_confidence' if confidence < 0.60 else 'category_review')
+    if item.get('needs_quantity_review', False):
+        needs_review_reasons.append('inferred_quantity')
     needs_review_reason = '; '.join(needs_review_reasons) if needs_review_reasons else ''
     
     # Extract fee_type

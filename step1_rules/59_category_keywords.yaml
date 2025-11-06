@@ -379,6 +379,7 @@ category_keywords:
       description: >
         Detects fruit items and classifies as Fresh/Frozen based on context.
         Includes Costco abbreviations (STRAWBRY, GRPS).
+        Excludes items with "powder", "jelly", "jam", "purée", "topping" to avoid false positives.
       tokens:
         - apple
         - banana
@@ -406,6 +407,9 @@ category_keywords:
         - melon
         - watermelon
         - cantaloupe
+      unless_name_matches:
+        - "(?i)\\bpowder\\b"
+        - "(?i)\\b(jelly|jam|pur[ée]e|topping)\\b"
       freezer_markers:
         - frozen
         - freeze-dried

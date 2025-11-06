@@ -37,14 +37,13 @@ def _normalize_uom(uom: str) -> str:
     return uom_lower
 
 
-def _format_bbi_quantity_uom(item: Dict) -> str:
+def _format_bbi_quantity_display(item: Dict) -> str:
     """
-    Format quantity/UoM for BBI orders with Pack-aware display
+    Format quantity display for BBI orders with Pack semantics
     
-    Returns formatted string like:
-    - "6 packs (18*4-pc)" for Pack-priced items
-    - "30 bag" for UoM-priced items (no pack hints for < 2 packs)
-    - "60 kg (≈ 3 packs × 20*1 kg)" for UoM-priced items with 2+ packs hint
+    Returns formatted string:
+    - Pack-priced: "{qty} pack(s)" + (" ({baseline_pack_size})" if present else "")
+    - UoM-priced: "{qty} {purchase_uom}" with optional pack hint only when packs >= 2 and spec is numeric
     """
     quantity = item.get('quantity', 0)
     pricing_unit = item.get('pricing_unit', '')  # 'Pack' or 'UoM'
@@ -61,40 +60,40 @@ def _format_bbi_quantity_uom(item: Dict) -> str:
     
     # Format quantity (remove trailing zeros)
     qty_float = float(quantity) if quantity else 0.0
-    qty_display = f"{qty_float:g}" if qty_float == int(qty_float) else f"{qty_float:.2f}".rstrip('0').rstrip('.')
+    qty_str = f"{qty_float:g}" if qty_float == int(qty_float) else f"{qty_float:.2f}".rstrip('0').rstrip('.')
     
     if pricing_unit == 'Pack':
-        # Pack-priced: "N packs (PACK_SIZE)"
-        pack_size = baseline_pack_size or ''
-        if pack_size:
-            # Pluralize "pack" when N > 1
-            pack_word = 'packs' if qty_float > 1 else 'pack'
-            return f"{qty_display} {pack_word} ({pack_size})"
+        # Pack-priced: "{qty} pack(s)" + (" ({baseline_pack_size})" if present else "")
+        pack_word = 'packs' if qty_float > 1 else 'pack'
+        if baseline_pack_size:
+            return f"{qty_str} {pack_word} ({baseline_pack_size})"
         else:
-            pack_word = 'packs' if qty_float > 1 else 'pack'
-            return f"{qty_display} {pack_word}"
+            return f"{qty_str} {pack_word}"
     
     else:
-        # UoM-priced: "N uom" only, add pack hint only if 2+ packs
+        # UoM-priced: "{qty} {purchase_uom}" with optional pack hint only when packs >= 2 and spec is numeric
         uom_display = purchase_uom_normalized or 'unknown'
+        result = f"{qty_str} {uom_display}"
         
-        # Check if quantity is divisible by pack_count (show pack hint only if 2+ packs)
-        pack_hint = ''
+        # Add pack hint only when packs >= 2 and spec is numeric (skip "≈ 1 pack...")
         if baseline_pack_count and baseline_pack_count > 1 and qty_float > 0:
             packs = qty_float / baseline_pack_count
-            if packs >= 2 and packs == int(packs):
-                # Quantity is 2+ packs and exactly divisible by pack_count
-                pack_label = baseline_uom_raw or purchase_uom_normalized
-                pack_hint = f" (≈ {int(packs)} packs × {pack_label})"
-            elif packs >= 2:
-                # Quantity is 2+ packs but not exact multiple
-                pack_label = baseline_uom_raw or purchase_uom_normalized
-                pack_hint = f" (≈ {packs:.1f} packs × {pack_label})"
-        
-        # Return just "N uom" with optional pack hint (no other hints)
-        result = f"{qty_display} {uom_display}"
-        if pack_hint:
-            result += pack_hint
+            # Check if spec is numeric (baseline_uom_raw contains numeric patterns like "20*1-kg")
+            import re
+            spec_is_numeric = False
+            if baseline_uom_raw:
+                # Check if it contains numeric patterns like "20*1", "18*4", etc.
+                spec_is_numeric = bool(re.search(r'\d+\s*[*×]\s*\d+', baseline_uom_raw))
+            
+            if packs >= 2 and spec_is_numeric:
+                if packs == int(packs):
+                    # Exactly divisible by pack_count
+                    pack_label = baseline_uom_raw or purchase_uom_normalized
+                    result += f" (≈ {int(packs)} packs × {pack_label})"
+                else:
+                    # Not exact multiple
+                    pack_label = baseline_uom_raw or purchase_uom_normalized
+                    result += f" (≈ {packs:.1f} packs × {pack_label})"
         
         return result
 
@@ -792,8 +791,10 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             is_bbi = 'BBI' in upper_vendor
             
             # BBI-specific: Use Pack-aware quantity/UoM formatting
+            # Create quantity_display field and use it in the template
             if is_bbi:
-                quantity_display = _format_bbi_quantity_uom(item)
+                # Use quantity_display if already set, otherwise format it
+                quantity_display = item.get('quantity_display') or _format_bbi_quantity_display(item)
                 unit_str = f" {quantity_display}"
             # Use Size instead of UoM for price display, but use picked weight + UoM for weight items (like bananas)
             elif _should_use_picked_weight(item, picked_weight_rules):
@@ -848,6 +849,9 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Zero price warning
             if unit_price_float == 0 or total_price_float == 0:
                 quality_flags.append('<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:0.8em;margin-left:6px;">⚠️ Zero Price</span>')
+            # Inferred quantity warning (for BBI items)
+            if item.get('needs_quantity_review', False):
+                quality_flags.append('<span style="background:#d1ecf1;color:#0c5460;padding:2px 6px;border-radius:3px;font-size:0.8em;margin-left:6px;">ℹ️ Inferred Quantity</span>')
             
             # Missing transaction date warning (for receipt level, not item level)
             # This will be checked at receipt level

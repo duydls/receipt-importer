@@ -334,9 +334,11 @@ class CategoryClassifier:
                     source_list = rule.get('when_source_type_in', [])
                     source_match = source_type and source_type.lower() in [s.lower() for s in source_list]
                 
-                # Must match at least one condition
-                if not vendor_match and not source_match:
-                    continue
+                # Must match at least one condition (vendor or source_type)
+                # If neither when_vendor_in nor when_source_type_in is specified, match all
+                if 'when_vendor_in' in rule or 'when_source_type_in' in rule:
+                    if not vendor_match and not source_match:
+                        continue
                 
                 # Check name patterns (using canonical_name which has aliases applied)
                 name_patterns = rule.get('when_name_matches', [])
@@ -442,20 +444,45 @@ class CategoryClassifier:
         # Try fruit heuristic
         fruit_config = heuristics.get('fruit', {})
         if self._contains_any_token(product_name, fruit_config.get('tokens', [])):
-            # Check if frozen - mapping from YAML
-            freezer_markers = fruit_config.get('freezer_markers', [])
-            if self._contains_any_token(product_name, freezer_markers):
-                l2_category = fruit_config.get('map_to_l2_frozen')  # From YAML, no default
+            # Check unless_name_matches to exclude powder, jelly, jam, purée, topping
+            unless_patterns = fruit_config.get('unless_name_matches', [])
+            if unless_patterns:
+                for pattern in unless_patterns:
+                    if re.search(pattern, product_name, re.IGNORECASE):
+                        # Skip fruit classification if it matches exclusion pattern
+                        break
+                else:
+                    # No exclusion pattern matched, continue with fruit classification
+                    # Check if frozen - mapping from YAML
+                    freezer_markers = fruit_config.get('freezer_markers', [])
+                    if self._contains_any_token(product_name, freezer_markers):
+                        l2_category = fruit_config.get('map_to_l2_frozen')  # From YAML, no default
+                    else:
+                        l2_category = fruit_config.get('map_to_l2_fresh')  # From YAML, no default
+                    
+                    if l2_category:  # Only return if YAML provides mapping
+                        return self._build_result(
+                            l2_category=l2_category,
+                            source='heuristic',
+                            rule_id='fruit_heuristic',
+                            confidence=fruit_config.get('confidence', 0.85)
+                        )
             else:
-                l2_category = fruit_config.get('map_to_l2_fresh')  # From YAML, no default
-            
-            if l2_category:  # Only return if YAML provides mapping
-                return self._build_result(
-                    l2_category=l2_category,
-                    source='heuristic',
-                    rule_id='fruit_heuristic',
-                    confidence=fruit_config.get('confidence', 0.85)
-                )
+                # No exclusion patterns defined, proceed normally
+                # Check if frozen - mapping from YAML
+                freezer_markers = fruit_config.get('freezer_markers', [])
+                if self._contains_any_token(product_name, freezer_markers):
+                    l2_category = fruit_config.get('map_to_l2_frozen')  # From YAML, no default
+                else:
+                    l2_category = fruit_config.get('map_to_l2_fresh')  # From YAML, no default
+                
+                if l2_category:  # Only return if YAML provides mapping
+                    return self._build_result(
+                        l2_category=l2_category,
+                        source='heuristic',
+                        rule_id='fruit_heuristic',
+                        confidence=fruit_config.get('confidence', 0.85)
+                    )
         
         # Try topping heuristic
         topping_config = heuristics.get('topping', {})

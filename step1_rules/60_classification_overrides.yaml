@@ -34,3 +34,31 @@ overrides:
       L1: "A02 - COGS–Finished Goods"
       L2: "C20 - Cakes & Mousse"
     weight: 99   # 高一点，确保压过风味/原料关键词
+
+  # Jelly/Jam/Purée -> Toppings & Jellies (higher weight than fruit heuristic)
+  - id: jelly_jam_puree_toppings
+    when_name_matches:
+      - "(?i)\\b(jelly|jam|pur[ée]e)\\b"
+    set:
+      L1: "A02 - COGS–Finished Goods"
+      L2: "C08 - Toppings & Jellies"
+    weight: 95   # Higher weight than fruit heuristic (0.85) to ensure it wins
+
+  # Corn Dog (Pulmuone or vendor-agnostic) -> Appropriate category
+  - id: corndog_mapping
+    when_vendor_in: ["YS_Pulmuone", "Pulmuone"]
+    when_name_matches:
+      - "(?i)\\bcorn\\s*dog\\b"
+    set:
+      L1: "A02 - COGS–Finished Goods"
+      L2: "C05 - Prepared Foods"
+    weight: 95
+
+  # Corn Dog (vendor-agnostic fallback)
+  - id: corndog_mapping_agnostic
+    when_name_matches:
+      - "(?i)\\bcorn\\s*dog\\b"
+    set:
+      L1: "A02 - COGS–Finished Goods"
+      L2: "C05 - Prepared Foods"
+    weight: 90   # Lower weight than vendor-specific rule
