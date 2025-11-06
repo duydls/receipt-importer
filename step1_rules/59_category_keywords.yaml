@@ -121,11 +121,18 @@ category_keywords:
       priority: 85
       hints: ['Toppings & Jellies - BBI "Can Taro Mocha"']
     
-    # Dairy
-    - include_regex: '(?i)\b(milk|whole milk|skim|2%|oat milk|almond milk)\b'
+    # Dairy & Plant-based milks (general, all sources)
+    # Plant milks first with higher priority
+    - include_regex: '(?i)\b(coconut\s+milk|almond\s+milk|soy\s+milk|oat\s+milk|oatmilk|soymilk|plant[-\s]*based\s+milk|non[-\s]*dairy\s+milk)\b'
+      map_to_l2: C04
+      priority: 92
+      hints: ['Dairy & Milk - plant-based milk (non-dairy)']
+
+    - include_regex: '(?i)\b(milk|whole milk|skim|2%)\b'
+      exclude_regex: '(?i)\b(coconut|almond|soy|oat|oatmilk|soymilk|plant[-\s]*based|non[-\s]*dairy)\b'
       map_to_l2: C04
       priority: 85
-      hints: ['Dairy & Milk']
+      hints: ['Dairy & Milk - dairy milk']
     
     - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half|heavy whip|whipping cream)\b'
       map_to_l2: C04
