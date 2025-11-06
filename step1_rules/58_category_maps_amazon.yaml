@@ -164,13 +164,7 @@ category_maps_amazon:
     
     
     
-    # ===== DEFAULT FALLBACK =====
     
-    - match:
-        default: true
-      map_to_l2: C99  # Unknown
-      priority: 0
-      notes: Fallback for unmatched items
 
 notes:
   - Rules are evaluated in priority order (highest first)
