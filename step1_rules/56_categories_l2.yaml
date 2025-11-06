@@ -1,627 +1,824 @@
-# Level 2 (L2) Operational Categories
-# Fine-grained categories for operational tracking and inventory management
-
 categories_l2:
-  description: >
-    Operational catalog of L2 categories.
-    These are the working categories used for day-to-day classification.
-    Each L2 rolls up to an L1 accounting category via 55_categories_l1.yaml.
-  
+  description: 'Operational catalog of L2 categories. These are the working categories
+    used for day-to-day classification. Each L2 rolls up to an L1 accounting category
+    via 55_categories_l1.yaml.
+
+    '
   l2_categories:
-    # ===== INGREDIENTS (C01-C15) =====
-    
-    - id: C01
-      name: Tea & Coffee
-      description: Tea leaves, coffee beans, matcha, chai, and related beverages
-      examples:
-        - Green tea, black tea, oolong
-        - Coffee beans, ground coffee, espresso
-        - Matcha powder
-        - Chai concentrate
-      synonyms:
-        - tea
-        - coffee
-        - matcha
-        - chai
-        - espresso
-      vendor_hints:
-        - title_contains: ['tea', 'coffee', 'matcha', 'chai', 'espresso', 'beans', 'leaf', 'oolong']
-    
-    - id: C02
-      name: Syrups
-      description: Flavoring syrups and liquid sweeteners
-      examples:
-        - Vanilla syrup, caramel syrup
-        - Fruit syrups
-        - Sugar-free syrups
-        - Torani, Monin brands
-      synonyms:
-        - syrup
-        - flavoring
-        - flavor
-      vendor_hints:
-        - title_contains: ['syrup', 'torani', 'monin', 'flavor', 'flavoring']
-    
-    - id: C03
-      name: Jam/Purée
-      description: Fruit jams, purées, and preserves
-      examples:
-        - Strawberry jam
-        - Mango purée
-        - Fruit preserves
-      synonyms:
-        - jam
-        - puree
-        - preserve
-        - compote
-      vendor_hints:
-        - title_contains: ['jam', 'puree', 'purée', 'preserve', 'compote']
-    
-    - id: C04
-      name: Dairy & Milk
-      description: Milk, cream, half-and-half, and dairy products
-      examples:
-        - Whole milk, 2%, skim
-        - Heavy cream, light cream
-        - Half-and-half
-        - Oat milk, almond milk
-      synonyms:
-        - milk
-        - cream
-        - dairy
-        - half-and-half
-      vendor_hints:
-        - title_contains: ['milk', 'cream', 'half-and-half', 'half & half', 'dairy', 'oat milk', 'almond milk', 'soy milk']
-        - department: 'Dairy'
-    
-    - id: C05
-      name: Sweeteners/Sugar
-      description: Sugar, honey, agave, and other sweeteners
-      examples:
-        - White sugar, brown sugar
-        - Honey
-        - Agave nectar
-        - Stevia, artificial sweeteners
-      synonyms:
-        - sugar
-        - sweetener
-        - honey
-        - agave
-        - stevia
-      vendor_hints:
-        - title_contains: ['sugar', 'honey', 'agave', 'stevia', 'sweetener', 'splenda']
-    
-    - id: C06
-      name: Creamer & Powders
-      description: Non-dairy creamers and powdered ingredients
-      examples:
-        - Coffee creamer
-        - Powdered milk
-        - Creamer powder
-      synonyms:
-        - creamer
-        - powder
-      vendor_hints:
-        - title_contains: ['creamer', 'powdered', 'powder']
-    
-    - id: C07
-      name: Grains & Starches
-      description: Grains, flour, tapioca starch, and starchy ingredients
-      examples:
-        - Tapioca starch
-        - Flour
-        - Rice
-        - Cornstarch
-      synonyms:
-        - grain
-        - starch
-        - flour
-        - tapioca starch
-      vendor_hints:
-        - title_contains: ['starch', 'flour', 'grain', 'rice', 'tapioca starch']
-    
-    - id: C08
-      name: Toppings & Jellies
-      description: Bubble tea toppings, boba, jellies, and similar ingredients
-      examples:
-        - Tapioca pearls (brown sugar, black, white)
-        - Crystal boba
-        - Popping boba
-        - Lychee jelly, coconut jelly
-        - Grass jelly
-        - Aloe vera
-      synonyms:
-        - tapioca
-        - boba
-        - pearl
-        - jelly
-        - topping
-        - popping
-        - crystal
-      vendor_hints:
-        - title_contains: ['tapioca', 'boba', 'pearl', 'jelly', 'popping', 'crystal', 'lychee', 'coconut jelly', 'grass jelly', 'aloe']
-    
-    - id: C09
-      name: Fresh Fruit
-      description: Fresh, non-frozen fruit
-      examples:
-        - Fresh strawberries, blueberries
-        - Fresh mango, pineapple
-        - Fresh bananas, apples
-      synonyms:
-        - fresh fruit
-        - fruit
-      vendor_hints:
-        - title_contains: ['strawberry', 'strawberries', 'blueberry', 'blueberries', 'mango', 'pineapple', 'banana', 'apple', 'orange', 'peach', 'lemon', 'lime']
-        - department: 'Produce'
-        - exclude: ['frozen', 'canned', 'dried', 'freeze-dried']
-    
-    - id: C10
-      name: Frozen Fruit
-      description: Frozen fruit for smoothies and beverages
-      examples:
-        - Frozen strawberries
-        - Frozen mango chunks
-        - Frozen blueberries
-      synonyms:
-        - frozen fruit
-      vendor_hints:
-        - title_contains: ['frozen', 'freeze-dried']
-        - department: 'Frozen'
-        - and_contains: ['strawberry', 'strawberries', 'blueberry', 'blueberries', 'mango', 'pineapple', 'banana']
-    
-    - id: C11
-      name: Canned/Processed Fruit
-      description: Canned, jarred, or processed fruit
-      examples:
-        - Canned peaches
-        - Fruit cocktail
-        - Jarred fruit
-      synonyms:
-        - canned fruit
-        - processed fruit
-      vendor_hints:
-        - title_contains: ['canned', 'jarred', 'preserved']
-        - and_contains: ['fruit', 'peach', 'cocktail']
-    
-    - id: C12
-      name: Seasonings & Marinades
-      description: Seasonings, marinades, and flavoring ingredients
-      examples:
-        - Marinades, seasonings
-        - Spice blends, flavoring powders
-        - Sauce bases
-      synonyms:
-        - seasoning
-        - marinade
-        - spice
-        - flavoring
-      vendor_hints:
-        - title_contains: ['marinade', 'seasoning', 'spice', 'flavoring']
-    
-    - id: C16
-      name: Fresh Vegetables
-      description: Fresh, non-frozen vegetables
-      examples:
-        - Fresh lettuce, spinach
-        - Fresh tomatoes, cucumbers
-      synonyms:
-        - fresh vegetable
-        - vegetable
-      vendor_hints:
-        - title_contains: ['lettuce', 'spinach', 'tomato', 'cucumber', 'carrot', 'celery', 'onion']
-        - department: 'Produce'
-        - exclude: ['frozen']
-    
-    - id: C13
-      name: Frozen Vegetables
-      description: Frozen vegetables
-      examples:
-        - Frozen peas, corn
-        - Frozen mixed vegetables
-      synonyms:
-        - frozen vegetable
-      vendor_hints:
-        - title_contains: ['frozen']
-        - and_contains: ['vegetable', 'peas', 'corn', 'broccoli', 'mixed veg']
-    
-    - id: C14
-      name: Meat & Seafood
-      description: Meat, poultry, and seafood (if applicable)
-      examples:
-        - Chicken, beef, pork
-        - Fish, shrimp
-      synonyms:
-        - meat
-        - seafood
-        - protein
-      vendor_hints:
-        - title_contains: ['chicken', 'beef', 'pork', 'fish', 'shrimp', 'salmon', 'tuna']
-        - department: 'Meat'
-    
-    - id: C15
-      name: Other Ingredients
-      description: Miscellaneous ingredients not covered above
-      examples:
-        - Specialty ingredients
-        - Uncommon items
-      synonyms:
-        - ingredient
-      vendor_hints:
-        - title_contains: []
-    
-    # ===== RETAIL PRODUCTS (C33) =====
-    
-    - id: C33
-      name: Retail Snacks & Beverages
-      description: Pre-packaged snacks and beverages for resale (not ingredients)
-      examples:
-        - Cookies, biscuits, candy, chocolate bars
-        - Chips, crackers, pretzels
-        - Bottled drinks, canned beverages
-        - Packaged confectionery
-      synonyms:
-        - cookies
-        - biscuits
-        - candy
-        - chocolate
-        - snacks
-        - chips
-        - beverages
-      vendor_hints:
-        - title_contains: ['cookies', 'biscuit', 'candy', 'chocolate', 'chips', 'crackers', 'confection']
-        - unspsc_family: ['Chocolate and sugars and sweeteners and confectionary products']
-      notes:
-        - Use this for items purchased for resale, not for ingredient use
-        - Examples: Lotus Biscoff cookies, candy bars, packaged snacks
-    
-    # ===== FINISHED GOODS (C20) =====
-    
-    - id: C20
-      name: Cakes & Mousse
-      description: Finished cakes, mousses, and baked goods
-      examples:
-        - Cakes, cheesecakes
-        - Mousses, mousse cakes
-        - Baked desserts
-      synonyms:
-        - cake
-        - cheesecake
-        - mousse
-        - baked
-      vendor_hints:
-        - title_contains: ['cake', 'cheesecake', 'mousse', 'baked']
-    
-    # ===== PACKAGING (C22-C26) =====
-    
-    - id: C22
-      name: Utensils & Misc Packaging
-      description: Straws, utensils, napkins (customer-facing), and other packaging
-      examples:
-        - Straws (plastic, paper, metal)
-        - Spoons, forks, knives
-        - Napkins (for customers)
-        - Stirrers
-        - Cup holders, carriers
-      synonyms:
-        - straw
-        - utensil
-        - spoon
-        - fork
-        - napkin
-        - stirrer
-        - holder
-      vendor_hints:
-        - title_contains: ['straw', 'utensil', 'spoon', 'fork', 'knife', 'napkin', 'stirrer', 'holder']
-    
-    - id: C23
-      name: Labels & Stickers
-      description: Labels, stickers, and branding materials
-      examples:
-        - Product labels
-        - Stickers
-        - Branding materials
-      synonyms:
-        - label
-        - sticker
-      vendor_hints:
-        - title_contains: ['label', 'sticker', 'barcode']
-    
-    - id: C21
-      name: Frozen Snacks
-      description: Frozen prepared snacks and appetizers
-      examples:
-        - Frozen corn dogs
-        - Frozen appetizers
-        - Frozen prepared snacks
-      synonyms:
-        - frozen snack
-        - prepared snack
-        - appetizer
-      vendor_hints:
-        - title_contains: ['frozen', 'snack', 'appetizer', 'corn dog']
-    
-    - id: C24
-      name: Bags & Trays
-      description: Bags, trays, boxes, and containers
-      examples:
-        - Plastic bags, paper bags
-        - Food trays
-        - To-go boxes
-      synonyms:
-        - bag
-        - tray
-        - box
-        - container
-      vendor_hints:
-        - title_contains: ['bag', 'tray', 'box', 'container', 'carton']
-    
-    - id: C26
-      name: Cups & Lids
-      description: Beverage cups, lids, and sleeves
-      examples:
-        - Plastic cups, paper cups
-        - Dome lids, flat lids
-        - Cup sleeves
-      synonyms:
-        - cup
-        - lid
-        - sleeve
-      vendor_hints:
-        - title_contains: ['cup', 'lid', 'sleeve', 'tumbler']
-    
-    # ===== NON-FOOD CONSUMABLES (C30-C32) =====
-    
-    - id: C30
-      name: Napkins & Paper Products (service)
-      description: Paper products used in service area
-      examples:
-        - Paper towels (service area)
-        - Napkins (bulk, non-customer)
-      synonyms:
-        - paper towel
-        - towel
-      vendor_hints:
-        - title_contains: ['paper towel', 'towel', 'tissue']
-    
-    - id: C31
-      name: Gloves & Food Service Supplies
-      description: Food service gloves and disposable supplies
-      examples:
-        - Food service gloves
-        - Foil, plastic wrap
-      synonyms:
-        - glove
-        - foil
-        - wrap
-      vendor_hints:
-        - title_contains: ['glove', 'foil', 'wrap', 'film']
-    
-    - id: C32
-      name: Filters & Disposables
-      description: Filters and other disposable service items
-      examples:
-        - Coffee filters
-        - Tea filters
-      synonyms:
-        - filter
-      vendor_hints:
-        - title_contains: ['filter']
-    
-    # ===== SMALLWARES (C40) =====
-    
-    - id: C40
-      name: Smallwares & Equipment
-      description: Small equipment, tools, and kitchen supplies
-      examples:
-        - Kitchen utensils
-        - Prep tools
-        - Storage containers
-        - Small appliances
-        - Aluminum trays, baking trays
-        - Kitchen tools
-      synonyms:
-        - equipment
-        - tool
-        - utensil
-        - appliance
-        - tray
-      vendor_hints:
-        - title_contains: ['equipment', 'tool', 'utensil', 'container', 'storage', 'organizer', 'rack', 'holder', 'tray', 'aluminum tray', 'baking tray']
-    
-    - id: C41
-      name: Countertop Organizers & Holders
-      description: Countertop organizers, cup holders, condiment caddies, and similar fixtures
-      examples:
-        - 4-cup holders
-        - Countertop cup/condiment organizers
-        - Dispenser racks and caddies
-      synonyms:
-        - organizer
-        - countertop organizer
-        - cup holder
-        - 4-cup holder
-        - caddy
-        - dispenser rack
-      vendor_hints:
-        - title_contains: ['countertop organizer', 'cup holder', '4-cup holder', 'caddy', 'dispenser rack']
-    
-    # ===== CLEANING (C50) =====
-    
-    - id: C50
-      name: Cleaning & Chemicals
-      description: Cleaning supplies, detergents, and chemicals
-      examples:
-        - Detergent, sanitizer
-        - Cleaning sprays
-        - Mops, brooms, brushes
-        - Trash bags
-      synonyms:
-        - cleaner
-        - detergent
-        - sanitizer
-        - disinfectant
-        - mop
-        - broom
-      vendor_hints:
-        - title_contains: ['clean', 'detergent', 'sanitizer', 'disinfectant', 'bleach', 'mop', 'broom', 'brush', 'trash bag', 'garbage bag']
-    
-    # ===== OFFICE (C60) =====
-    
-    - id: C60
-      name: Office/Admin/Uniform
-      description: Office supplies, administrative items, and uniforms
-      examples:
-        - Paper, pens, markers
-        - Tape, scissors
-        - Printer supplies
-        - Uniforms (caps, hoodies, aprons, shirts)
-        - Company apparel
-      synonyms:
-        - office
-        - paper
-        - pen
-        - tape
-        - uniform
-        - cap
-        - hoodie
-        - apron
-        - apparel
-      vendor_hints:
-        - title_contains: ['paper', 'pen', 'marker', 'tape', 'stapler', 'folder', 'file', 'printer', 'uniform', 'cap', 'hoodie', 'apron', 'shirt', 'apparel']
-
-    - id: C61
-      name: POS Paper & Register Supplies
-      description: Point-of-sale thermal paper, register tapes, and related POS consumables
-      examples:
-        - Thermal receipt paper rolls
-        - Cash register tape
-        - POS printer paper
-      synonyms:
-        - pos paper
-        - thermal paper
-        - receipt paper
-        - register tape
-        - cash register tape
-        - pos roll
-        - receipt roll
-      vendor_hints:
-        - title_contains: ['thermal paper', 'receipt paper', 'register tape', 'pos paper', 'pos roll', 'receipt roll']
-    
-    # ===== FEES & CHARGES (C70-C92) =====
-    
-    - id: C70
-      name: Taxes & Fees
-      description: Sales tax and regulatory fees
-      examples:
-        - Sales tax
-        - Item tax
-        - Shipping tax
-      synonyms:
-        - tax
-        - fee
-      vendor_hints:
-        - is_fee: true
-        - title_contains: ['tax', 'fee']
-    
-    - id: C80
-      name: Shipping/Delivery
-      description: Shipping and delivery charges
-      examples:
-        - Shipping charges
-        - Delivery fee
-        - Handling
-      synonyms:
-        - shipping
-        - delivery
-        - freight
-      vendor_hints:
-        - is_fee: true
-        - title_contains: ['shipping', 'delivery', 'freight', 'handling', 'postal']
-    
-    - id: C85
-      name: Tips/Gratuities
-      description: Tips for shoppers and drivers
-      examples:
-        - Instacart shopper tip
-        - Driver tip
-      synonyms:
-        - tip
-        - gratuity
-      vendor_hints:
-        - is_fee: true
-        - title_contains: ['tip', 'gratuity']
-    
-    - id: C90
-      name: Licenses/Services
-      description: Software, licenses, and professional services
-      examples:
-        - Software subscription
-        - Professional services
-      synonyms:
-        - license
-        - service
-        - subscription
-      vendor_hints:
-        - title_contains: ['license', 'subscription', 'service']
-    
-    - id: C91
-      name: Repairs/Maintenance
-      description: Equipment repairs and maintenance
-      examples:
-        - Equipment repair
-        - Maintenance parts
-      synonyms:
-        - repair
-        - maintenance
-      vendor_hints:
-        - title_contains: ['repair', 'maintenance', 'part']
-    
-    - id: C92
-      name: Marketing
-      description: Marketing and promotional materials
-      examples:
-        - Promotional items
-        - Marketing supplies
-      synonyms:
-        - marketing
-        - promotion
-      vendor_hints:
-        - title_contains: ['marketing', 'promo', 'advertising']
-    
-    - id: C95
-      name: Discounts/Promos
-      description: Discounts, promotions, and rebates (typically negative amounts)
-      examples:
-        - Item promotions
-        - Shipping discounts
-        - Coupons
-      synonyms:
-        - discount
-        - promotion
-        - promo
-        - coupon
-      vendor_hints:
-        - is_fee: true
-        - title_contains: ['discount', 'promo', 'promotion', 'coupon', 'rebate']
-        - negative_amount: true
-    
-    # ===== FALLBACK (C99) =====
-    
-    - id: C99
-      name: Unknown
-      description: Unclassified items requiring manual review
-      examples:
-        - Items that don't match any category
-      synonyms:
-        - unknown
-        - unclassified
-      vendor_hints:
-        - title_contains: []
-
+  - id: C01
+    name: Tea & Coffee
+    description: Tea leaves, coffee beans, matcha, chai, and related beverages
+    examples:
+    - Green tea, black tea, oolong
+    - Coffee beans, ground coffee, espresso
+    - Matcha powder
+    - Chai concentrate
+    synonyms:
+    - tea
+    - coffee
+    - matcha
+    - chai
+    - espresso
+    vendor_hints:
+    - title_contains:
+      - tea
+      - coffee
+      - matcha
+      - chai
+      - espresso
+      - beans
+      - leaf
+      - oolong
+  - id: C02
+    name: Syrups
+    description: Flavoring syrups and liquid sweeteners
+    examples:
+    - Vanilla syrup, caramel syrup
+    - Fruit syrups
+    - Sugar-free syrups
+    - Torani, Monin brands
+    synonyms:
+    - syrup
+    - flavoring
+    - flavor
+    vendor_hints:
+    - title_contains:
+      - syrup
+      - torani
+      - monin
+      - flavor
+      - flavoring
+  - id: C03
+    name: Jam/Purée
+    description: Fruit jams, purées, and preserves
+    examples:
+    - Strawberry jam
+    - Mango purée
+    - Fruit preserves
+    synonyms:
+    - jam
+    - puree
+    - preserve
+    - compote
+    vendor_hints:
+    - title_contains:
+      - jam
+      - puree
+      - purée
+      - preserve
+      - compote
+  - id: C04
+    name: Dairy & Milk
+    description: Milk, cream, half-and-half, and dairy products
+    examples:
+    - Whole milk, 2%, skim
+    - Heavy cream, light cream
+    - Half-and-half
+    - Oat milk, almond milk
+    synonyms:
+    - milk
+    - cream
+    - dairy
+    - half-and-half
+    vendor_hints:
+    - title_contains:
+      - milk
+      - cream
+      - half-and-half
+      - half & half
+      - dairy
+      - oat milk
+      - almond milk
+      - soy milk
+    - department: Dairy
+  - id: C05
+    name: Sweeteners/Sugar
+    description: Sugar, honey, agave, and other sweeteners
+    examples:
+    - White sugar, brown sugar
+    - Honey
+    - Agave nectar
+    - Stevia, artificial sweeteners
+    synonyms:
+    - sugar
+    - sweetener
+    - honey
+    - agave
+    - stevia
+    vendor_hints:
+    - title_contains:
+      - sugar
+      - honey
+      - agave
+      - stevia
+      - sweetener
+      - splenda
+  - id: C06
+    name: Creamer & Powders
+    description: Non-dairy creamers and powdered ingredients
+    examples:
+    - Coffee creamer
+    - Powdered milk
+    - Creamer powder
+    synonyms:
+    - creamer
+    - powder
+    vendor_hints:
+    - title_contains:
+      - creamer
+      - powdered
+      - powder
+  - id: C07
+    name: Grains & Starches
+    description: Grains, flour, tapioca starch, and starchy ingredients
+    examples:
+    - Tapioca starch
+    - Flour
+    - Rice
+    - Cornstarch
+    synonyms:
+    - grain
+    - starch
+    - flour
+    - tapioca starch
+    vendor_hints:
+    - title_contains:
+      - starch
+      - flour
+      - grain
+      - rice
+      - tapioca starch
+  - id: C08
+    name: Toppings & Jellies
+    description: Bubble tea toppings, boba, jellies, and similar ingredients
+    examples:
+    - Tapioca pearls (brown sugar, black, white)
+    - Crystal boba
+    - Popping boba
+    - Lychee jelly, coconut jelly
+    - Grass jelly
+    - Aloe vera
+    synonyms:
+    - tapioca
+    - boba
+    - pearl
+    - jelly
+    - topping
+    - popping
+    - crystal
+    vendor_hints:
+    - title_contains:
+      - tapioca
+      - boba
+      - pearl
+      - jelly
+      - popping
+      - crystal
+      - lychee
+      - coconut jelly
+      - grass jelly
+      - aloe
+  - id: C09
+    name: Fresh Fruit
+    description: Fresh, non-frozen fruit
+    examples:
+    - Fresh strawberries, blueberries
+    - Fresh mango, pineapple
+    - Fresh bananas, apples
+    synonyms:
+    - fresh fruit
+    - fruit
+    vendor_hints:
+    - title_contains:
+      - strawberry
+      - strawberries
+      - blueberry
+      - blueberries
+      - mango
+      - pineapple
+      - banana
+      - apple
+      - orange
+      - peach
+      - lemon
+      - lime
+    - department: Produce
+    - exclude:
+      - frozen
+      - canned
+      - dried
+      - freeze-dried
+  - id: C10
+    name: Frozen Fruit
+    description: Frozen fruit for smoothies and beverages
+    examples:
+    - Frozen strawberries
+    - Frozen mango chunks
+    - Frozen blueberries
+    synonyms:
+    - frozen fruit
+    vendor_hints:
+    - title_contains:
+      - frozen
+      - freeze-dried
+    - department: Frozen
+    - and_contains:
+      - strawberry
+      - strawberries
+      - blueberry
+      - blueberries
+      - mango
+      - pineapple
+      - banana
+  - id: C11
+    name: Canned/Processed Fruit
+    description: Canned, jarred, or processed fruit
+    examples:
+    - Canned peaches
+    - Fruit cocktail
+    - Jarred fruit
+    synonyms:
+    - canned fruit
+    - processed fruit
+    vendor_hints:
+    - title_contains:
+      - canned
+      - jarred
+      - preserved
+    - and_contains:
+      - fruit
+      - peach
+      - cocktail
+  - id: C12
+    name: Seasonings & Marinades
+    description: Seasonings, marinades, and flavoring ingredients
+    examples:
+    - Marinades, seasonings
+    - Spice blends, flavoring powders
+    - Sauce bases
+    synonyms:
+    - seasoning
+    - marinade
+    - spice
+    - flavoring
+    vendor_hints:
+    - title_contains:
+      - marinade
+      - seasoning
+      - spice
+      - flavoring
+  - id: C16
+    name: Fresh Vegetables
+    description: Fresh, non-frozen vegetables
+    examples:
+    - Fresh lettuce, spinach
+    - Fresh tomatoes, cucumbers
+    synonyms:
+    - fresh vegetable
+    - vegetable
+    vendor_hints:
+    - title_contains:
+      - lettuce
+      - spinach
+      - tomato
+      - cucumber
+      - carrot
+      - celery
+      - onion
+    - department: Produce
+    - exclude:
+      - frozen
+  - id: C13
+    name: Frozen Vegetables
+    description: Frozen vegetables
+    examples:
+    - Frozen peas, corn
+    - Frozen mixed vegetables
+    synonyms:
+    - frozen vegetable
+    vendor_hints:
+    - title_contains:
+      - frozen
+    - and_contains:
+      - vegetable
+      - peas
+      - corn
+      - broccoli
+      - mixed veg
+  - id: C14
+    name: Meat & Seafood
+    description: Meat, poultry, and seafood (if applicable)
+    examples:
+    - Chicken, beef, pork
+    - Fish, shrimp
+    synonyms:
+    - meat
+    - seafood
+    - protein
+    vendor_hints:
+    - title_contains:
+      - chicken
+      - beef
+      - pork
+      - fish
+      - shrimp
+      - salmon
+      - tuna
+    - department: Meat
+  - id: C15
+    name: Other Ingredients
+    description: Miscellaneous ingredients not covered above
+    examples:
+    - Specialty ingredients
+    - Uncommon items
+    synonyms:
+    - ingredient
+    vendor_hints:
+    - title_contains: []
+  - id: C33
+    name: Retail Snacks & Beverages
+    description: Pre-packaged snacks and beverages for resale (not ingredients)
+    examples:
+    - Cookies, biscuits, candy, chocolate bars
+    - Chips, crackers, pretzels
+    - Bottled drinks, canned beverages
+    - Packaged confectionery
+    synonyms:
+    - cookies
+    - biscuits
+    - candy
+    - chocolate
+    - snacks
+    - chips
+    - beverages
+    vendor_hints:
+    - title_contains:
+      - cookies
+      - biscuit
+      - candy
+      - chocolate
+      - chips
+      - crackers
+      - confection
+    - unspsc_family:
+      - Chocolate and sugars and sweeteners and confectionary products
+    notes:
+    - Use this for items purchased for resale, not for ingredient use
+    - Examples: Lotus Biscoff cookies, candy bars, packaged snacks
+  - id: C20
+    name: Cakes & Mousse
+    description: Finished cakes, mousses, and baked goods
+    examples:
+    - Cakes, cheesecakes
+    - Mousses, mousse cakes
+    - Baked desserts
+    synonyms:
+    - cake
+    - cheesecake
+    - mousse
+    - baked
+    vendor_hints:
+    - title_contains:
+      - cake
+      - cheesecake
+      - mousse
+      - baked
+  - id: C22
+    name: Utensils & Misc Packaging
+    description: Straws, utensils, napkins (customer-facing), and other packaging
+    examples:
+    - Straws (plastic, paper, metal)
+    - Spoons, forks, knives
+    - Napkins (for customers)
+    - Stirrers
+    - Cup holders, carriers
+    synonyms:
+    - straw
+    - utensil
+    - spoon
+    - fork
+    - napkin
+    - stirrer
+    - holder
+    vendor_hints:
+    - title_contains:
+      - straw
+      - utensil
+      - spoon
+      - fork
+      - knife
+      - napkin
+      - stirrer
+      - holder
+  - id: C23
+    name: Labels & Stickers
+    description: Labels, stickers, and branding materials
+    examples:
+    - Product labels
+    - Stickers
+    - Branding materials
+    synonyms:
+    - label
+    - sticker
+    vendor_hints:
+    - title_contains:
+      - label
+      - sticker
+      - barcode
+  - id: C21
+    name: Frozen Snacks
+    description: Frozen prepared snacks and appetizers
+    examples:
+    - Frozen corn dogs
+    - Frozen appetizers
+    - Frozen prepared snacks
+    synonyms:
+    - frozen snack
+    - prepared snack
+    - appetizer
+    vendor_hints:
+    - title_contains:
+      - frozen
+      - snack
+      - appetizer
+      - corn dog
+  - id: C24
+    name: Bags & Trays
+    description: Bags, trays, boxes, and containers
+    examples:
+    - Plastic bags, paper bags
+    - Food trays
+    - To-go boxes
+    synonyms:
+    - bag
+    - tray
+    - box
+    - container
+    vendor_hints:
+    - title_contains:
+      - bag
+      - tray
+      - box
+      - container
+      - carton
+  - id: C26
+    name: Cups & Lids
+    description: Beverage cups, lids, and sleeves
+    examples:
+    - Plastic cups, paper cups
+    - Dome lids, flat lids
+    - Cup sleeves
+    synonyms:
+    - cup
+    - lid
+    - sleeve
+    vendor_hints:
+    - title_contains:
+      - cup
+      - lid
+      - sleeve
+      - tumbler
+  - id: C30
+    name: Napkins & Paper Products (service)
+    description: Paper products used in service area
+    examples:
+    - Paper towels (service area)
+    - Napkins (bulk, non-customer)
+    synonyms:
+    - paper towel
+    - towel
+    vendor_hints:
+    - title_contains:
+      - paper towel
+      - towel
+      - tissue
+  - id: C31
+    name: Gloves & Food Service Supplies
+    description: Food service gloves and disposable supplies
+    examples:
+    - Food service gloves
+    - Foil, plastic wrap
+    synonyms:
+    - glove
+    - foil
+    - wrap
+    vendor_hints:
+    - title_contains:
+      - glove
+      - foil
+      - wrap
+      - film
+  - id: C32
+    name: Filters & Disposables
+    description: Filters and other disposable service items
+    examples:
+    - Coffee filters
+    - Tea filters
+    synonyms:
+    - filter
+    vendor_hints:
+    - title_contains:
+      - filter
+  - id: C40
+    name: Smallwares & Equipment
+    description: Small equipment, tools, and kitchen supplies
+    examples:
+    - Kitchen utensils
+    - Prep tools
+    - Storage containers
+    - Small appliances
+    - Aluminum trays, baking trays
+    - Kitchen tools
+    synonyms:
+    - equipment
+    - tool
+    - utensil
+    - appliance
+    - tray
+    vendor_hints:
+    - title_contains:
+      - equipment
+      - tool
+      - utensil
+      - container
+      - storage
+      - organizer
+      - rack
+      - holder
+      - tray
+      - aluminum tray
+      - baking tray
+  - id: C41
+    name: Countertop Organizers & Holders
+    description: Countertop organizers, cup holders, condiment caddies, and similar
+      fixtures
+    examples:
+    - 4-cup holders
+    - Countertop cup/condiment organizers
+    - Dispenser racks and caddies
+    synonyms:
+    - organizer
+    - countertop organizer
+    - cup holder
+    - 4-cup holder
+    - caddy
+    - dispenser rack
+    vendor_hints:
+    - title_contains:
+      - countertop organizer
+      - cup holder
+      - 4-cup holder
+      - caddy
+      - dispenser rack
+  - id: C50
+    name: Cleaning & Chemicals
+    description: Cleaning supplies, detergents, and chemicals
+    examples:
+    - Detergent, sanitizer
+    - Cleaning sprays
+    - Mops, brooms, brushes
+    - Trash bags
+    synonyms:
+    - cleaner
+    - detergent
+    - sanitizer
+    - disinfectant
+    - mop
+    - broom
+    vendor_hints:
+    - title_contains:
+      - clean
+      - detergent
+      - sanitizer
+      - disinfectant
+      - bleach
+      - mop
+      - broom
+      - brush
+      - trash bag
+      - garbage bag
+  - id: C60
+    name: Office/Admin/Uniform
+    description: Office supplies, administrative items, and uniforms
+    examples:
+    - Paper, pens, markers
+    - Tape, scissors
+    - Printer supplies
+    - Uniforms (caps, hoodies, aprons, shirts)
+    - Company apparel
+    synonyms:
+    - office
+    - paper
+    - pen
+    - tape
+    - uniform
+    - cap
+    - hoodie
+    - apron
+    - apparel
+    vendor_hints:
+    - title_contains:
+      - paper
+      - pen
+      - marker
+      - tape
+      - stapler
+      - folder
+      - file
+      - printer
+      - uniform
+      - cap
+      - hoodie
+      - apron
+      - shirt
+      - apparel
+  - id: C61
+    name: POS Paper & Register Supplies
+    description: Point-of-sale thermal paper, register tapes, and related POS consumables
+    examples:
+    - Thermal receipt paper rolls
+    - Cash register tape
+    - POS printer paper
+    synonyms:
+    - pos paper
+    - thermal paper
+    - receipt paper
+    - register tape
+    - cash register tape
+    - pos roll
+    - receipt roll
+    vendor_hints:
+    - title_contains:
+      - thermal paper
+      - receipt paper
+      - register tape
+      - pos paper
+      - pos roll
+      - receipt roll
+  - id: C70
+    name: Taxes & Fees
+    description: Sales tax and regulatory fees
+    examples:
+    - Sales tax
+    - Item tax
+    - Shipping tax
+    synonyms:
+    - tax
+    - fee
+    vendor_hints:
+    - is_fee: true
+    - title_contains:
+      - tax
+      - fee
+  - id: C80
+    name: Shipping/Delivery
+    description: Shipping and delivery charges
+    examples:
+    - Shipping charges
+    - Delivery fee
+    - Handling
+    synonyms:
+    - shipping
+    - delivery
+    - freight
+    vendor_hints:
+    - is_fee: true
+    - title_contains:
+      - shipping
+      - delivery
+      - freight
+      - handling
+      - postal
+  - id: C85
+    name: Tips/Gratuities
+    description: Tips for shoppers and drivers
+    examples:
+    - Instacart shopper tip
+    - Driver tip
+    synonyms:
+    - tip
+    - gratuity
+    vendor_hints:
+    - is_fee: true
+    - title_contains:
+      - tip
+      - gratuity
+  - id: C90
+    name: Licenses/Services
+    description: Software, licenses, and professional services
+    examples:
+    - Software subscription
+    - Professional services
+    synonyms:
+    - license
+    - service
+    - subscription
+    vendor_hints:
+    - title_contains:
+      - license
+      - subscription
+      - service
+  - id: C91
+    name: Repairs/Maintenance
+    description: Equipment repairs and maintenance
+    examples:
+    - Equipment repair
+    - Maintenance parts
+    synonyms:
+    - repair
+    - maintenance
+    vendor_hints:
+    - title_contains:
+      - repair
+      - maintenance
+      - part
+  - id: C92
+    name: Marketing
+    description: Marketing and promotional materials
+    examples:
+    - Promotional items
+    - Marketing supplies
+    synonyms:
+    - marketing
+    - promotion
+    vendor_hints:
+    - title_contains:
+      - marketing
+      - promo
+      - advertising
+  - id: C95
+    name: Discounts/Promos
+    description: Discounts, promotions, and rebates (typically negative amounts)
+    examples:
+    - Item promotions
+    - Shipping discounts
+    - Coupons
+    synonyms:
+    - discount
+    - promotion
+    - promo
+    - coupon
+    vendor_hints:
+    - is_fee: true
+    - title_contains:
+      - discount
+      - promo
+      - promotion
+      - coupon
+      - rebate
+    - negative_amount: true
+  - id: C99
+    name: Unknown
+    description: Unclassified items requiring manual review
+    examples:
+    - Items that don't match any category
+    synonyms:
+    - unknown
+    - unclassified
+    vendor_hints:
+    - title_contains: []
 notes:
-  - L2 categories are operational and can be extended as needed
-  - Each L2 maps to exactly one L1 via 55_categories_l1.yaml
-  - vendor_hints provide guidance for automatic classification
-  - Synonyms help with fuzzy matching and keyword search
-
+- L2 categories are operational and can be extended as needed
+- Each L2 maps to exactly one L1 via 55_categories_l1.yaml
+- vendor_hints provide guidance for automatic classification
+- Synonyms help with fuzzy matching and keyword search
+C20:
+  name: Cups & Lids
+C21:
+  name: Carriers / Trays
+C22:
+  name: Straws & Stirrers
+C23:
+  name: Napkins & Tissue
+C24:
+  name: Food Containers & Lids
+C25:
+  name: Bags
+C26:
+  name: Gloves / Apparel
+C27:
+  name: Labels & Stickers
+C28:
+  name: Film & Foil
+C29:
+  name: Other Disposables
+C30:
+  name: Cakes & Mousse
+C80:
+  name: Bag Tax
+C81:
+  name: Sales/Use Tax
+C89:
+  name: Other Government Fees
+C90:
+  name: Shipping / Delivery Charges
+C91:
+  name: Postage / Courier
+C100:
+  name: Tips / Gratuities
+C110:
+  name: Service Fees
+C111:
+  name: Memberships & Subscriptions
+C99:
+  name: Unknown
