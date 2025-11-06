@@ -88,7 +88,31 @@ def fetch_wismettac_by_keyword(keyword: str, branch: str = "3", verify: bool = T
         if title:
             data["name"] = title.get_text(strip=True)
 
-        # Robust key:value scan
+        # Prefer explicit table rows (as seen on site)
+        first_tbl = dsoup.find("table")
+        if first_tbl:
+            rows = first_tbl.find_all("tr")
+            for tr in rows:
+                cells = tr.find_all(["th", "td"]) or []
+                if len(cells) >= 2:
+                    k = cells[0].get_text(" ", strip=True).lower()
+                    v = cells[1].get_text(" ", strip=True)
+                    if k == "brand" and v and "brand" not in data:
+                        data["brand"] = v
+                    elif k == "category" and v and "category" not in data:
+                        data["category"] = v
+                    elif k.startswith("item") and "number" in k and "itemNumber" not in data:
+                        mm = re.search(r"(\w{4,})", v)
+                        data["itemNumber"] = mm.group(1) if mm else v
+                    elif k.startswith("pack size") and "packSizeRaw" not in data:
+                        data["packSizeRaw"] = v
+                    elif "minimum order" in k and "minOrderQty" not in data:
+                        data["minOrderQty"] = v
+                    elif "barcode" in k and "barcode" not in data:
+                        mm = re.search(r"([0-9]{8,14})", v)
+                        data["barcode"] = mm.group(1) if mm else v
+
+        # Robust key:value scan fallback
         dtext = dsoup.get_text("\n", strip=True)
         for line in dtext.split("\n"):
             line = re.sub(r"\s+", " ", line).strip()
@@ -116,16 +140,14 @@ def fetch_wismettac_by_keyword(keyword: str, branch: str = "3", verify: bool = T
             crumbs = [a.get_text(strip=True) for a in dsoup.select('.breadcrumb a, nav.breadcrumb a, .breadcrumbs a')]
             if crumbs:
                 data["categoryBreadcrumb"] = crumbs
-                # Heuristic: take the last crumb before the product page (exclude product name if present)
                 if len(crumbs) >= 1:
                     data["category"] = crumbs[-1]
 
-        # Alternate brand extraction: look for elements with label-like text
+        # Alternate brand extraction: label scan fallback
         if "brand" not in data:
             for lbl in dsoup.select('th, dt, .label, .lbl, strong'):
                 t = lbl.get_text(" ", strip=True).lower()
                 if t.startswith('brand'):
-                    # neighbor value
                     sib = lbl.find_next('td') or lbl.find_next('dd') or lbl.parent
                     if sib:
                         val = sib.get_text(" ", strip=True)
