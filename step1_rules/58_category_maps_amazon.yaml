@@ -28,17 +28,7 @@ category_maps_amazon:
       priority: 95
       notes: Prepared foods like nuts, dried fruits - check title for specifics
     
-    - match:
-        unspsc_family: 'Beverages'
-      map_to_l2: C33  # Retail Snacks & Beverages
-      priority: 90
-      notes: Other beverages for resale
     
-    - match:
-        unspsc_family: 'Paper products'
-      map_to_l2: C30  # Napkins & Paper Products
-      priority: 100
-      notes: Paper products
     
     - match:
         unspsc_segment: 'Food Beverage and Tobacco Products'
@@ -47,69 +37,9 @@ category_maps_amazon:
       priority: 100
       notes: Dairy products
     
-    # ===== PACKAGING =====
+    # ===== PACKAGING ===== (vendor-agnostic keywords handle these)
     
-    - match:
-        item_title_regex: '(?i)\b(cup|cups)\b'
-      map_to_l2: C26  # Cups & Lids
-      priority: 95
-      notes: Cups
-    
-    - match:
-        item_title_regex: '(?i)\b(lid|lids)\b'
-      map_to_l2: C26  # Cups & Lids
-      priority: 95
-      notes: Lids
-    
-    - match:
-        item_title_regex: '(?i)\b(straw|straws)\b'
-      map_to_l2: C22  # Utensils & Misc Packaging
-      priority: 95
-      notes: Straws
-    
-    - match:
-        item_title_regex: '(?i)\b(bag|bags)\b'
-      map_to_l2: C24  # Bags & Trays
-      priority: 90
-      notes: Bags
-    
-    - match:
-        item_title_regex: '(?i)\b(tray|trays)\b'
-      map_to_l2: C24  # Bags & Trays
-      priority: 90
-      notes: Trays
-    
-    - match:
-        item_title_regex: '(?i)\b(sleeve|sleeves)\b'
-      map_to_l2: C26  # Cups & Lids
-      priority: 90
-      notes: Cup sleeves
-    
-    - match:
-        item_title_regex: '(?i)\b(label|labels|sticker|stickers|barcode)\b'
-      map_to_l2: C23  # Labels & Stickers
-      priority: 95
-      notes: Labels and stickers
-    
-    - match:
-        item_title_regex: '(?i)\b(utensil|fork|spoon|knife|stirrer)\b'
-      map_to_l2: C22  # Utensils & Misc Packaging
-      priority: 90
-      notes: Utensils
-    
-    # ===== TEA & COFFEE =====
-    
-    - match:
-        item_title_regex: '(?i)\b(tea|green tea|black tea|oolong|matcha|chai)\b'
-      map_to_l2: C01  # Tea & Coffee
-      priority: 95
-      notes: Tea products
-    
-    - match:
-        item_title_regex: '(?i)\b(coffee|espresso|beans)\b'
-      map_to_l2: C01  # Tea & Coffee
-      priority: 95
-      notes: Coffee products
+    # ===== TEA & COFFEE ===== (handled by global keywords)
 
     # ===== NUTS / INGREDIENTS =====
     - match:
@@ -126,27 +56,9 @@ category_maps_amazon:
       priority: 95
       notes: Syrups
     
-    # ===== TOPPINGS & JELLIES =====
+    # ===== TOPPINGS & JELLIES ===== (handled by global keywords)
     
-    - match:
-        item_title_regex: '(?i)\b(tapioca|boba|pearl|popping|crystal|lychee jelly|grass jelly|coconut jelly|aloe)\b'
-      map_to_l2: C08  # Toppings & Jellies
-      priority: 100
-      notes: Bubble tea toppings
-    
-    # ===== DAIRY =====
-    
-    - match:
-        item_title_regex: '(?i)\b((?:cow|whole|2%|skim|dairy)\s+milk|milk)\b'
-      map_to_l2: C04  # Dairy & Milk
-      priority: 90
-      notes: Dairy milk (generic). Plant-based variants are matched by higher-priority rule above.
-    
-    - match:
-        item_title_regex: '(?i)\b(cream|creamer|half-and-half|half & half)\b'
-      map_to_l2: C04  # Dairy & Milk
-      priority: 90
-      notes: Cream products
+    # ===== DAIRY ===== (handled by global keywords and UNSPSC dairy products)
     
     # ===== SWEETENERS =====
     
@@ -156,51 +68,9 @@ category_maps_amazon:
       priority: 90
       notes: Sweeteners
     
-    # ===== NON-FOOD CONSUMABLES =====
+    # ===== NON-FOOD CONSUMABLES ===== (handled by global keywords)
     
-    - match:
-        item_title_regex: '(?i)\b(napkin|napkins|paper towel)\b'
-      map_to_l2: C30  # Napkins & Paper Products
-      priority: 90
-      notes: Napkins and paper towels
-    
-    - match:
-        item_title_regex: '(?i)\b(glove|gloves)\b'
-      map_to_l2: C31  # Gloves & Food Service Supplies
-      priority: 90
-      notes: Gloves
-    
-    - match:
-        item_title_regex: '(?i)\b(foil|aluminum foil|plastic wrap|film)\b'
-      map_to_l2: C31  # Gloves & Food Service Supplies
-      priority: 85
-      notes: Foil and wrap
-    
-    - match:
-        item_title_regex: '(?i)\b(filter|filters)\b'
-      map_to_l2: C32  # Filters & Disposables
-      priority: 90
-      notes: Filters
-    
-    # ===== CLEANING =====
-    
-    - match:
-        item_title_regex: '(?i)\b(cleaner|detergent|sanitizer|disinfectant|bleach|soap)\b'
-      map_to_l2: C50  # Cleaning & Chemicals
-      priority: 90
-      notes: Cleaning chemicals
-    
-    - match:
-        item_title_regex: '(?i)\b(mop|broom|brush|sponge)\b'
-      map_to_l2: C50  # Cleaning & Chemicals
-      priority: 85
-      notes: Cleaning tools
-    
-    - match:
-        item_title_regex: '(?i)\b(trash bag|garbage bag)\b'
-      map_to_l2: C50  # Cleaning & Chemicals
-      priority: 90
-      notes: Trash bags
+    # ===== CLEANING ===== (handled by global keywords)
     
     # ===== SMALLWARES & EQUIPMENT =====
     # Specific override: Straw holder should be treated as Non-food Consumables (C31)
@@ -217,17 +87,7 @@ category_maps_amazon:
       priority: 97
       notes: Sand bags used to stabilize canopy/tent legs considered equipment
 
-    - match:
-        item_title_regex: '(?i)\b(container|storage|organizer|rack|holder)\b'
-      map_to_l2: C40  # Smallwares & Equipment
-      priority: 80
-      notes: Storage and organization
     
-    - match:
-        item_title_regex: '(?i)\b(equipment|tool|utensil|appliance)\b'
-      map_to_l2: C40  # Smallwares & Equipment
-      priority: 75
-      notes: Equipment and tools
     
     # ===== OFFICE =====
     # POS supplies: thermal receipt paper, register tape, POS paper
@@ -238,11 +98,7 @@ category_maps_amazon:
       priority: 150
       notes: POS supplies like MUNBYN thermal receipt paper map to POS Paper (override UNSPSC paper)
     
-    - match:
-        item_title_regex: '(?i)\b(paper|pen|marker|tape|stapler|folder|file|printer)\b'
-      map_to_l2: C60  # Office/Admin/Uniform
-      priority: 80
-      notes: Office supplies
+    
     
     # ===== FEES (Amazon-specific) =====
     
@@ -274,19 +130,7 @@ category_maps_amazon:
       priority: 95
       notes: Other fees
     
-    # ===== CATEGORY-BASED FALLBACKS =====
     
-    - match:
-        category: 'Kitchen & Dining'
-      map_to_l2: C40  # Smallwares & Equipment
-      priority: 50
-      notes: Kitchen category fallback
-    
-    - match:
-        category: 'Office Products'
-      map_to_l2: C60  # Office/Admin/Uniform
-      priority: 50
-      notes: Office category fallback
     
     # ===== DEFAULT FALLBACK =====
     
