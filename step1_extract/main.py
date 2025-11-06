@@ -975,7 +975,9 @@ def process_files(
                         # For BBI/UNI_Mousse vendors, force English-only canonical names to stabilize classification
                         vendor_name = (receipt_data.get('vendor_name') or receipt_data.get('vendor') or '').strip()
                         if vendor_name in ('BBI', 'UNI_Mousse'):
-                            item['canonical_name'] = english_canonicalize(item.get('canonical_name', ''))
+                            # Force English-only for canonical and display names to stabilize downstream rules
+                            item['canonical_name'] = english_canonicalize(item.get('canonical_name', '') or (item.get('display_name') or item.get('product_name') or ''))
+                            item['display_name'] = english_canonicalize(item.get('display_name', '') or item.get('product_name', '') or item.get('canonical_name', ''))
             except Exception as e:
                 logger.warning(f"Error normalizing names for {receipt_id}: {e}", exc_info=True)
     
