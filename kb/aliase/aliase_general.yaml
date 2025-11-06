@@ -5,3 +5,39 @@ aliases:
   - match: ["Corndog", "Korean Corndog"]
     canonical: "Corn Dog"
 
+  # Chinese → English aliases (UNI_Mousse cakes)
+  - match: ["巧克力慕斯蛋糕"]
+    canonical: "Chocolate Mousse Cake"
+  - match: ["金花玉蕾慕斯蛋糕"]
+    canonical: "Golden Buds Mousse Cake"
+  - match: ["茉莉酸奶慕斯蛋糕"]
+    canonical: "Jasmine Yogurt Mousse Cake"
+  - match: ["巴斯克芝士蛋糕"]
+    canonical: "LaViNa Basque Cheese CakeLaViÑa"
+  - match: ["抹茶芝士蛋糕"]
+    canonical: "Matcha Cheese Cake"
+  - match: ["经典提拉米苏慕斯蛋糕(8寸方)"]
+    canonical: "Classic Tiramisu Mousse Cake (8 inches)"
+  - match: ["荔枝玫瑰千层"]
+    canonical: "Lychee Rose Mille Crepes Cake"
+  - match: ["柿柿如意慕斯蛋糕"]
+    canonical: "Persimmon Ruyi Mousse Cake"
+  - match: ["恶魔果实慕斯蛋糕"]
+    canonical: "Devil Fruit Mousse Cake"
+  - match: ["桃之天天慕斯蛋糕"]
+    canonical: "Peach Mousse Cake"
+  - match: ["覆盆子布朗尼慕斯蛋糕"]
+    canonical: "Brownie Raspberry Mousse Cake"
+  - match: ["足球慕斯蛋糕"]
+    canonical: "Football Mousse Cake"
+  - match: ["柠檬慕斯蛋糕"]
+    canonical: "Lemon Mousse Cake"
+  - match: ["兔小姐慕斯蛋糕"]
+    canonical: "Miss Rabbit Mousse Cake"
+  - match: ["抹茶树莓蛋糕"]
+    canonical: "Matcha Raspberry Mousse Cake"
+  - match: ["椰子慕斯蛋糕"]
+    canonical: "Coconut Mousse Cake"
+  - match: ["熊猫国王芝士蛋糕"]
+    canonical: "King Panda Cheese Cake"
+
