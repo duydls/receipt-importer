@@ -203,6 +203,12 @@ category_maps_amazon:
       notes: Trash bags
     
     # ===== SMALLWARES & EQUIPMENT =====
+    # Specific override: Straw holder should be treated as Non-food Consumables (C31)
+    - match:
+        item_title_regex: '(?i)\bstraw\s+holder\b'
+      map_to_l2: C31  # Gloves & Food Service Supplies (Non-food Consumables)
+      priority: 98
+      notes: Straw holders are non-food consumables used in service area
     
     - match:
         item_title_regex: '(?i)\b(container|storage|organizer|rack|holder)\b'
