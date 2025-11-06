@@ -894,7 +894,14 @@ class UnifiedPDFProcessor:
                                 continue
                         
                         # Build item using mapping rules
-                        item = self._build_item_from_match(item_data, pattern_def, line, rules)
+                        item = self._build_item_from_match(item_data, pattern_def, match_text if pattern_def.get('multiline') else line, rules)
+                        
+                        # Set raw_line from the matched text
+                        if item:
+                            if pattern_def.get('multiline'):
+                                item['raw_line'] = match_text[:match.end()] if match else match_text
+                            else:
+                                item['raw_line'] = line
                         
                         if item:
                             # Handle multiline continuation (product name on following lines)
@@ -985,11 +992,25 @@ class UnifiedPDFProcessor:
         }
         
         # Map fields
+        # First, preserve raw_line if product_name is being processed
+        raw_line_value = None
+        if 'product_name' in field_mappings and 'product_name' in item_data:
+            raw_line_value = str(item_data.get('product_name', '')).strip()
+        
         for target_field, source_field in field_mappings.items():
             if source_field in item_data:
                 value = item_data[source_field]
                 if value is None:
                     continue
+                
+                # For raw_line, preserve original value (no normalization)
+                if target_field == 'raw_line':
+                    if raw_line_value:
+                        item[target_field] = raw_line_value
+                    else:
+                        item[target_field] = str(value).strip()
+                    continue
+                
                 # Apply transformations
                 if target_field in ['unit_price', 'total_price', 'quantity']:
                     # Clean and convert to float
@@ -1000,45 +1021,60 @@ class UnifiedPDFProcessor:
                         continue
                 else:
                     cleaned_value = str(value).strip()
-                    # Apply normalization rules if specified (before CJK stripping)
+                    # Apply normalization rules if specified (for product_name only, not raw_line)
                     normalization_rules = rules.get('normalization', [])
-                    if normalization_rules and target_field in ['product_name', 'raw_line']:
+                    if normalization_rules and target_field == 'product_name':
                         for norm_rule in normalization_rules:
                             norm_type = norm_rule.get('type', '')
                             fields = norm_rule.get('fields', ['product_name'])
                             
-                            if target_field in fields:
+                            if 'product_name' in fields:
                                 if norm_type == 'nfkc':
                                     # Apply NFKC normalization
                                     import unicodedata
                                     cleaned_value = unicodedata.normalize('NFKC', cleaned_value)
                                 elif norm_type == 'regex_sub':
-                                    # Apply regex substitution
+                                    # Apply regex substitution to remove CJK characters
                                     pattern_str = norm_rule.get('pattern', '')
                                     replacement = norm_rule.get('replacement', '')
                                     if pattern_str:
                                         try:
                                             pattern = re.compile(pattern_str)
-                                            cleaned_value = pattern.sub(replacement, cleaned_value)
+                                            cleaned_value = pattern.sub(replacement, cleaned_value).strip()
                                         except re.error as e:
                                             logger.warning(f"Invalid regex pattern in normalization: {pattern_str}: {e}")
                     
-                    # Strip CJK characters from product_name for BBI/Mousse (before normalization)
-                    # This is a fallback if normalization rules don't handle it
+                    # Strip CJK characters from product_name for BBI/Mousse (fallback)
+                    # Only apply if normalization didn't already handle it or if value is empty after normalization
                     if target_field == 'product_name':
                         vendor_name = rules.get('vendor_name', '').upper()
                         if 'BBI' in vendor_name or 'MOUSSE' in vendor_name or 'UNI_MOUSSE' in vendor_name:
-                            cleaned_value = self._strip_cjk_characters(cleaned_value)
+                            # If cleaned_value is empty after normalization, try to get English part from original
+                            if not cleaned_value.strip():
+                                original_value = str(value).strip() if value else ''
+                                if original_value:
+                                    # Try to extract English text (non-CJK characters)
+                                    cleaned_value = self._strip_cjk_characters(original_value)
+                            else:
+                                # Value still has content, apply CJK stripping as additional cleanup
+                                cleaned_value = self._strip_cjk_characters(cleaned_value)
                     
-                    item[target_field] = cleaned_value
+                    # Set field if it has content (or is numeric)
+                    if cleaned_value or target_field in ['unit_price', 'total_price', 'quantity']:
+                        item[target_field] = cleaned_value
         
         # Apply post-processing rules (from YAML)
         if pattern_def.get('post_process'):
             item = self._apply_post_process(item, pattern_def.get('post_process'), line, rules)
         
-        # Validate item
-        if not item.get('product_name') and not item.get('total_price'):
+        # Validate item - ensure product_name is not empty/whitespace
+        product_name = item.get('product_name', '').strip()
+        if not product_name and not item.get('total_price'):
             return None
+        # If product_name is empty but we have total_price, keep the item but mark for review
+        if not product_name and item.get('total_price'):
+            item['product_name'] = ''  # Keep empty string for now, will need manual review
+            item['needs_review'] = True
         
         # Set defaults
         if 'quantity' not in item:

@@ -21,6 +21,14 @@ categories_l1:
         - Grains, starches
     
     - id: A02
+      name: COGS–Finished Goods
+      description: Cost of goods sold for finished food products ready for sale
+      examples:
+        - Cakes, mousses, baked goods
+        - Frozen prepared snacks and appetizers
+        - Ready-to-serve food items
+    
+    - id: A03
       name: COGS–Packaging
       description: Cost of goods sold for packaging materials
       examples:
@@ -30,7 +38,7 @@ categories_l1:
         - Napkins (customer-facing)
         - Labels, stickers
     
-    - id: A03
+    - id: A04
       name: COGS–Non-food Consumables
       description: Non-food items consumed in service (gloves, towels, etc.)
       examples:
@@ -39,7 +47,7 @@ categories_l1:
         - Foil, plastic wrap
         - Filters (coffee, tea)
     
-    - id: A04
+    - id: A05
       name: Smallwares/Equipment
       description: Small equipment and tools (below capitalization threshold)
       examples:
@@ -49,7 +57,7 @@ categories_l1:
         - Prep equipment
       threshold: 500.00  # USD
     
-    - id: A05
+    - id: A06
       name: Cleaning/Janitorial
       description: Cleaning supplies and janitorial items
       examples:
@@ -59,16 +67,17 @@ categories_l1:
         - Trash bags
         - Gloves (cleaning)
     
-    - id: A06
-      name: Office/Admin
-      description: Office supplies and administrative items
+    - id: A07
+      name: Office/Admin/Uniform
+      description: Office supplies, administrative items, and uniforms
       examples:
         - Paper, pens, printer supplies
         - Tape, scissors, staplers
         - Filing/organization
         - Computer accessories
+        - Uniforms and company apparel
     
-    - id: A07
+    - id: A08
       name: Taxes & Fees
       description: Sales tax, regulatory fees, and government charges
       examples:
@@ -77,7 +86,7 @@ categories_l1:
         - Regulatory fees
         - Licensing fees
     
-    - id: A08
+    - id: A09
       name: Shipping/Delivery
       description: Shipping charges and delivery fees
       examples:
@@ -86,14 +95,14 @@ categories_l1:
         - Delivery fees
         - Handling fees
     
-    - id: A09
+    - id: A10
       name: Tips/Gratuities
       description: Tips and gratuities (Instacart shopper tips, etc.)
       examples:
         - Instacart shopper tip
         - Delivery driver tip
     
-    - id: A10
+    - id: A11
       name: Licenses/Services
       description: Business licenses, subscriptions, and professional services
       examples:
@@ -101,7 +110,7 @@ categories_l1:
         - Professional services
         - Maintenance contracts
     
-    - id: A11
+    - id: A12
       name: Repairs/Maintenance
       description: Equipment repairs and facility maintenance
       examples:
@@ -109,7 +118,7 @@ categories_l1:
         - Facility maintenance
         - Replacement parts
     
-    - id: A12
+    - id: A13
       name: Marketing
       description: Marketing and promotional expenses
       examples:
@@ -117,7 +126,7 @@ categories_l1:
         - Advertising
         - Marketing supplies
     
-    - id: A13
+    - id: A14
       name: Utilities
       description: Utilities and facility costs
       examples:
@@ -146,49 +155,54 @@ categories_l1:
     C09: A01  # Fresh Fruit
     C10: A01  # Frozen Fruit
     C11: A01  # Canned/Processed Fruit
-    C12: A01  # Fresh Vegetables
+    C12: A01  # Seasonings & Marinades
     C13: A01  # Frozen Vegetables
     C14: A01  # Meat & Seafood
     C15: A01  # Other Ingredients
+    C16: A01  # Fresh Vegetables
     C33: A01  # Retail Snacks & Beverages (resale items)
     
-    # Packaging (A02)
-    C20: A02  # Cups & Lids
-    C21: A02  # Bags & Trays
-    C22: A02  # Utensils & Misc Packaging
-    C23: A02  # Labels & Stickers
+    # Finished Goods (A02)
+    C20: A02  # Cakes & Mousse
+    C21: A02  # Frozen Snacks
     
-    # Non-food Consumables (A03)
-    C30: A03  # Napkins & Paper Products (service)
-    C31: A03  # Gloves & Food Service Supplies
-    C32: A03  # Filters & Disposables
+    # Packaging (A03)
+    C22: A03  # Utensils & Misc Packaging
+    C23: A03  # Labels & Stickers
+    C24: A03  # Bags & Trays
+    C26: A03  # Cups & Lids
     
-    # Smallwares/Equipment (A04)
-    C40: A04  # Smallwares & Equipment
+    # Non-food Consumables (A04)
+    C30: A04  # Napkins & Paper Products (service)
+    C31: A04  # Gloves & Food Service Supplies
+    C32: A04  # Filters & Disposables
     
-    # Cleaning (A05)
-    C50: A05  # Cleaning & Chemicals
+    # Smallwares/Equipment (A05)
+    C40: A05  # Smallwares & Equipment
     
-    # Office (A06)
-    C60: A06  # Office/Admin
+    # Cleaning (A06)
+    C50: A06  # Cleaning & Chemicals
     
-    # Taxes (A07)
-    C70: A07  # Taxes & Fees
+    # Office (A07)
+    C60: A07  # Office/Admin/Uniform
     
-    # Shipping (A08)
-    C80: A08  # Shipping/Delivery
+    # Taxes (A08)
+    C70: A08  # Taxes & Fees
     
-    # Tips (A09)
-    C85: A09  # Tips/Gratuities
+    # Shipping (A09)
+    C80: A09  # Shipping/Delivery
     
-    # Services (A10)
-    C90: A10  # Licenses/Services
+    # Tips (A10)
+    C85: A10  # Tips/Gratuities
     
-    # Repairs (A11)
-    C91: A11  # Repairs/Maintenance
+    # Services (A11)
+    C90: A11  # Licenses/Services
     
-    # Marketing (A12)
-    C92: A12  # Marketing
+    # Repairs (A12)
+    C91: A12  # Repairs/Maintenance
+    
+    # Marketing (A13)
+    C92: A13  # Marketing
     
     # Discounts/Promos (map to A01 - reduces COGS)
     C95: A01  # Discounts/Promos

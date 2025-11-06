@@ -19,12 +19,12 @@ category_keywords:
   keyword_rules:
     # Packaging
     - include_regex: '(?i)\b(cup|cups|tumbler)\b'
-      map_to_l2: C20
+      map_to_l2: C26
       priority: 90
       hints: ['Cups & Lids']
     
     - include_regex: '(?i)\b(lid|lids|cover)\b'
-      map_to_l2: C20
+      map_to_l2: C26
       priority: 90
       hints: ['Cups & Lids']
     
@@ -35,14 +35,14 @@ category_keywords:
     
     - include_regex: '(?i)\b(bag|bags|tote)\b'
       exclude_regex: '(?i)\b(tea bag|trash bag|garbage bag|checkout bag|carrier bag|bag fee)\b'
-      map_to_l2: C21
+      map_to_l2: C24
       priority: 85
       hints: ['Bags & Trays - Exclude tea bags, trash bags, and checkout bag fees (those are service fees)']
     
-    - include_regex: '(?i)(aluminum\s+tray|food\s+tray|serving\s+tray)'
-      map_to_l2: C21
-      priority: 90
-      hints: ['Bags & Trays - BBI "Aluminum Tray No Charge"']
+    - include_regex: '(?i)(aluminum\s+tray|food\s+tray|serving\s+tray|baking\s+tray)'
+      map_to_l2: C40
+      priority: 95
+      hints: ['Smallwares & Equipment - Kitchen tools like "Aluminum Tray"']
     
     - include_regex: '(?i)(chopsticks|utensil|fork|spoon|knife)'
       map_to_l2: C22
@@ -74,7 +74,7 @@ category_keywords:
     - include_regex: '(?i)\b(uni\s+cap|uni\s+hoodie|uniform|cap|hoodie|apron|shirt)\b'
       map_to_l2: C60
       priority: 90
-      hints: ['Office/Admin - BBI "Uni Cap", "Uni Hoodie" (uniform expenses)']
+      hints: ['Office/Admin/Uniform - BBI "Uni Cap", "Uni Hoodie" (uniform expenses)']
     
     # Tea & Coffee
     - include_regex: '(?i)\b(tea|green tea|black tea|oolong|matcha|chai)\b'
@@ -209,7 +209,7 @@ category_keywords:
     
     # Fresh Vegetables (Parktoshop and others)
     - include_regex: '(?i)\b(green onion|scallion|onion|basil|cilantro|parsley|herb|lettuce|spinach|kale)\b'
-      map_to_l2: C12
+      map_to_l2: C16
       priority: 85
       hints: ['Fresh Vegetables - Including herbs (Parktoshop "GREEN ONION", "BASIL LEAVE")']
     
@@ -369,8 +369,8 @@ category_keywords:
         - 'Example: "Jam Passion fruit" → C03 Jam/Purée'
         - 'Example: "Powder Mochi" → C08 Toppings & Jellies'
         - 'Example: "Can Taro Mocha" → C08 Toppings & Jellies'
-        - 'Example: "Uni Cap" → C60 Office/Admin (uniform)'
-        - 'Example: "Aluminum Tray No Charge" → C21 Bags & Trays'
+        - 'Example: "Uni Cap" → C60 Office/Admin/Uniform'
+        - 'Example: "Aluminum Tray No Charge" → C40 Smallwares & Equipment'
   
   # Heuristic classifiers (smart pattern detection)
   heuristics:
@@ -442,7 +442,7 @@ category_keywords:
         - napkin
         - label
         - sticker
-      map_to_l2: C20  # Default to Cups & Lids (refined by other rules)
+      map_to_l2: C26  # Default to Cups & Lids (refined by other rules)
       confidence: 0.80
     
     # Topping classifier
