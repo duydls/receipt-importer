@@ -26,7 +26,7 @@ class AmazonCSVProcessor:
     
     def find_amazon_csv(self, input_dir: Path) -> Optional[Path]:
         """
-        Find Amazon CSV file in the AMAZON folder.
+        Find Amazon CSV file. Supports both input_dir/AMAZON and input_dir/Receipts/AMAZON.
         
         Args:
             input_dir: Base input directory
@@ -34,22 +34,23 @@ class AmazonCSVProcessor:
         Returns:
             Path to CSV file or None
         """
-        amazon_dir = input_dir / 'AMAZON'
-        if not amazon_dir.exists():
-            return None
-        
-        # Look for orders_from_*.csv pattern
-        csv_files = list(amazon_dir.glob('orders_from_*.csv'))
-        if csv_files:
-            logger.info(f"Found Amazon CSV: {csv_files[0].name}")
-            return csv_files[0]
-        
-        # Fallback: any CSV in AMAZON folder
-        csv_files = list(amazon_dir.glob('*.csv'))
-        if csv_files:
-            logger.info(f"Found Amazon CSV (fallback): {csv_files[0].name}")
-            return csv_files[0]
-        
+        candidate_dirs = [
+            input_dir / 'Receipts' / 'AMAZON',
+            input_dir / 'AMAZON',
+        ]
+        for amazon_dir in candidate_dirs:
+            if not amazon_dir.exists():
+                continue
+            # Look for orders_from_*.csv pattern
+            csv_files = list(amazon_dir.glob('orders_from_*.csv'))
+            if csv_files:
+                logger.info(f"Found Amazon CSV: {csv_files[0]}")
+                return csv_files[0]
+            # Fallback: any CSV in AMAZON folder
+            csv_files = list(amazon_dir.glob('*.csv'))
+            if csv_files:
+                logger.info(f"Found Amazon CSV (fallback): {csv_files[0]}")
+                return csv_files[0]
         return None
     
     def load_and_parse_csv(self, csv_path: Path) -> Dict[str, List[Dict[str, Any]]]:
