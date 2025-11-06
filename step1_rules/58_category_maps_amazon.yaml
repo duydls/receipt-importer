@@ -98,6 +98,27 @@ category_maps_amazon:
       priority: 150
       notes: POS supplies like MUNBYN thermal receipt paper map to POS Paper (override UNSPSC paper)
     
+    # Specific: Barcode/UPC label rolls (Zebra/Rollo compatible) → Labels & Stickers
+    - match:
+        item_title_regex: '(?i)\\b(barcode|UPC)\\s*labels?\\b|(?i)\\blabel\\s*rolls?\\b|(?i)\\b(Zebra|Rollo)\\b'
+      map_to_l2: C23
+      priority: 68
+      notes: Amazon-specific labeling products (barcode/UPC, Zebra/Rollo)
+
+    # Specific: Water filters (e.g., 3M HF20-S) → Filters & Disposables
+    - match:
+        item_title_regex: '(?i)\\bwater\\s*filter\\b|(?i)\\bHF20(-|\\s*)S\\b|(?i)\\b3M\\b'
+      map_to_l2: C32
+      priority: 70
+      notes: Equipment filters like 3M HF20-S
+
+    # Backup: Retail snacks by brand/keywords (low priority)
+    - match:
+        item_title_regex: '(?i)\\bFerrero\\s*Rocher\\b|(?i)\\bBiscoff\\b|(?i)\\bcookie(s)?\\b|(?i)\\bchocolate(s)?\\b|(?i)\\bcandy\\b|(?i)\\bsnack(s)?\\b'
+      map_to_l2: C33
+      priority: 67
+      notes: Backup mapping when UNSPSC is missing
+
     
     
     # ===== FEES (Amazon-specific) =====

@@ -32,6 +32,11 @@ class CategoryClassifier:
         self.l2_rules = rule_loader.load_rule_file_by_name('56_categories_l2.yaml')
         self.instacart_rules = rule_loader.load_rule_file_by_name('57_category_maps_instacart.yaml')
         self.amazon_rules = rule_loader.load_rule_file_by_name('58_category_maps_amazon.yaml')
+        # Optional relaxed Amazon overrides (low-priority, source-scoped)
+        try:
+            self.amazon_relaxed_overrides = rule_loader.load_rule_file_by_name('56_amazon_keywords_relaxed.yaml')
+        except Exception:
+            self.amazon_relaxed_overrides = {}
         self.keyword_rules = rule_loader.load_rule_file_by_name('59_category_keywords.yaml')
         self.classification_overrides = rule_loader.load_rule_file_by_name('99_classification_overrides.yaml')
         
@@ -317,6 +322,10 @@ class CategoryClassifier:
         
         # Apply classification overrides from YAML file (highest priority)
         override_rules = self.classification_overrides.get('overrides', [])
+        # Append relaxed Amazon overrides (kept low weight) to the pool
+        relaxed_rules = self.amazon_relaxed_overrides.get('overrides', [])
+        if relaxed_rules:
+            override_rules = override_rules + relaxed_rules
         if override_rules:
             # Build text for matching (canonical_name or display_name or product_name)
             text = (item.get('canonical_name') or 
