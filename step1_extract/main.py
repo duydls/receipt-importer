@@ -981,6 +981,47 @@ def process_files(
             except Exception as e:
                 logger.warning(f"Error normalizing names for {receipt_id}: {e}", exc_info=True)
     
+    # Optional: Enrich Wismettac items from saved web fetch (brand/category/pack/barcode)
+    try:
+        from pathlib import Path as _Path
+        import json as _json
+        enrich_path = _Path(output_dir) / 'wismettac_based' / 'wismettac_enrichment.json'
+        if enrich_path.exists() and wismettac_based_data:
+            with open(enrich_path, 'r', encoding='utf-8') as f:
+                wismettac_enrich = _json.load(f)
+            # Build map by itemNumber string
+            enrich_map = {str(k): v for k, v in wismettac_enrich.items()}
+            for receipt_id, receipt_data in wismettac_based_data.items():
+                for item in receipt_data.get('items', []):
+                    item_no = (item.get('item_number') or '').strip()
+                    if not item_no:
+                        continue
+                    rec = enrich_map.get(item_no)
+                    if not rec:
+                        continue
+                    # Brand & Category from site (vendor-scoped fields)
+                    if rec.get('brand'):
+                        item['vendor_brand'] = rec['brand']
+                    if rec.get('category'):
+                        item['vendor_category'] = rec['category']
+                    # Barcode/UPC
+                    if rec.get('barcode') and not item.get('upc'):
+                        item['upc'] = rec['barcode']
+                    # Pack size enrichment
+                    if rec.get('packSizeRaw') and not item.get('pack_size_raw'):
+                        item['pack_size_raw'] = rec['packSizeRaw']
+                    pp = rec.get('packParsed') or {}
+                    if pp:
+                        if pp.get('caseQty') is not None and not item.get('pack_case_qty'):
+                            item['pack_case_qty'] = pp.get('caseQty')
+                        if pp.get('each') is not None and not item.get('each_qty'):
+                            item['each_qty'] = pp.get('each')
+                        if pp.get('uom') and not item.get('each_uom'):
+                            item['each_uom'] = pp.get('uom')
+            logger.info("Applied Wismettac enrichment from %s", enrich_path)
+    except Exception as e:
+        logger.warning("Wismettac enrichment failed: %s", e, exc_info=True)
+
     ### Apply Category Classification (Feature 14)
     logger.info("Applying category classification to all items...")
     from .category_classifier import CategoryClassifier
