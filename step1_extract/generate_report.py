@@ -786,6 +786,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     {', '.join(unit_info_parts)}
                 </div>'''
             
+            # Get vendor code for vendor-specific validation (needed before BBI formatting)
+            vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
+            upper_vendor = (vendor_code or '').upper()
+            is_bbi = 'BBI' in upper_vendor
+            
             # BBI-specific: Use Pack-aware quantity/UoM formatting
             if is_bbi:
                 quantity_display = _format_bbi_quantity_uom(item)
@@ -813,13 +818,10 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             unit_price_float = float(unit_price) if unit_price else 0.0
             total_price_float = float(total_price) if total_price else 0.0
             
-            # Get vendor code for vendor-specific validation
-            vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-            upper_vendor = (vendor_code or '').upper()
+            # Get vendor-specific flags (vendor_code and upper_vendor already set above for BBI check)
             is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
             is_costco = 'COSTCO' in upper_vendor or 'COSTCO' in (receipt_data.get('vendor','').upper())
             is_rd = 'RD' == upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor or 'RESTAURANT DEPOT' in (receipt_data.get('vendor','').upper())
-            is_bbi = 'BBI' in upper_vendor
 
             # Vendor-specific display rule for unit_price:
             # - Costco: display unit_price computed from total_price / quantity (KB price is only for inference)

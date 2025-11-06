@@ -21,8 +21,7 @@ overrides:
   #   set: {...}
 
 notes:
-  - "(?i)\\bcake\\b" is case-insensitive and avoids matching "cupcake" accidentally
-  - If you want cupcakes too, add "(?i)\\bcup\\s*cake\\b"
+  - "(?i)\\bcake\\b" is case-insensitive and avoids matching "cupcake" accidentally. If you want cupcakes too, add "(?i)\\bcup\\s*cake\\b"
   - Keep weight high (98) so this wins over generic flavor or ingredient rules
   - If pipeline uses source_type: "bbi" instead of vendor value, mirror the same rule with when_source_type_in: ["bbi"]
 
