@@ -63,6 +63,14 @@ category_maps_amazon:
       map_to_l2: C32  # Filters & Disposables
       priority: 130
       notes: Water filter commodity
+
+    # Plant-based coconut milk under Beverages → use C04 purchasing bucket
+    - match:
+        unspsc_family: 'Beverages'
+        item_title_regex: '(?i)\bcoconut\s+milk\b'
+      map_to_l2: C04  # Dairy & Milk (purchasing bucket, non-dairy)
+      priority: 125
+      notes: Coconut milk beverages routed to C04 per purchasing grouping
     
     # ===== PACKAGING ===== (vendor-agnostic keywords handle these)
     
