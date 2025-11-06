@@ -167,40 +167,6 @@ rule_sets:
           unit_price: "unit_price"
           total_price: "total_price"
         case_insensitive: false
-      
-      # Pattern 3: Block pattern: quantity on its own line, then multi-line description, then unit/total on the last line.
-      # Format: "2.00\nProduct Name Line 1\nProduct Name Line 2\n$ 18.00    $          36.00"
-      # Note: Post-match validation will reject items with date lines in product_name
-      - type: "block_qty_desc_prices"
-        regex: "(?ms)^\\s*(\\d+(?:\\.\\d+)?)\\s*$\\s*([\\s\\S]*?)\\s*(?:\\$\\s*)?(\\d+(?:\\.\\d{2})?)\\s+(?:\\$\\s*)?(\\d+(?:\\.\\d{2})?)\\s*$"
-        multiline: true
-        groups:
-          - quantity
-          - product_name
-          - unit_price
-          - total_price
-        field_mappings:
-          quantity: "quantity"
-          product_name: "product_name"
-          unit_price: "unit_price"
-          total_price: "total_price"
-      
-      # Pattern 4: Variant: description may end with a dash before prices.
-      # Format: "2.00\nProduct Name -\n$ 18.00    $          36.00"
-      # Note: Post-match validation will reject items with date lines in product_name
-      - type: "block_qty_desc_dash_prices"
-        regex: "(?ms)^\\s*(\\d+(?:\\.\\d+)?)\\s*$\\s*([\\s\\S]*?)\\s*-\\s*(?:\\$\\s*)?(\\d+(?:\\.\\d{2})?)\\s+(?:\\$\\s*)?(\\d+(?:\\.\\d{2})?)\\s*$"
-        multiline: true
-        groups:
-          - quantity
-          - product_name
-          - unit_price
-          - total_price
-        field_mappings:
-          quantity: "quantity"
-          product_name: "product_name"
-          unit_price: "unit_price"
-          total_price: "total_price"
     
     skip_keywords:
       - "^\\s*Payment\\s+Method"
