@@ -617,6 +617,16 @@ def process_files(
                     if determined_count > 0:
                         logger.info(f"  ✓ Determined pricing unit for {determined_count}/{len(items)} items")
                 
+                # Vendor-scoped UNI_Mousse: clean description and stitch tails
+                vendor_name = (receipt_data.get('vendor_name') or '').strip()
+                if vendor_name == 'UNI_Mousse':
+                    try:
+                        from repairs.vendor_uni_mousse import stitch_tail_items
+                        items = stitch_tail_items(items)
+                        receipt_data['items'] = items
+                    except Exception as e:
+                        logger.warning(f"UNI_Mousse stitch/clean failed: {e}")
+
                 # Set quantity_display for all BBI items (after UoM/Pack determination)
                 from .generate_report import _format_bbi_quantity_display
                 for item in items:
