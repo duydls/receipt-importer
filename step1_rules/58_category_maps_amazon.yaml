@@ -238,11 +238,12 @@ category_maps_amazon:
     
     # ===== OFFICE =====
     # POS supplies: thermal receipt paper, register tape, POS paper
+    # High priority to override generic UNSPSC 'Paper products' → C30 mapping
     - match:
         item_title_regex: '(?i)\b(thermal\s+(receipt\s+)?paper|receipt\s+paper|pos\s+(paper|roll|tape)|register\s+(tape|paper)|receipt\s+rolls?)\b'
       map_to_l2: C61  # POS Paper & Register Supplies
-      priority: 98
-      notes: POS supplies like MUNBYN thermal receipt paper map to POS Paper
+      priority: 150
+      notes: POS supplies like MUNBYN thermal receipt paper map to POS Paper (override UNSPSC paper)
     
     - match:
         item_title_regex: '(?i)\b(paper|pen|marker|tape|stapler|folder|file|printer)\b'
