@@ -1,26 +1,29 @@
-# Step 2: Mapping and Normalization
+# Step 3: Mapping and Normalization
 
-Step 2 performs READ-ONLY mapping and normalization of receipt items from Step 1 output. It consumes vendor-based and instacart-based receipt data, matches products to the Odoo database, and prepares items for Step 3 SQL generation.
+Step 3 performs READ-ONLY mapping and normalization of receipt items from Step 1 output (or reviewed data from Step 2). It consumes vendor-based and instacart-based receipt data, matches products to the Odoo database, and prepares items for Step 4 SQL generation.
 
 ## Quick Start
 
 ```bash
-# Run Step 2 with default settings
-python -m step2_mapping.main data/step1_output data/step2_output
+# Run Step 3 with default settings
+python -m step3_mapping.main data/step1_output data/step3_output
 
 # With custom rules directory
-python -m step2_mapping.main data/step1_output data/step2_output --rules-dir custom_rules
+python -m step3_mapping.main data/step1_output data/step3_output --rules-dir custom_rules
+
+# Skip reviewed data from Step 2, use original Step 1 output
+python -m step3_mapping.main data/step1_output data/step3_output --no-reviewed
 ```
 
 **Prerequisites:**
-- Step 1 output in `data/step1_output/vendor_based/extracted_data.json` and `data/step1_output/instacart_based/extracted_data.json`
-- Rules files in `step2_rules/` directory
+- Step 1 output in `data/step1_output/` (or reviewed data from Step 2 in `data/step1_output/reviewed_extracted_data.json`)
+- Rules files in `step3_rules/` directory
 - Database access (optional, for db_match, usage_probe, bom_protection stages)
 - ProductMatcher database dump file (default: `../odoo_data/analysis/products_uom_analysis.json`)
 
 ## Overview
 
-Step 2 executes a series of rule-based transformations defined in YAML files in the `step2_rules/` directory. It processes items through 11 stages in a defined order, transforming receipt data into a normalized format suitable for database insertion.
+Step 3 executes a series of rule-based transformations defined in YAML files in the `step3_rules/` directory. It processes items through 11 stages in a defined order, transforming receipt data into a normalized format suitable for database insertion. If reviewed data from Step 2 is available, it will use that instead of the original Step 1 output.
 
 **Key Features:**
 - ✅ Rule-based processing from YAML files
@@ -38,7 +41,7 @@ Step 2 executes a series of rule-based transformations defined in YAML files in 
 ### Components
 
 1. **`main.py`** - Main entry point that orchestrates rule execution
-2. **`rule_loader.py`** - Loads and parses YAML rule files from step2_rules/
+2. **`rule_loader.py`** - Loads and parses YAML rule files from step3_rules/
 3. **`rule_executor.py`** - Executes individual rule stages
 4. **`product_matcher.py`** - Matches products to database (from existing codebase)
 5. **`query_database.py`** - Database connection and query utilities
@@ -46,7 +49,7 @@ Step 2 executes a series of rule-based transformations defined in YAML files in 
 ### Processing Flow
 
 ```
-Step 1 Output (vendor_based/ + instacart_based/)
+Step 1 Output (or reviewed data from Step 2)
     ↓
 Load and Combine Receipts
     ↓
@@ -73,29 +76,31 @@ Save mapped_items.json
 ### Command Line
 
 ```bash
-python -m step2_mapping.main <step1_output_dir> [step2_output_dir] [--rules-dir RULES_DIR]
+python -m step3_mapping.main <step1_output_dir> [step3_output_dir] [--rules-dir RULES_DIR] [--no-reviewed]
 ```
 
 **Arguments:**
-- `step1_output_dir` - Step 1 output directory (must contain `vendor_based/extracted_data.json` and `instacart_based/extracted_data.json`)
-- `step2_output_dir` - Step 2 output directory (default: `data/step2_output`)
-- `--rules-dir` - Custom rules directory (default: `step2_rules` in parent directory)
+- `step1_output_dir` - Step 1 output directory (or contains `reviewed_extracted_data.json` from Step 2)
+- `step3_output_dir` - Step 3 output directory (default: `data/step3_output`)
+- `--rules-dir` - Custom rules directory (default: `step3_rules` in parent directory)
+- `--no-reviewed` - Skip reviewed data from Step 2, use original Step 1 output only
 
 **Example:**
 ```bash
-python -m step2_mapping.main data/step1_output data/step2_output
+python -m step3_mapping.main data/step1_output data/step3_output
 ```
 
 ### Programmatic Usage
 
 ```python
-from step2_mapping import process_rules
+from step3_mapping import process_rules
 from pathlib import Path
 
 results = process_rules(
     step1_input_dir=Path('data/step1_output'),
-    output_dir=Path('data/step2_output'),
-    rules_dir=Path('step2_rules')
+    output_dir=Path('data/step3_output'),
+    rules_dir=Path('step3_rules'),
+    use_reviewed=True  # Use reviewed data from Step 2 if available
 )
 
 print(f"Processed {results['total_receipts']} receipts")
@@ -494,7 +499,7 @@ Step 2 currently processes items sequentially. ThreadPoolExecutor is not used as
 ## See Also
 
 - **Step 1:** `step1_extract/README.md` (if exists)
-- **Step 3:** `step3_sql/README.md` (if exists)
-- **Rule Files:** `step2_rules/00_meta.yaml` for processing order
+- **Step 4:** `step4_sql/README.md` (if exists)
+- **Rule Files:** `step3_rules/00_meta.yaml` for processing order
 - **Workflow:** `workflow.py` for integrated workflow execution
 

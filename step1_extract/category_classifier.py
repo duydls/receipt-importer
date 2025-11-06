@@ -27,12 +27,13 @@ class CategoryClassifier:
         """
         self.rule_loader = rule_loader
         
-        # Load all category rules
+        # Load all category rules (in priority order: 57 → 58 → 59 → 99)
         self.l1_rules = rule_loader.load_rule_file_by_name('55_categories_l1.yaml')
         self.l2_rules = rule_loader.load_rule_file_by_name('56_categories_l2.yaml')
         self.instacart_rules = rule_loader.load_rule_file_by_name('57_category_maps_instacart.yaml')
         self.amazon_rules = rule_loader.load_rule_file_by_name('58_category_maps_amazon.yaml')
         self.keyword_rules = rule_loader.load_rule_file_by_name('59_category_keywords.yaml')
+        self.classification_overrides = rule_loader.load_rule_file_by_name('99_classification_overrides.yaml')
         
         # Extract relevant sections
         self.l1_categories = self.l1_rules.get('categories_l1', {}).get('l1_categories', [])
@@ -49,6 +50,7 @@ class CategoryClassifier:
         self.default_confidence = pipeline_config.get('default_confidence', {})
         self.review_threshold = pipeline_config.get('review_threshold', 0.60)
         self.fallback_l2 = pipeline_config.get('fallback_l2', 'C99')
+        
         
         logger.info(f"CategoryClassifier initialized with {len(self.l1_categories)} L1 and {len(self.l2_categories)} L2 categories")
     
@@ -97,7 +99,8 @@ class CategoryClassifier:
         Returns:
             Dict with l2_category, l1_category, category_source, category_rule_id, category_confidence, needs_category_review
         """
-        product_name = item.get('product_name', '')
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         is_fee = item.get('is_fee', False)
         
         # Try each stage in pipeline order
@@ -107,8 +110,10 @@ class CategoryClassifier:
                 if result:
                     return result
             
+            
+            
             elif stage == 'vendor_overrides':
-                result = self._apply_vendor_overrides(item, vendor_code)
+                result = self._apply_vendor_overrides(item, vendor_code, source_type)
                 if result:
                     return result
             
@@ -132,6 +137,8 @@ class CategoryClassifier:
         
         # Should never reach here, but safety fallback
         return self._apply_fallback(item)
+
+    
     
     def _apply_source_map(self, item: Dict[str, Any], source_type: str) -> Optional[Dict[str, Any]]:
         """Apply source-specific rules (Instacart/Amazon)"""
@@ -188,6 +195,12 @@ class CategoryClassifier:
         if 'aisle' in match:
             item_aisle = item.get('aisle', '').lower()
             if match['aisle'].lower() not in item_aisle:
+                return False
+        
+        # Check l3_category_name (direct mapping from Instacart CSV)
+        if 'l3_category_name' in match:
+            item_l3 = item.get('l3_category_name', '').lower()
+            if match['l3_category_name'].lower() != item_l3:
                 return False
         
         # Check text_contains (against product_name)
@@ -292,7 +305,7 @@ class CategoryClassifier:
         
         return True
     
-    def _apply_vendor_overrides(self, item: Dict[str, Any], vendor_code: str) -> Optional[Dict[str, Any]]:
+    def _apply_vendor_overrides(self, item: Dict[str, Any], vendor_code: str, source_type: str = None) -> Optional[Dict[str, Any]]:
         """Apply vendor-specific hints from L2 catalog"""
         # Check for WebstaurantStore online lookup hints
         if vendor_code == 'WEBSTAURANTSTORE' and item.get('_webstaurantstore_l2_hint'):
@@ -307,7 +320,110 @@ class CategoryClassifier:
                 confidence=confidence
             )
         
-        # TODO: Could implement other vendor-specific biasing here
+        # Apply classification overrides from YAML file (highest priority)
+        override_rules = self.classification_overrides.get('overrides', [])
+        if override_rules:
+            # Build text for matching (canonical_name or display_name or product_name)
+            text = (item.get('canonical_name') or 
+                    item.get('display_name') or 
+                    item.get('product_name') or '')
+            vendor = (vendor_code or item.get('vendor') or '').strip()
+            
+            # Sort by weight (highest first) - stop after first match
+            sorted_rules = sorted(override_rules, key=lambda r: r.get('weight', 0), reverse=True)
+            
+            for rule in sorted_rules:
+                # Check vendor match
+                if 'when_vendor_in' in rule:
+                    vendor_list = rule.get('when_vendor_in', [])
+                    if not vendor or vendor.upper() not in [v.upper() for v in vendor_list]:
+                        continue
+                
+                # Check source_type match
+                if 'when_source_type_in' in rule:
+                    source_list = rule.get('when_source_type_in', [])
+                    if not source_type or source_type.lower() not in [s.lower() for s in source_list]:
+                        continue
+                
+                # Check name patterns (match canonical_name/display_name/product_name)
+                name_patterns = rule.get('when_name_matches', [])
+                if name_patterns:
+                    name_matched = any(re.search(pattern, text) for pattern in name_patterns)
+                    if not name_matched:
+                        continue
+                
+                # Apply override using codes (L1_code/L2_code)
+                set_config = rule.get('set', {})
+                l1_code = set_config.get('L1_code')
+                l2_code = set_config.get('L2_code')
+                
+                # Map codes to names using taxonomy
+                l1_category = l1_code
+                l2_category = l2_code
+                
+                if l2_code and not l1_code:
+                    # Derive L1 from L2 mapping if not provided
+                    l1_category = self.l2_to_l1_map.get(l2_code, 'A99')
+                
+                # Get category names from taxonomy
+                l1_name = "UNKNOWN_L1"
+                l2_name = "UNKNOWN_L2"
+                needs_review = False
+                
+                if l1_category:
+                    l1_cat_data = self.l1_lookup.get(l1_category)
+                    if l1_cat_data:
+                        l1_name = l1_cat_data.get('name', 'UNKNOWN_L1')
+                    else:
+                        needs_review = True
+                        logger.warning(f"L1 code {l1_category} not found in taxonomy")
+                
+                if l2_category:
+                    l2_cat_data = self.l2_lookup.get(l2_category)
+                    if l2_cat_data:
+                        l2_name = l2_cat_data.get('name', 'UNKNOWN_L2')
+                    else:
+                        needs_review = True
+                        logger.warning(f"L2 code {l2_category} not found in taxonomy")
+                
+                # Use weight as confidence (normalized to 0-1 range)
+                weight = rule.get('weight', 98)
+                confidence = min(weight / 100.0, 1.0)
+                
+                # Store l2_subtype if provided
+                l2_subtype = set_config.get('l2_subtype')
+                
+                if l2_category:
+                    rule_id = rule.get('id', f"override_{vendor.lower()}")
+                    # Build result with L1 and L2 codes
+                    result = self._build_result(
+                        l2_category=l2_category,
+                        source='classification_override',
+                        rule_id=rule_id,
+                        confidence=confidence
+                    )
+                    # Override L1 if explicitly set (otherwise _build_result derives it from L2)
+                    if l1_category:
+                        result['l1_category'] = l1_category
+                    # Add category names from taxonomy
+                    result['l1_category_name'] = l1_name
+                    result['l2_category_name'] = l2_name
+                    # Add subtype if provided
+                    if l2_subtype:
+                        result['l2_subtype'] = l2_subtype
+                    # Mark for review if code not found in taxonomy
+                    if needs_review:
+                        result['needs_category_review'] = True
+                    # Stop after first match (highest weight)
+                    return result
+        
+        # RD-specific vendor heuristics (run early, before general keywords)
+        # These use clean_name and size_spec from name hygiene
+        if vendor_code in ['RD', 'RESTAURANT_DEPOT', 'RESTAURANT']:
+            result = self._apply_rd_vendor_heuristics(item)
+            if result:
+                return result
+        
         return None
     
     def _apply_keywords(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -318,7 +434,8 @@ class CategoryClassifier:
         # Sort by priority
         sorted_rules = sorted(rules, key=lambda r: r.get('priority', 0), reverse=True)
         
-        product_name = item.get('product_name', '')
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         
         for idx, rule in enumerate(sorted_rules):
             include_pattern = rule.get('include_regex', '')
@@ -348,25 +465,51 @@ class CategoryClassifier:
         keyword_config = self.keyword_rules.get('category_keywords', {})
         heuristics = keyword_config.get('heuristics', {})
         
-        product_name = item.get('product_name', '').lower()
+        # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+        product_name = (item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')).lower()
         
         # Try fruit heuristic
         fruit_config = heuristics.get('fruit', {})
         if self._contains_any_token(product_name, fruit_config.get('tokens', [])):
-            # Check if frozen - mapping from YAML
-            freezer_markers = fruit_config.get('freezer_markers', [])
-            if self._contains_any_token(product_name, freezer_markers):
-                l2_category = fruit_config.get('map_to_l2_frozen')  # From YAML, no default
+            # Check unless_name_matches to exclude powder, jelly, jam, purée, topping
+            unless_patterns = fruit_config.get('unless_name_matches', [])
+            if unless_patterns:
+                for pattern in unless_patterns:
+                    if re.search(pattern, product_name, re.IGNORECASE):
+                        # Skip fruit classification if it matches exclusion pattern
+                        break
+                else:
+                    # No exclusion pattern matched, continue with fruit classification
+                    # Check if frozen - mapping from YAML
+                    freezer_markers = fruit_config.get('freezer_markers', [])
+                    if self._contains_any_token(product_name, freezer_markers):
+                        l2_category = fruit_config.get('map_to_l2_frozen')  # From YAML, no default
+                    else:
+                        l2_category = fruit_config.get('map_to_l2_fresh')  # From YAML, no default
+                    
+                    if l2_category:  # Only return if YAML provides mapping
+                        return self._build_result(
+                            l2_category=l2_category,
+                            source='heuristic',
+                            rule_id='fruit_heuristic',
+                            confidence=fruit_config.get('confidence', 0.85)
+                        )
             else:
-                l2_category = fruit_config.get('map_to_l2_fresh')  # From YAML, no default
-            
-            if l2_category:  # Only return if YAML provides mapping
-                return self._build_result(
-                    l2_category=l2_category,
-                    source='heuristic',
-                    rule_id='fruit_heuristic',
-                    confidence=fruit_config.get('confidence', 0.85)
-                )
+                # No exclusion patterns defined, proceed normally
+                # Check if frozen - mapping from YAML
+                freezer_markers = fruit_config.get('freezer_markers', [])
+                if self._contains_any_token(product_name, freezer_markers):
+                    l2_category = fruit_config.get('map_to_l2_frozen')  # From YAML, no default
+                else:
+                    l2_category = fruit_config.get('map_to_l2_fresh')  # From YAML, no default
+                
+                if l2_category:  # Only return if YAML provides mapping
+                    return self._build_result(
+                        l2_category=l2_category,
+                        source='heuristic',
+                        rule_id='fruit_heuristic',
+                        confidence=fruit_config.get('confidence', 0.85)
+                    )
         
         # Try topping heuristic
         topping_config = heuristics.get('topping', {})
@@ -410,6 +553,132 @@ class CategoryClassifier:
         """Check if text contains any of the tokens (case-insensitive)"""
         text_lower = text.lower()
         return any(token.lower() in text_lower for token in tokens)
+    
+    def _apply_rd_vendor_heuristics(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        RD-specific vendor heuristics that run early in the pipeline.
+        Uses clean_name and size_spec from name hygiene.
+        
+        Heuristics:
+        - Frozen: IQF, FZ markers → C08 (Frozen Fruit) or C10 (Frozen Vegetables)
+        - Packaging: CT markers, multi-pack patterns → C20-C23 (Packaging)
+        - Cleaning: detergent, sanitizer → C50 (Cleaning & Chemicals)
+        - Gloves: gloves, food service supplies → C31 (Gloves & Food Service Supplies)
+        - Syrups/Jams: syrups vs jams distinction → C02 (Syrups) or C03 (Jam/Purée)
+        """
+        # Use clean_name and size_spec from name hygiene
+        clean_name = (item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')).lower()
+        size_spec = (item.get('size_spec') or '').upper()
+        product_name = clean_name  # Use clean name for matching
+        
+        # 1. Frozen detection (IQF, FZ markers)
+        if 'iqf' in product_name or 'fz' in product_name or 'frozen' in product_name:
+            # Check if it's fruit or vegetable
+            fruit_tokens = ['strawberry', 'blueberry', 'mango', 'peach', 'berry', 'fruit']
+            vegetable_tokens = ['vegetable', 'broccoli', 'corn', 'peas', 'carrot', 'spinach']
+            
+            if any(token in product_name for token in fruit_tokens):
+                return self._build_result(
+                    l2_category='C08',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_frozen_fruit',
+                    confidence=0.90
+                )
+            elif any(token in product_name for token in vegetable_tokens):
+                return self._build_result(
+                    l2_category='C10',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_frozen_vegetable',
+                    confidence=0.90
+                )
+            else:
+                # Generic frozen (could be fruit or vegetable, default to fruit)
+                return self._build_result(
+                    l2_category='C08',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_frozen_generic',
+                    confidence=0.75
+                )
+        
+        # 2. Packaging detection (CT markers, multi-pack patterns from size_spec)
+        if size_spec and ('CT' in size_spec or 'PK' in size_spec or 'CS' in size_spec):
+            # Check product name for specific packaging types
+            if any(word in product_name for word in ['napkin', 'towel', 'wipe', 'tissue']):
+                return self._build_result(
+                    l2_category='C21',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_napkin',
+                    confidence=0.90
+                )
+            elif any(word in product_name for word in ['cup', 'lid', 'container']):
+                return self._build_result(
+                    l2_category='C20',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_cup',
+                    confidence=0.90
+                )
+            elif any(word in product_name for word in ['bag', 'tray', 'wrap']):
+                return self._build_result(
+                    l2_category='C21',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_bag',
+                    confidence=0.90
+                )
+            elif any(word in product_name for word in ['straw', 'utensil', 'fork', 'spoon', 'skewer']):
+                return self._build_result(
+                    l2_category='C22',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_packaging_utensil',
+                    confidence=0.90
+                )
+            # Generic packaging (multi-pack pattern detected)
+            return self._build_result(
+                l2_category='C21',
+                source='rd_vendor_heuristic',
+                rule_id='rd_packaging_generic',
+                confidence=0.80
+            )
+        
+        # 3. Cleaning detection (detergent, sanitizer)
+        cleaning_tokens = ['detergent', 'sanitizer', 'disinfectant', 'cleaner', 'chlorine', 'sani', 'dish']
+        if any(token in product_name for token in cleaning_tokens):
+            return self._build_result(
+                l2_category='C50',
+                source='rd_vendor_heuristic',
+                rule_id='rd_cleaning',
+                confidence=0.92
+            )
+        
+        # 4. Gloves & Food Service Supplies
+        if any(word in product_name for word in ['glove', 'spill kit', 'body fluid', 'apron']):
+            return self._build_result(
+                l2_category='C31',
+                source='rd_vendor_heuristic',
+                rule_id='rd_gloves_supplies',
+                confidence=0.90
+            )
+        
+        # 5. Syrups vs Jams distinction
+        if 'syrup' in product_name or 'torani' in product_name or 'puremade' in product_name:
+            # Exclude jams (they might have "syrup" in description)
+            if 'jam' not in product_name and 'jelly' not in product_name and 'purée' not in product_name:
+                return self._build_result(
+                    l2_category='C02',
+                    source='rd_vendor_heuristic',
+                    rule_id='rd_syrup',
+                    confidence=0.90
+                )
+        
+        if 'jam' in product_name or 'jelly' in product_name or 'purée' in product_name or 'puree' in product_name:
+            return self._build_result(
+                l2_category='C03',
+                source='rd_vendor_heuristic',
+                rule_id='rd_jam',
+                confidence=0.90
+            )
+        
+        # No RD-specific match found
+        return None
     
     def _apply_overrides(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Apply special overrides (tax, discount, shipping, tips) - all from YAML"""

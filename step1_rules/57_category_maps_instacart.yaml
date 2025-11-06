@@ -7,6 +7,45 @@ category_maps_instacart:
     Rules are evaluated in priority order (higher priority wins).
   
   rules:
+    # ===== DIRECT L3 CATEGORY MAPPING (HIGHEST PRIORITY) =====
+    # Use Instacart's L3 Category Name directly from CSV - most reliable
+    
+    - match:
+        l3_category_name: 'fresh fruit'
+      map_to_l2: C09  # Fresh Fruit
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Fresh Fruit"
+    
+    - match:
+        l3_category_name: 'frozen fruit'
+      map_to_l2: C10  # Frozen Fruit
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Frozen Fruit"
+    
+    - match:
+        l3_category_name: 'fresh vegetables'
+      map_to_l2: C16  # Fresh Vegetables
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Fresh Vegetables"
+    
+    - match:
+        l3_category_name: 'frozen vegetables'
+      map_to_l2: C13  # Frozen Vegetables
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Frozen Vegetables"
+    
+    - match:
+        l3_category_name: 'milk'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Milk"
+    
+    - match:
+        l3_category_name: 'yogurt'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Yogurt"
+    
     # ===== PRODUCE - FRUITS =====
     
     - match:
@@ -42,21 +81,21 @@ category_maps_instacart:
     - match:
         department: 'produce'
         category_path: 'vegetable'
-      map_to_l2: C12  # Fresh Vegetables
+      map_to_l2: C16  # Fresh Vegetables
       priority: 90
       notes: Fresh vegetables from produce department
     
     - match:
         department: 'produce'
         aisle: 'vegetable'
-      map_to_l2: C12  # Fresh Vegetables
+      map_to_l2: C16  # Fresh Vegetables
       priority: 85
       notes: Fresh vegetable aisle
     
     - match:
         department: 'produce'
         text_contains: ['lettuce', 'spinach', 'tomato', 'cucumber', 'carrot', 'celery', 'onion', 'pepper', 'broccoli', 'cauliflower', 'cabbage', 'kale', 'chard']
-      map_to_l2: C12  # Fresh Vegetables
+      map_to_l2: C16  # Fresh Vegetables
       priority: 80
       notes: Common fresh vegetables
     

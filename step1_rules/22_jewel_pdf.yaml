@@ -1,0 +1,61 @@
+# Jewel-Osco/Mariano's PDF Layout Rules
+# Text-based PDF parsing rules for Jewel-Osco and Mariano's receipts
+
+vendor_name: "Jewel-Osco"
+parsed_by: "jewel_pdf_v1"
+extraction_method: "text"  # text-based PDF (email receipts)
+
+# Summary section keywords
+summary_keywords:
+  - "SUBTOTAL"
+  - "TOTAL"
+  - "TAX"
+summary_exclude_keywords:
+  - "TOTAL ITEMS"
+  - "Order Details"
+
+# Skip keywords (lines to ignore during item extraction)
+skip_keywords:
+  - "Order Details"
+  - "Transaction Details"
+  - "Card ending"
+  - "Total Items"
+  - "TOTAL ITEMS"
+
+# Item patterns
+item_patterns:
+  # Pattern: PRODUCT_NAME $PRICE (quantity on next line)
+  - type: "product_price"
+    regex: "^(.+?)\\s+\\$(\\d+\\.\\d{2})\\s*$"
+    groups:
+      - product_name
+      - total_price
+    description: "Product name and price on same line, quantity on next line"
+    quantity_from_next_line: true
+    field_mappings:
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      extract_uom: true
+      uom_patterns:
+        - "\\s+(\\d+(?:\\.\\d+)?)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
+        - "\\s+-\\s+(\\d+(?:\\.\\d+)?)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*"
+        - "\\s+(\\d+(?:\\.\\d+)?)(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
+
+# Quantity extraction (from next line)
+quantity_pattern: "Quantity:\\s*(\\d+(?:\\.\\d+)?)"
+
+# Total extraction patterns
+total_patterns:
+  subtotal: "Subtotal\\s+\\$?(\\d+\\.\\d{2})"
+  # Only capture Sales Tax; ignore "Taxes and Fees" line in emails
+  tax: "Sales\\s+Tax\\s+\\$?(\\d+\\.\\d{2})"
+  # Match either "Total $9.19" or fallback to "Amount $9.19"; allow optional leading spaces
+  total: "^\\s*(?:Total|Amount)\\s+\\$?(\\d+\\.\\d{2})(?:\\s|$)"  # Avoid matching "Total Items"
+
+extract_transaction_date: true
+date_pattern: "(\\d{2}/\\d{2}/\\d{4})"
+
+extract_items_sold: true
+items_sold_pattern: "Total Items\\s*\\((\\d+)\\)"
+

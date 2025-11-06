@@ -15,7 +15,7 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from step1_extract.receipt_processor import ReceiptProcessor
-from step2_mapping.product_matcher import ProductMatcher
+from step3_mapping.product_matcher import ProductMatcher
 from config import *
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

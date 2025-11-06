@@ -31,15 +31,19 @@ receipt_importer/
 │   ├── rd_parser.py              # Restaurant Depot parser
 │   ├── address_filter.py         # Address line filtering
 │   └── vendor_profiles.py        # Vendor profile handlers (web scraping)
-├── step2_mapping/                # Step 2: Generate mapping file
+├── step2_manual_review/          # Step 2: Manual Review Export (Excel)
+│   └── main.py                   # Excel export/import for manual review
+├── step3_mapping/                # Step 3: Generate mapping file
 │   ├── product_matcher.py        # Core product matching logic
 │   ├── query_database.py         # Database query utilities
 │   └── (other mapping utilities)
-├── step3_sql/                    # Step 3: Generate SQL files
+├── step4_sql/                    # Step 4: Generate SQL files
 │   └── generate_receipt_sql.py   # SQL generator
 └── data/                          # Data directories
     ├── step1_output/              # Step 1 output (group1/, group2/, merged)
-    ├── step2_output/               # Step 2 output (mappings)
+    ├── step2_output/               # Step 2 output (manual review Excel)
+    ├── step3_output/               # Step 3 output (mappings)
+    ├── step4_output/               # Step 4 output (SQL files)
     └── vendor_cache/               # Vendor product cache (Costco, RD)
 ```
 
@@ -62,7 +66,7 @@ Reads PDF, Excel, and CSV files and extracts structured receipt data using **YAM
 **Output:** 
 - `output/group1/extracted_data.json` + `report.html`
 - `output/group2/extracted_data.json` + `report.html`
-- `output/extracted_data.json` (merged, for Step 2 compatibility)
+- `output/extracted_data.json` (merged, for Step 2/3 compatibility)
 
 **Key Components:**
 - `main.py` - Entry point with group detection and routing
@@ -155,6 +159,9 @@ python workflow.py --step 2
 
 # Steps 1, 2, and 3
 python workflow.py --step 3
+
+# Steps 1, 2, 3, and 4
+python workflow.py --step 4
 ```
 
 ### With Options
@@ -184,11 +191,17 @@ workflow = ReceiptWorkflow()
 # Step 1: Extract
 extracted_data = workflow.step1_extract_all_receipts()
 
-# Step 2: Generate mapping
-mapped_data = workflow.step2_generate_mapping(extracted_data)
+# Step 2: Export for manual review
+excel_file = workflow.step2_export_for_review()
 
-# Step 3: Generate SQL
-sql_files = workflow.step3_generate_sql(mapped_data)
+# Step 2: Import reviewed Excel (after manual review)
+reviewed_data = workflow.step2_import_reviewed(reviewed_excel_path)
+
+# Step 3: Generate mapping (uses reviewed data if available)
+mapped_data = workflow.step3_generate_mapping(reviewed_excel_path=reviewed_excel_path)
+
+# Step 4: Generate SQL
+sql_files = workflow.step4_generate_sql(mapped_data)
 
 # Or run all at once
 summary = workflow.run_all()
@@ -213,9 +226,13 @@ Rules are in `step1_rules/`:
 
 See `step1_rules/README.md` for detailed rule documentation.
 
-### Step 2 & 3 Configuration
+### Step 2, 3 & 4 Configuration
 - `STEP2_INPUT_DIR` - Input from Step 1 output
-- `STEP2_OUTPUT_DIR` - Output directory (`data/step2_output`)
+- `STEP2_OUTPUT_DIR` - Output directory for manual review Excel (`data/step2_output`)
+- `STEP3_INPUT_DIR` - Input from Step 1 output (or reviewed data from Step 2)
+- `STEP3_OUTPUT_DIR` - Output directory for mappings (`data/step3_output`)
+- `STEP4_INPUT_DIR` - Input from Step 3 output
+- `STEP4_OUTPUT_DIR` - Output directory for SQL files (`data/step4_output`)
 - `STEP3_OUTPUT_DIR` - SQL output directory
 - `DB_DUMP_JSON` - Path to database analysis JSON
 - `PRODUCT_MAPPING_FILE` - Path to mapping file
@@ -251,19 +268,23 @@ data/step1_output/
 ├── group2/
 │   ├── extracted_data.json    # Group 2 extracted data (Instacart)
 │   └── report.html            # Group 2 HTML report
-├── extracted_data.json        # Merged data (for Step 2 compatibility)
+├── extracted_data.json        # Merged data (for Step 2/3 compatibility)
+├── reviewed_extracted_data.json  # Reviewed data from Step 2 (if available)
 ├── report.html                # Merged report
 └── logs/
     └── step1_extract.log      # Step 1 log file
 ```
 
 ### Step 2 Output
-- `data/step2_output/mapped_data.json` - All mapped receipt data
-- `data/step2_output/product_name_mapping.json` - Updated mapping file
-- `data/step2_output/fruit_weight_conversion.json` - Fruit conversion mappings
+- `data/step2_output/manual_review_export.xlsx` - Excel file for manual review
 
 ### Step 3 Output
-- `../odoo_data/analysis/receipt_sql/*.sql` - SQL files (one per receipt)
+- `data/step3_output/mapped_data.json` - All mapped receipt data
+- `data/step3_output/product_name_mapping.json` - Updated mapping file
+- `data/step3_output/fruit_weight_conversion.json` - Fruit conversion mappings
+
+### Step 4 Output
+- `data/step4_output/*.sql` - SQL files for each receipt
 
 ## Logs
 

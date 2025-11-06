@@ -1,0 +1,96 @@
+# Costco PDF Layout Rules
+# Text-based PDF parsing rules for Costco receipts
+
+vendor_name: "Costco"
+parsed_by: "costco_pdf_v1"
+extraction_method: "text"  # text-based PDF, no OCR needed
+
+# Summary section keywords
+summary_keywords:
+  - "SUBTOTAL"
+  - "TAX"
+  - "TOTAL"
+  - "CHANGE"
+  - "AMOUNT"
+summary_exclude_keywords:
+  - "MEMBER"
+  - "APPROVED"
+  - "TOTAL NUMBER OF ITEMS"
+
+# Skip keywords (lines to ignore)
+skip_keywords:
+  - "MEMBER"
+  - "APPROVED"
+  - "PURCHASE"
+
+# Item patterns (processed in order)
+item_patterns:
+  # Pattern 1: E ITEM_CODE PRICE (product name on next line)
+  - type: "item_code_price"
+    regex: "^E\\s+(\\d{1,10})\\s+(\\d+\\.\\d{2})\\s*N?\\s*$"
+    groups:
+      - item_number
+      - total_price
+    description: "Item code and price on same line (with E prefix), product name on next line"
+    multiline_continuation: true
+    max_continuation_lines: 5
+    continuation_exclude_keywords:
+      - "E"
+      - "SUBTOTAL"
+      - "TAX"
+      - "TOTAL"
+    field_mappings:
+      item_number: "item_number"
+      total_price: "total_price"
+    post_process:
+      extract_uom: true
+      uom_patterns:
+        - "\\s+(\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
+  
+  # Pattern 2: E ITEM_CODE PRODUCT_NAME PRICE (all on same line, with spaces)
+  - type: "item_code_product_price"
+    regex: "^E\\s+(\\d{1,10})\\s+(.+?)\\s+(\\d+\\.\\d{2})\\s*N?\\s*$"
+    groups:
+      - item_number
+      - product_name
+      - total_price
+    description: "Item code, product name, and price on same line (with E prefix, spaces between fields)"
+    field_mappings:
+      item_number: "item_number"
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      extract_uom: true
+      uom_patterns:
+        - "\\s+(\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
+  
+  # Pattern 3: E ITEM_CODE_PRODUCT_NAME PRICE (item code and product name concatenated, no space)
+  - type: "item_code_product_price_concatenated"
+    regex: "^E\\s+(\\d{1,10})([A-Z][A-Z\\s]*?)(\\d+\\.\\d{2})\\s*N?\\s*$"
+    groups:
+      - item_number
+      - product_name
+      - total_price
+    description: "Item code and product name concatenated (no space between code and name), then price on same line (with E prefix)"
+    field_mappings:
+      item_number: "item_number"
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      extract_uom: true
+      uom_patterns:
+        - "\\s+(\\d+)\\s*(LB|LBS|OZ|OZS|CT|GAL|GALS|EA|EACH|L|ML|FL\\s*OZ)\\s*$"
+
+# Total extraction patterns
+total_patterns:
+  subtotal: "Subtotal\\s+\\$?(\\d+\\.\\d{2})"
+  tax: "Tax\\s+\\$?(\\d+\\.\\d{2})"
+  total: "Total\\s+\\$?(\\d+\\.\\d{2})"
+
+# Extract additional fields
+extract_items_sold: true
+items_sold_pattern: "TOTAL NUMBER OF ITEMS SOLD\\s*=\\s*(\\d+)"
+
+extract_transaction_date: true
+date_pattern: "(\\d{2}/\\d{2}/\\d{4})"
+

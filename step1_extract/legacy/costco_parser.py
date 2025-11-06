@@ -377,10 +377,12 @@ class CostcoParser:
         summary_keywords = layout.get('summary_keywords', ['SUBTOTAL', 'TAX', 'TOTAL'])
         
         # Find summary section start
+        # Look for SUBTOTAL, TAX, or TOTAL (but not "MEMBER" which can appear early)
         summary_start_line = len(lines)
         for idx, line in enumerate(lines):
             line_upper = line.upper()
-            if any(keyword in line_upper for keyword in summary_keywords):
+            # Check for actual summary keywords (exclude "MEMBER" and "APPROVED" which can appear early)
+            if any(keyword in line_upper for keyword in ['SUBTOTAL', 'TAX', 'TOTAL']) and 'MEMBER' not in line_upper and 'APPROVED' not in line_upper:
                 summary_start_line = idx
                 break
         
@@ -439,6 +441,8 @@ class CostcoParser:
                 summary_items.append(summary_item)
         
         # Process lines before summary section
+        # Key insight: Lines starting with "E" are product lines
+        # Product names can span multiple lines (continuation lines follow the "E" line)
         i = 0
         while i < summary_start_line:
             line = lines[i]
@@ -452,85 +456,117 @@ class CostcoParser:
                 i += 1
                 continue
             
-            # Check for item code + product + price on same line
+            # Check if line starts with "E" - this indicates a product line
+            if not line.strip().startswith('E'):
+                i += 1
+                continue
+            
+            # This is a product line starting with "E"
+            # Try to extract item code + price from this line
+            item_code_price_pattern = pattern_map.get('item_code_price', {}).get('regex')
             item_product_price_pattern = pattern_map.get('item_code_product_price', {}).get('regex')
+            
+            item_code = None
+            price_value = None
+            product_parts_on_line = []
+            
+            # First try pattern1: "E item_code product price" (all on one line)
             if item_product_price_pattern:
                 match = item_product_price_pattern.match(line)
                 if match:
                     groups = pattern_map['item_code_product_price'].get('groups', [])
                     if len(groups) >= 3:
                         item_code = match.group(1)
-                        product_text = match.group(2).strip()
+                        product_text_on_line = match.group(2).strip()
                         price_value = float(match.group(3))
                         
-                        product_name_clean, size, uom = self._parse_product_line(product_text)
-                        if product_name_clean:
-                            item = {
-                                'vendor': 'Costco',
-                                'item_code': item_code,
-                                'item_number': item_code,
-                                'product_name': product_name_clean,
-                                'description': product_text,
-                                'quantity': 1.0,
-                                'purchase_uom': uom,
-                                'unit_price': price_value,
-                                'total_price': price_value,
-                                'line_text': line,
-                                'is_summary': False,
-                            }
-                            items.append(item)
-                            used_skus.add(item_code)
-                    
-                    i += 1
-                    continue
+                        # If product text exists on this line, add it
+                        if product_text_on_line and len(product_text_on_line) >= 3:
+                            product_parts_on_line.append(product_text_on_line)
             
-            # Check for product + price on same line
-            product_price_pattern = pattern_map.get('product_price', {}).get('regex')
-            if product_price_pattern:
-                match = product_price_pattern.search(line)
-                if match and len(line) > 5 and not re.match(r'^\d{1,10}\s+', line):
-                    groups = pattern_map['product_price'].get('groups', [])
-                    if len(groups) >= 2:
-                        product_text = match.group(1).strip()
-                        price_value = float(match.group(2))
-                        product_price_pairs.append((i, [product_text], i, price_value))
-                    i += 1
-                    continue
+            # If pattern1 didn't match or didn't have product, try pattern2: "E item_code price" (product on next line)
+            if not item_code or not price_value:
+                if item_code_price_pattern:
+                    match2 = item_code_price_pattern.match(line)
+                    if match2:
+                        groups = pattern_map['item_code_price'].get('groups', [])
+                        if len(groups) >= 2:
+                            item_code = match2.group(1)
+                            price_value = float(match2.group(2))
             
-            # Check for price-only line (if merge_multiline is enabled)
-            if merge_multiline:
-                price_only_info = pattern_map.get('price_only', {})
-                price_only_pattern = price_only_info.get('regex') if price_only_info else None
-                max_lookback = price_only_info.get('max_lookback', 5) if price_only_info else 5
-                if price_only_pattern:
-                    match = price_only_pattern.search(line)
-                    if match and len(line.strip()) <= 12:
-                        # Look backwards for product name parts
-                        product_parts = []
-                        product_start = i
-                        
-                        for j in range(max(0, i - max_lookback), i):
-                            prev_line = lines[j]
-                            if not prev_line:
-                                continue
-                            # Skip if it's an item code, price, or summary
-                            if j in item_codes or price_only_pattern.search(prev_line):
-                                continue
-                            if any(keyword in prev_line.upper() for keyword in summary_keywords):
-                                break
-                            # This looks like a product part
-                            if len(prev_line.strip()) > 1:
-                                product_parts.insert(0, prev_line)
-                                product_start = j
-                        
-                        if product_parts:
-                            price_value = float(match.group(1))
-                            product_price_pairs.append((product_start, product_parts, i, price_value))
-                        
-                        i += 1
+            # If we found item_code and price, look for continuation lines
+            if item_code and price_value:
+                # Look forward for continuation lines (product name parts)
+                continuation_lines = []
+                j = i + 1
+                max_lookforward = 5  # Look up to 5 lines ahead
+                
+                while j < min(i + 1 + max_lookforward, summary_start_line):
+                    next_line = lines[j]
+                    if not next_line:
+                        j += 1
                         continue
+                    
+                    # Stop if next line starts with "E" (new product)
+                    if next_line.strip().startswith('E'):
+                        break
+                    
+                    # Stop if it's a summary line
+                    if any(keyword in next_line.upper() for keyword in summary_keywords):
+                        break
+                    
+                    # Stop if it looks like a price-only line
+                    if re.match(r'^\d+\.\d{2}\s*N?\s*$', next_line):
+                        break
+                    
+                    # Stop if it's an item code (shouldn't happen, but safety check)
+                    if j in item_codes:
+                        break
+                    
+                    # This looks like a continuation line (product name part)
+                    if len(next_line.strip()) > 1:
+                        continuation_lines.append(next_line.strip())
+                        j += 1
+                    else:
+                        break
+                
+                # Combine product parts: parts from the "E" line + continuation lines
+                all_product_parts = product_parts_on_line + continuation_lines
+                
+                if all_product_parts:
+                    # Join product parts with space
+                    product_text = ' '.join(all_product_parts).strip()
+                else:
+                    # No product text found, use item code as fallback
+                    product_text = item_code
+                
+                # Parse product line to extract name, size, UoM
+                product_name_clean, size, uom = self._parse_product_line(product_text)
+                
+                if product_name_clean:
+                    item = {
+                        'vendor': 'Costco',
+                        'item_code': item_code,
+                        'item_number': item_code,
+                        'product_name': product_name_clean,
+                        'description': product_text,
+                        'quantity': 1.0,
+                        'purchase_uom': uom,
+                        'unit_price': price_value,
+                        'total_price': price_value,
+                        'line_text': f"{line} {' '.join(continuation_lines)}" if continuation_lines else line,
+                        'is_summary': False,
+                    }
+                    items.append(item)
+                    used_skus.add(item_code)
+                    
+                    # Skip the continuation lines we consumed
+                    i += len(continuation_lines) + 1
+                    continue
             
+            # If we didn't match anything, skip this line
             i += 1
+            continue
         
         # Match item codes to product/price pairs by distance (if merge_multiline is enabled)
         if merge_multiline:

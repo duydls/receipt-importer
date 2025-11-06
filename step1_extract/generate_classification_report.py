@@ -62,36 +62,62 @@ def generate_classification_report(
 
 
 def _calculate_statistics(items: List[Dict]) -> Dict[str, Any]:
-    """Calculate classification statistics"""
+    """Calculate classification statistics
+    
+    COGS Calculation:
+    - Include: All items except those with is_no_charge=true
+    - Include: Packaging fees (A02) and Tips/Gratuities (A09) - owner wants them tracked
+    - Exclude: No Charge lines (is_no_charge=true) from COGS totals but keep visible operationally
+    """
     total_items = len(items)
     total_spend = sum(float(item.get('total_price') or 0) for item in items)
     total_qty = sum(float(item.get('quantity') or 0) for item in items)
     
-    # Count by L1
-    l1_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'qty': 0.0, 'vendors': set()})
+    # Calculate COGS (exclude no-charge items, but include A02/A09)
+    cogs_items = [
+        item for item in items 
+        if not item.get('is_no_charge', False)  # Exclude no-charge items
+    ]
+    cogs_spend = sum(float(item.get('total_price') or 0) for item in cogs_items)
+    cogs_qty = sum(float(item.get('quantity') or 0) for item in cogs_items)
+    
+    # Count by L1 (include all items for visibility, but track COGS separately)
+    l1_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'cogs_spend': 0.0, 'qty': 0.0, 'vendors': set()})
     for item in items:
         l1 = item.get('l1_category', 'A99')
         l1_name = item.get('l1_category_name', 'Unknown')
         vendor = item.get('_vendor_code', 'UNKNOWN')
+        is_no_charge = item.get('is_no_charge', False)
+        
         l1_stats[l1]['name'] = l1_name
         l1_stats[l1]['count'] += 1
         l1_stats[l1]['spend'] += float(item.get('total_price') or 0)
         l1_stats[l1]['qty'] += float(item.get('quantity') or 0)
         l1_stats[l1]['vendors'].add(vendor)
+        
+        # Add to COGS if not no-charge
+        if not is_no_charge:
+            l1_stats[l1]['cogs_spend'] += float(item.get('total_price') or 0)
     
-    # Count by L2
-    l2_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'qty': 0.0, 'l1': None, 'vendors': set()})
+    # Count by L2 (include all items for visibility, but track COGS separately)
+    l2_stats = defaultdict(lambda: {'count': 0, 'spend': 0.0, 'cogs_spend': 0.0, 'qty': 0.0, 'l1': None, 'vendors': set()})
     for item in items:
         l2 = item.get('l2_category', 'C99')
         l2_name = item.get('l2_category_name', 'Unknown')
         l1 = item.get('l1_category', 'A99')
         vendor = item.get('_vendor_code', 'UNKNOWN')
+        is_no_charge = item.get('is_no_charge', False)
+        
         l2_stats[l2]['name'] = l2_name
         l2_stats[l2]['l1'] = l1
         l2_stats[l2]['count'] += 1
         l2_stats[l2]['spend'] += float(item.get('total_price') or 0)
         l2_stats[l2]['qty'] += float(item.get('quantity') or 0)
         l2_stats[l2]['vendors'].add(vendor)
+        
+        # Add to COGS if not no-charge
+        if not is_no_charge:
+            l2_stats[l2]['cogs_spend'] += float(item.get('total_price') or 0)
     
     # Count by source type
     source_stats = Counter(item['_source_type'] for item in items)
@@ -121,6 +147,8 @@ def _calculate_statistics(items: List[Dict]) -> Dict[str, Any]:
         'total_items': total_items,
         'total_spend': total_spend,
         'total_qty': total_qty,
+        'cogs_spend': cogs_spend,
+        'cogs_qty': cogs_qty,
         'classified_count': classified_count,
         'unmapped_count': unmapped_count,
         'review_count': review_count,
@@ -299,6 +327,10 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <h3>${stats['total_spend']:,.2f}</h3>
                 <p>Total Spend</p>
             </div>
+            <div class="kpi-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                <h3>${stats.get('cogs_spend', stats['total_spend']):,.2f}</h3>
+                <p>COGS Spend</p>
+            </div>
             <div class="kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
                 <h3>{stats['classification_rate']:.1f}%</h3>
                 <p>Classification Rate</p>
@@ -342,11 +374,16 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
         </div>
         
         <h2>L1 Category Breakdown (Accounting)</h2>
+        <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
+            <strong>Note:</strong> COGS Spend excludes "No Charge" items but includes Packaging fees (A02) and Tips/Gratuities (A09).
+            Total Spend includes all items for operational visibility.
+        </p>
         <table>
             <tr>
                 <th>L1 Category</th>
                 <th>Item Count</th>
                 <th>Total Spend</th>
+                <th>COGS Spend</th>
                 <th>% of Total Spend</th>
                 <th>Vendors</th>
             </tr>
@@ -359,12 +396,14 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
         # Convert set to sorted list for display
         vendors_list = sorted(list(l1_data.get('vendors', set())))
         vendors_display = ', '.join(vendors_list) if vendors_list else 'N/A'
+        cogs_spend = l1_data.get('cogs_spend', l1_data['spend'])  # Fallback to total spend if cogs_spend not available
         
         html += f"""
             <tr>
                 <td><strong>{l1_id}</strong> - {l1_data['name']}</td>
                 <td>{l1_data['count']}</td>
                 <td>${l1_data['spend']:,.2f}</td>
+                <td>${cogs_spend:,.2f}</td>
                 <td>{pct_spend:.1f}%</td>
                 <td>{vendors_display}</td>
             </tr>
@@ -374,12 +413,17 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
         </table>
         
         <h2>L2 Category Details (Operational)</h2>
+        <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
+            <strong>Note:</strong> COGS Spend excludes "No Charge" items but includes Packaging fees (A02) and Tips/Gratuities (A09).
+            Total Spend includes all items for operational visibility.
+        </p>
         <table>
             <tr>
                 <th>L2 Category</th>
                 <th>Parent L1</th>
                 <th>Item Count</th>
                 <th>Total Spend</th>
+                <th>COGS Spend</th>
                 <th>Vendors</th>
             </tr>
 """
@@ -389,6 +433,7 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
     for l2_id, l2_data in sorted_l2[:20]:  # Top 20
         vendors_list = sorted(list(l2_data.get('vendors', set())))
         vendors_display = ', '.join(vendors_list) if vendors_list else 'N/A'
+        cogs_spend = l2_data.get('cogs_spend', l2_data['spend'])  # Fallback to total spend if cogs_spend not available
         
         html += f"""
             <tr>
@@ -396,6 +441,7 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
                 <td>{l2_data['l1']}</td>
                 <td>{l2_data['count']}</td>
                 <td>${l2_data['spend']:,.2f}</td>
+                <td>${cogs_spend:,.2f}</td>
                 <td>{vendors_display}</td>
             </tr>
 """
@@ -409,7 +455,10 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
         </div>
         <table>
             <tr>
-                <th>Product Name</th>
+                <th>Display Name</th>
+                <th>UPC</th>
+                <th>Vendor Item #</th>
+                <th>Size/Spec</th>
                 <th>Vendor</th>
                 <th>Source</th>
                 <th>Price</th>
@@ -418,10 +467,14 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
             </tr>
 """.format(unmapped_count=stats['review_count'])
     
-    # Show items needing review
+    # Show items needing review (with UPC, Vendor Item #, Size/Spec columns)
     review_items = [item for item in items if item.get('needs_category_review', False)]
     for item in review_items[:50]:  # Limit to 50
-        product_name = item.get('product_name', 'Unknown')[:80]
+        # Use display_name (clean name) from name hygiene, fall back to product_name
+        display_name = (item.get('display_name') or item.get('clean_name') or item.get('product_name', 'Unknown'))[:80]
+        upc = item.get('upc', '')
+        vendor_item_no = item.get('vendor_item_no', '')
+        size_spec = item.get('size_spec', '')
         vendor = item['_vendor_code']
         source = item['_source_type']
         price = float(item.get('total_price') or 0)
@@ -431,7 +484,10 @@ def _generate_html(stats: Dict, items: List[Dict], output_path: Path):
         
         html += f"""
             <tr>
-                <td>{product_name}</td>
+                <td>{display_name}</td>
+                <td>{upc if upc else '—'}</td>
+                <td>{vendor_item_no if vendor_item_no else '—'}</td>
+                <td>{size_spec if size_spec else '—'}</td>
                 <td><span class="badge badge-gray">{vendor}</span></td>
                 <td>{source}</td>
                 <td>${price:.2f}</td>
@@ -669,6 +725,7 @@ def _generate_csv(stats: Dict, items: List[Dict], output_path: Path):
         writer.writerow([])
         writer.writerow(['Total Items', stats['total_items']])
         writer.writerow(['Total Spend', f"${stats['total_spend']:.2f}"])
+        writer.writerow(['COGS Spend', f"${stats.get('cogs_spend', stats['total_spend']):.2f}"])
         writer.writerow(['Classification Rate', f"{stats['classification_rate']:.1f}%"])
         writer.writerow(['Classified Items', stats['classified_count']])
         writer.writerow(['Unmapped Items', stats['unmapped_count']])
@@ -677,26 +734,37 @@ def _generate_csv(stats: Dict, items: List[Dict], output_path: Path):
         
         # Write L1 breakdown
         writer.writerow(['L1 Category Breakdown'])
-        writer.writerow(['L1 ID', 'L1 Name', 'Item Count', 'Total Spend', '% of Total'])
+        writer.writerow(['L1 ID', 'L1 Name', 'Item Count', 'Total Spend', 'COGS Spend', '% of Total'])
         for l1_id in sorted(stats['l1_stats'].keys()):
             l1_data = stats['l1_stats'][l1_id]
             pct = (l1_data['spend'] / stats['total_spend'] * 100) if stats['total_spend'] > 0 else 0
+            cogs_spend = l1_data.get('cogs_spend', l1_data['spend'])  # Fallback to total spend if cogs_spend not available
             writer.writerow([
                 l1_id,
                 l1_data['name'],
                 l1_data['count'],
                 f"${l1_data['spend']:.2f}",
+                f"${cogs_spend:.2f}",
                 f"{pct:.1f}%"
             ])
         writer.writerow([])
         
-        # Write unmapped items
+        # Write unmapped items (with UPC, Vendor Item #, Size/Spec columns)
         writer.writerow(['Unmapped Items (Need Review)'])
-        writer.writerow(['Product Name', 'Vendor', 'Source', 'Price', 'Current L2', 'Confidence', 'Receipt ID'])
+        writer.writerow(['Display Name', 'UPC', 'Vendor Item #', 'Size/Spec', 'Vendor', 'Source', 'Price', 'Current L2', 'Confidence', 'Receipt ID'])
         review_items = [item for item in items if item.get('needs_category_review', False)]
         for item in review_items:
+            # Use display_name (clean name) from name hygiene, fall back to product_name
+            display_name = item.get('display_name') or item.get('clean_name') or item.get('product_name', 'Unknown')
+            upc = item.get('upc', '')
+            vendor_item_no = item.get('vendor_item_no', '')
+            size_spec = item.get('size_spec', '')
+            
             writer.writerow([
-                item.get('product_name', 'Unknown'),
+                display_name,
+                upc,
+                vendor_item_no,
+                size_spec,
                 item['_vendor_code'],
                 item['_source_type'],
                 f"${float(item.get('total_price') or 0):.2f}",

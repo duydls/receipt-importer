@@ -49,4 +49,6 @@ bbi_layouts:
       - "The 'UoM' column contains size/UoM information (e.g., 'kg', '50g*12-bag', '3.8kg-can')"
       - "Unit column contains '$' symbol which should be stripped"
       - "Some items may have NaN for item_number"
+      - "All BBI products use 'Description' field for product_name"
+      - "'NO CHARGE' text is removed from product_name, but the product itself is kept"
 

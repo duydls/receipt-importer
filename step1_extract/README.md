@@ -392,6 +392,7 @@ Step 1 output is consumed by Step 2:
 ## See Also
 
 - **Rules Documentation:** `step1_rules/README.md`
-- **Step 2 Documentation:** `step2_mapping/README.md`
+- **Step 2 Documentation:** `step2_manual_review/README.md` (if exists)
+- **Step 3 Documentation:** `step3_mapping/README.md`
 - **Workflow Documentation:** `README_WORKFLOW.md`
 

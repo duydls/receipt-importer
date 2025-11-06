@@ -1,0 +1,94 @@
+# Parktoshop PDF Layout Rules
+# OCR-based PDF parsing rules for Parktoshop receipts
+
+vendor_name: "PARKTOSHOP"
+parsed_by: "parktoshop_pdf_v1"
+extraction_method: "ocr"  # image-based PDF, requires OCR
+
+# Summary section keywords
+summary_keywords:
+  - "TOTAL"
+  - "AMOUNT USDS"
+  - "SUBTOTAL"
+  - "TAX"
+
+# Skip keywords
+skip_keywords:
+  - "TOTAL"
+  - "SUBTOTAL"
+  - "TAX"
+  - "AMOUNT"
+  - "PARK TO SHOP"
+  - "SALE"
+  - "VISA"
+  - "DEBIT"
+
+# Item patterns (processed in order)
+item_patterns:
+  # Pattern 1: QTY @ $PRICE PRODUCT $TOTAL (with OCR error handling)
+  # Handles: "5 @ $1.79ea. F $8.95 Tx]" or "5 @ $1.79 F $8.95"
+  - type: "qty_at_price_item"
+    regex: "(\\d+(?:\\.\\d+)?)\\s*@\\s*\\$?(\\d+[.,]\\d{1,2})\\s*[a-zA-Z]?\\.?\\s*[a-zA-Z]?\\s+\\$?(\\d+[.,]\\d{1,2})\\s*[Tt]x?[\\]\\}]?\\s*$"
+    groups:
+      - quantity
+      - unit_price
+      - total_price
+    description: "QTY @ $PRICE PRODUCT $TOTAL (handles OCR errors like 'ea.' and 'Tx]')"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      extract_product_name: true  # Extract product name from context
+    case_insensitive: true
+  
+  # Pattern 2: PRODUCT_NAME $PRICE (handles prices with or without $)
+  # Handles: "PLASTIC $0.07" or "SOYBEAN PHD-YIFENG 5.32"
+  - type: "product_price_item"
+    regex: "^(.+?)\\s+\\$?(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - product_name
+      - total_price
+    description: "PRODUCT_NAME $PRICE (handles prices with or without $ symbol)"
+    field_mappings:
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+    quantity_from_next_line: true
+    # Extract quantity and unit price from the next line like: "5 @ $1.79ea. F $8.95"
+    quantity_pattern: "(\\d+)\\s*@\\s*\\$?(\\d+[.,]\\d{1,2})"
+    case_insensitive: true
+    conditions:
+      - "len(product_name) > 3"  # Skip very short product names
+      - "total_price > 0"  # Skip zero prices
+      - "not any(kw in line.upper() for kw in ['TOTAL', 'TAX', 'SUB', 'REFERENCE', 'DEBIT', 'SAVED', 'MINT'])"  # Skip summary lines
+  
+  # Pattern 3: QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL (original pattern, more strict)
+  - type: "qty_at_price_item_number"
+    regex: "(\\d+(?:\\.\\d+)?)\\s*@\\s*\\$?(\\d+[.,]\\d{1,2})\\s*(\\d{3,6})\\s+(.+?)\\s+\\$?(\\d+[.,]\\d{1,2})\\s*$"
+    groups:
+      - quantity
+      - unit_price
+      - item_number
+      - product_name
+      - total_price
+    description: "QTY @ $PRICE ITEM_NUMBER PRODUCT $TOTAL (strict pattern with item number)"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+      item_number: "item_number"
+      product_name: "product_name"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+    case_insensitive: true
+
+# Total extraction patterns (handle OCR errors: "TOTAL «ee €7 07")
+total_patterns:
+  subtotal: "SUBTOTAL\\s+(\\d+[.,]\\d{1,2})"
+  tax: "TAX\\s+(\\d+[.,]\\d{1,2})"
+  # Handles "TOTAL «ee €7 07" -> 7.07 or "TOTAL USDS 7.01" -> 7.01
+  total: "TOTAL\\s*[^\\d]*\\$?(\\d+)[\\s\\.\\,](\\d{1,2})"
+

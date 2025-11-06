@@ -1,0 +1,86 @@
+version: 1
+
+rules:
+  - l1: "A01 COGS–Ingredients"
+    l2: "Plant-based Milk & Creamer"
+    must_include: ["coconut milk","oat milk","almond milk","soy milk"]
+    must_exclude: ["evaporated","condensed","dairy"]
+    priority: 60
+
+  - l1: "A01 COGS–Ingredients"
+    l2: "Syrups & Sauces"
+    must_include: ["syrup","torani","puremade","sauce"]
+    must_exclude: ["jam","jelly","purée","puree"]
+    priority: 55
+
+  - l1: "A01 COGS–Ingredients"
+    l2: "Nuts & Seeds"
+    must_include: ["almond","almonds","sliced almonds","cashew","walnut","chia","flax","pumpkin seed","sunflower seed","nut","nuts"]
+    priority: 50
+
+  - l1: "A01 COGS–Ingredients"
+    l2: "Fresh Fruit & Veg"
+    must_include: ["strawberry","strawberries","banana","lime","lemon","orange","grape","grapefruit","romaine","blueberry","cilantro","lettuce","onion","avocado","cucumber"]
+    priority: 48
+
+  - l1: "A01 COGS–Ingredients"
+    l2: "Sweeteners"
+    must_include: ["sugar","granulated sugar","cane sugar","brown sugar"]
+    priority: 40
+
+  - l1: "A02 COGS–Packaging"
+    l2: "Cups & Lids"
+    must_include: ["cup","cups","lid","lids"]
+    must_exclude: ["organizer","holder"]
+    priority: 50
+
+  - l1: "A02 COGS–Packaging"
+    l2: "Containers & Clamshells"
+    must_include: ["clamshell","container","containers"]
+    priority: 45
+
+  - l1: "A02 COGS–Packaging"
+    l2: "Straws & Stirrers"
+    must_include: ["straw","straws","stirrer","stirrers"]
+    must_exclude: ["organizer","holder"]
+    priority: 40
+
+  - l1: "A03 COGS–Non-food Consumables"
+    l2: "POS Paper & Register Supplies"
+    must_include: ["thermal paper","receipt paper","receipt roll","pos paper","thermal roll","register tape","label roll"]
+    must_exclude: ["napkin","tissue","paper towel"]
+    priority: 80
+
+  - l1: "A03 COGS–Non-food Consumables"
+    l2: "Filters & Disposables"
+    must_include: ["water filter","ice filter","filter cartridge"]
+    priority: 55
+
+  - l1: "A03 COGS–Non-food Consumables"
+    l2: "Test Strips"
+    must_include: ["test strip","chlorine strip","ph strip","test strips"]
+    priority: 50
+
+  - l1: "A04 Equipment & Smallwares"
+    l2: "Countertop Organizers & Holders"
+    must_include: ["holder","organizer"]
+    also_include_if_any: ["straw","stirrer","lid","napkin"]
+    must_exclude: ["packaging","disposable","100pcs"]
+    priority: 60
+
+  - l1: "A04 Equipment & Smallwares"
+    l2: "Outdoor/Canopy Accessories"
+    must_include: ["canopy","sand bag","sandbag","tent weight"]
+    priority: 60
+
+  - l1: "A06 Fees/Taxes/Services"
+    l2: "Checkout Bag Tax/Fees"
+    must_include: ["bag tax","checkout bag","bag fee"]
+    priority: 90
+
+  - l1: "A07 Retail Resale Goods"
+    l2: "Retail Snacks & Beverages"
+    must_include: ["ferrero","rocher","biscoff"]
+    note: "Use for resale; if used as ingredient, push via KB must_exclude back to Ingredients."
+    priority: 40
+

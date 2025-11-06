@@ -26,6 +26,121 @@ def _load_picked_weight_rules() -> Dict:
         return {}
 
 
+def _normalize_uom(uom: str) -> str:
+    """Normalize UoM value for display (EACH/ea → pc, lowercase)"""
+    if not uom:
+        return ''
+    uom_lower = uom.lower().strip()
+    # Map synonyms
+    if uom_lower in ['each', 'ea', 'eaches']:
+        return 'pc'
+    return uom_lower
+
+
+def _num(v):
+    """Convert value to number (int if integer, float otherwise)"""
+    try:
+        f = float(v)
+        return int(f) if f.is_integer() else f
+    except Exception:
+        return None
+
+
+def derive_display_fields(it: dict) -> dict:
+    """
+    Derive display fields for quantity, size, and UoM.
+    Returns dict with display_quantity, display_size, display_uom.
+    """
+    pricing = (it.get("pricing_unit") or "").strip()
+    qty = _num(it.get("quantity"))
+    
+    # Optional: infer quantity only if missing but prices exist
+    if qty is None:
+        up, tp = _num(it.get("unit_price")), _num(it.get("total_price"))
+        if up and tp:
+            q = tp / up
+            qty = int(round(q)) if abs(q - round(q)) < 1e-6 else q
+    
+    if pricing == "Pack":
+        size = (it.get("baseline_pack_size")
+                or (it.get("baseline_match") or {}).get("pack_size")
+                or (it.get("raw_uom_text") or "").strip()
+                or None)
+        uom = "pack"
+    else:
+        size = ((it.get("baseline_match") or {}).get("uom_raw")
+                or (it.get("raw_uom_text") or "").strip()
+                or (it.get("baseline_uom") or "").strip()
+                or (it.get("purchase_uom") or "").strip()
+                or None)
+        uom = (it.get("purchase_uom") or it.get("baseline_uom") or "").strip().lower()
+        if uom in ("each", "ea"):  # normalize
+            uom = "pc"
+    
+    return {"display_quantity": qty, "display_size": size, "display_uom": uom}
+
+
+def _format_bbi_quantity_display(item: Dict) -> str:
+    """
+    Format quantity display for BBI orders with Pack semantics
+    
+    Returns formatted string:
+    - Pack-priced: "{qty} pack(s)" + (" ({baseline_pack_size})" if present else "")
+    - UoM-priced: "{qty} {purchase_uom}" with optional pack hint only when packs >= 2 and spec is numeric
+    """
+    quantity = item.get('quantity', 0)
+    pricing_unit = item.get('pricing_unit', '')  # 'Pack' or 'UoM'
+    purchase_uom = item.get('purchase_uom', '')
+    baseline_match = item.get('baseline_match', {}) or {}
+    
+    # Normalize UoM
+    purchase_uom_normalized = _normalize_uom(purchase_uom)
+    
+    # Get baseline info (from item or baseline_match dict)
+    baseline_pack_size = item.get('baseline_pack_size') or (baseline_match.get('pack_size', '') if isinstance(baseline_match, dict) else '')
+    baseline_pack_count = item.get('baseline_pack_count') or (baseline_match.get('pack_count', 1) if isinstance(baseline_match, dict) else 1)
+    baseline_uom_raw = item.get('baseline_uom') or (baseline_match.get('uom_raw', '') if isinstance(baseline_match, dict) else '')
+    
+    # Format quantity (remove trailing zeros)
+    qty_float = float(quantity) if quantity else 0.0
+    qty_str = f"{qty_float:g}" if qty_float == int(qty_float) else f"{qty_float:.2f}".rstrip('0').rstrip('.')
+    
+    if pricing_unit == 'Pack':
+        # Pack-priced: "{qty} pack(s)" + (" ({baseline_pack_size})" if present else "")
+        pack_word = 'packs' if qty_float > 1 else 'pack'
+        if baseline_pack_size:
+            return f"{qty_str} {pack_word} ({baseline_pack_size})"
+        else:
+            return f"{qty_str} {pack_word}"
+    
+    else:
+        # UoM-priced: "{qty} {purchase_uom}" with optional pack hint only when packs >= 2 and spec is numeric
+        uom_display = purchase_uom_normalized or 'unknown'
+        result = f"{qty_str} {uom_display}"
+        
+        # Add pack hint only when packs >= 2 and spec is numeric (skip "≈ 1 pack...")
+        if baseline_pack_count and baseline_pack_count > 1 and qty_float > 0:
+            packs = qty_float / baseline_pack_count
+            # Check if spec is numeric (baseline_uom_raw contains numeric patterns like "20*1-kg")
+            import re
+            spec_is_numeric = False
+            if baseline_uom_raw:
+                # Check if it contains numeric patterns like "20*1", "18*4", etc.
+                spec_is_numeric = bool(re.search(r'\d+\s*[*×]\s*\d+', baseline_uom_raw))
+            
+            if packs >= 2 and spec_is_numeric:
+                if packs == int(packs):
+                    # Exactly divisible by pack_count
+                    pack_label = baseline_uom_raw or purchase_uom_normalized
+                    result += f" (≈ {int(packs)} packs × {pack_label})"
+                else:
+                    # Not exact multiple
+                    pack_label = baseline_uom_raw or purchase_uom_normalized
+                    result += f" (≈ {packs:.1f} packs × {pack_label})"
+        
+        return result
+
+
 def _format_size_for_display(size_str: str) -> str:
     """
     Format size string for display: "3.0 lb" -> "3-lb", "64 fl oz" -> "64-fl oz"
@@ -467,9 +582,15 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
     for receipt_id, receipt_data in sorted(extracted_data.items()):
         items = receipt_data.get('items', [])
         vendor = receipt_data.get('vendor') or 'Unknown'
-        order_date = receipt_data.get('order_date') or receipt_data.get('date') or 'N/A'
+        order_date = receipt_data.get('order_date') or receipt_data.get('date') or receipt_data.get('transaction_date') or 'N/A'
+        transaction_date = receipt_data.get('transaction_date') or receipt_data.get('date') or receipt_data.get('order_date')
         filename = receipt_data.get('filename', receipt_id)
         total = receipt_data.get('total', 0)
+        
+        # Quality flag for missing transaction date
+        missing_date_flag = ''
+        if not transaction_date or transaction_date == 'N/A':
+            missing_date_flag = '<span style="background:#dc3545;color:white;padding:4px 8px;border-radius:3px;font-size:0.85em;margin-left:10px;">⚠️ Missing Date</span>'
         
         # Get source type information
         source_type = receipt_data.get('source_type', 'unknown')
@@ -483,7 +604,8 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         # Check if vendor was detected from filename
         vendor_from_filename = receipt_data.get('vendor_source') == 'filename'
         # For Group 1 Excel files, if vendor_source is not set, check if vendor likely came from filename
-        if not vendor_from_filename and receipt_data.get('source_group') == 'group1':
+        # group1 deprecated - check for localgrocery vendors directly
+        if not vendor_from_filename and receipt_data.get('source_type') == 'localgrocery_based':
             # Check if filename contains vendor identifier patterns
             filename_lower = filename.lower()
             vendor_lower = vendor.lower() if vendor else ''
@@ -498,7 +620,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         html_content += f"""
         <div class="receipt-section">
             <div class="receipt-header">
-                <h3>{receipt_id}</h3>
+                <h3>{receipt_id} {missing_date_flag}</h3>
             </div>
             <div style="padding: 20px;">
             <div class="metadata">
@@ -557,21 +679,33 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         
         # Detect if this is Group 1 (Excel-based) receipt
         source_group = receipt_data.get('source_group', '')
-        is_group1 = source_group == 'group1'
+        # group1 deprecated - check source_type instead
+        is_group1 = receipt_data.get('source_type') == 'localgrocery_based'
         
         # Add items
         for item in items:
-            product_name = item.get('product_name', 'Unknown Product')
+            # Derive display fields (quantity, size, UoM) once, use everywhere
+            item.update(derive_display_fields(item))
+            
+            # Use display_name or canonical_name or product_name for display (avoid blank rows)
+            product_name = item.get('display_name') or item.get('canonical_name') or item.get('product_name') or '(unnamed)'
             quantity = item.get('quantity', 0)
             # Use purchase_uom if available, otherwise fallback to raw_uom_text from Excel
             purchase_uom = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
             unit_price = item.get('unit_price', 0)
             total_price = item.get('total_price', 0)
             
-            # Item number and UPC (for Group 1 receipts)
+            # Item number and UPC (extracted from name hygiene)
             item_number = item.get('item_number')
+            vendor_item_no = item.get('vendor_item_no')  # RD-specific vendor item number
             item_code = item.get('item_code')
             upc = item.get('upc')
+            
+            # Size/spec (from name hygiene)
+            size_spec = item.get('size_spec', '')
+            
+            # No Charge marker (from name hygiene)
+            is_no_charge = item.get('is_no_charge', False)
             
             # Unit details
             size = item.get('size', '')
@@ -597,18 +731,31 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             vendor_name = receipt_data.get('vendor', '').lower()
             is_costco_or_rd = 'costco' in vendor_name or 'restaurant' in vendor_name or 'rd' == vendor_name.strip().lower()
             
-            # Build unit information display
-            uom_display = purchase_uom.upper() if purchase_uom and purchase_uom != 'unknown' else 'UNKNOWN'
+            # Build unit information display (for detailed unit info section only)
+            # Note: Main display uses display_quantity, display_size, display_uom from derive_display_fields
+            exclude_cogs_badge = '<span style="background:#f5c6cb;color:#721c24;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">Excluded from COGS</span>' if item.get('exclude_from_cogs') else ''
+            no_charge_badge = '<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:0.75em;margin-left:6px;">No Charge</span>' if is_no_charge else ''
             
             # Build detailed unit information
             unit_info_parts = []
             
-            # For Group 1 receipts, display Item Number and UPC if available
-            if is_group1:
-                if item_number is not None:
-                    unit_info_parts.append(f'<strong>Item #:</strong> {item_number}')
-                if upc is not None:
-                    unit_info_parts.append(f'<strong>UPC:</strong> {upc}')
+            # Display UPC, Vendor Item #, and Item Number as separate columns (hide if empty)
+            # For all receipts, show UPC, Vendor Item#, and Item# if available
+            if upc is not None and upc:
+                unit_info_parts.insert(0, f'<strong>UPC:</strong> {upc}')
+            if vendor_item_no is not None and vendor_item_no:
+                unit_info_parts.insert(1, f'<strong>Vendor Item #:</strong> {vendor_item_no}')
+            if item_number is not None and item_number:
+                # Only show Item # if vendor_item_no is not already shown (avoid duplication)
+                if not vendor_item_no:
+                    unit_info_parts.insert(1, f'<strong>Item #:</strong> {item_number}')
+                elif item_number != vendor_item_no:
+                    # Show both if they're different
+                    unit_info_parts.insert(2, f'<strong>Item #:</strong> {item_number}')
+            
+            # Display size_spec (from name hygiene) if available
+            if size_spec:
+                unit_info_parts.append(f'<strong>Size/Spec:</strong> {size_spec}')
             
             if size:
                 unit_info_parts.append(f'<strong>Size:</strong> {size}')
@@ -649,23 +796,6 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     {', '.join(unit_info_parts)}
                 </div>'''
             
-            # Use Size instead of UoM for price display, but use picked weight + UoM for weight items (like bananas)
-            if _should_use_picked_weight(item, picked_weight_rules):
-                # For weight items with picked_weight, use picked_weight + UoM instead of size
-                picked_weight = item.get('picked_weight', '')
-                try:
-                    picked_weight_float = float(picked_weight)
-                    # Display picked_weight with UoM (format: "3.61-lb")
-                    unit_str = f"-{purchase_uom}" if purchase_uom and purchase_uom != 'unknown' else ""
-                    # Update quantity to use picked_weight for display
-                    quantity = picked_weight_float
-                except (ValueError, TypeError):
-                    # Fallback to size if picked_weight can't be parsed (already formatted)
-                    unit_str = f" {size}" if size else (f"-{purchase_uom}" if purchase_uom and purchase_uom != 'unknown' else "")
-            else:
-                # Default: use Size instead of UoM for price display (already formatted)
-                unit_str = f" {size}" if size else (f"-{purchase_uom}" if purchase_uom and purchase_uom != 'unknown' else "")
-            
             # Validate: Check if unit_price × quantity equals total_price
             # Convert to floats for comparison (handle None/0 values)
             qty_float = float(quantity) if quantity else 0.0
@@ -674,7 +804,29 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             
             # Get vendor code for vendor-specific validation
             vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-            is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+            upper_vendor = (vendor_code or '').upper()
+            is_bbi = 'BBI' in upper_vendor
+            
+            # Get display fields (already derived above)
+            display_quantity = item.get('display_quantity')
+            display_size = item.get('display_size')
+            display_uom = item.get('display_uom', '')
+            
+            # Format display values for template
+            quantity_str = str(display_quantity) if display_quantity is not None else str(qty_float)
+            size_str = str(display_size) if display_size else '—'
+            uom_str = str(display_uom) if display_uom else '—'
+            
+            # Get vendor-specific flags (vendor_code and upper_vendor already set above for BBI check)
+            is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
+            is_costco = 'COSTCO' in upper_vendor or 'COSTCO' in (receipt_data.get('vendor','').upper())
+            is_rd = 'RD' == upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor or 'RESTAURANT DEPOT' in (receipt_data.get('vendor','').upper())
+
+            # Vendor-specific display rule for unit_price:
+            # - Costco: display unit_price computed from total_price / quantity (KB price is only for inference)
+            # - RD: display unit_price from receipt as-is
+            if is_costco and qty_float > 0 and total_price_float > 0:
+                unit_price_float = round(total_price_float / qty_float, 2)
             
             # Calculate expected total (vendor-specific logic)
             if is_webstaurantstore:
@@ -690,6 +842,20 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Check if they match (allow small rounding differences of 0.01)
             price_match = abs(expected_total - total_price_float) < 0.01
             
+            # Quality flags for BBI and all vendors
+            quality_flags = []
+            # Zero price warning
+            if unit_price_float == 0 or total_price_float == 0:
+                quality_flags.append('<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:0.8em;margin-left:6px;">⚠️ Zero Price</span>')
+            # Inferred quantity warning (for BBI items)
+            if item.get('needs_quantity_review', False):
+                quality_flags.append('<span style="background:#d1ecf1;color:#0c5460;padding:2px 6px;border-radius:3px;font-size:0.8em;margin-left:6px;">ℹ️ Inferred Quantity</span>')
+            
+            # Missing transaction date warning (for receipt level, not item level)
+            # This will be checked at receipt level
+            
+            quality_flags_html = ' '.join(quality_flags) if quality_flags else ''
+            
             # Apply highlighting if prices don't match
             price_style = ""
             price_warning = ""
@@ -697,23 +863,29 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                 price_style = 'background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 8px; margin-top: 5px; border-radius: 4px;'
                 price_warning = f'<div style="color: #856404; font-weight: bold; font-size: 0.9em; margin-top: 5px;">⚠️ Price Mismatch: Expected ${expected_total:.2f} ({calculation_display}), Got ${total_price_float:.2f}, Difference: ${abs(expected_total - total_price_float):.2f}</div>'
             
+            # Badge for missing codes (for manual attention)
+            missing_codes_badge = ''
+            if is_group1 and not item.get('has_codes', False):
+                missing_codes_badge = '<span style="background: #ffeeba; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 6px;">No UPC/Item#</span>'
+
             html_content += f"""
                 <div class="item-row" style="{price_style if not price_match else ''}">
                     <div style="flex: 2;">
-                        <div class="item-name">{product_name}</div>
+                        <div class="item-name">{product_name}{missing_codes_badge}{no_charge_badge}</div>
                         {unit_info_html}
                     </div>
                     <div class="item-details">
                         <div style="font-size: 1em; margin-bottom: 5px;">
-                            <strong>Quantity:</strong> {qty_float:g}{unit_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f}
+                            <strong>Quantity:</strong> {quantity_str}&nbsp;&nbsp;<strong>Size:</strong> {size_str}&nbsp;&nbsp;<strong>UoM:</strong> {uom_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f} {quality_flags_html}
                         </div>
                         <div style="font-size: 0.9em; color: #666; margin-top: 3px;">
                             Calculation: {calculation_display} {'✅' if price_match else '❌'}
                         </div>
                         {price_warning}
-                        <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
-                            <span class="unit-badge">UoM: {uom_display}</span>
-                        </div>
+                    <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
+                        <span class="unit-badge">UoM: {uom_str if uom_str != '—' else '—'}</span>
+                        {exclude_cogs_badge}
+                    </div>
                         {_get_category_badge_html(item)}
                     </div>
                 </div>
@@ -733,24 +905,28 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         other_charges_raw = receipt_data.get('other_charges')
         other_charges = float(other_charges_raw) if other_charges_raw is not None else 0.0
         
-        # Also sum fees from items (items with is_fee=True) if other_charges is not already calculated
+        # Also sum fees from items (items with is_fee=True) and no-charge items if other_charges is not already calculated
+        # No-charge items are excluded from COGS but visible in "Other/Operational"
         if other_charges == 0.0:
             fee_items = [item for item in receipt_data.get('items', []) if item.get('is_fee', False)]
-            if fee_items:
-                other_charges = sum(float(item.get('total_price') or 0) for item in fee_items)
+            no_charge_items = [item for item in receipt_data.get('items', []) if item.get('is_no_charge', False)]
+            if fee_items or no_charge_items:
+                other_charges = sum(float(item.get('total_price') or 0) for item in fee_items + no_charge_items)
         
         subtotal_raw = receipt_data.get('subtotal')
         subtotal = float(subtotal_raw) if subtotal_raw is not None else 0.0
         
         # Get vendor code to apply vendor-specific logic
         vendor_code = receipt_data.get('vendor') or receipt_data.get('detected_vendor_code') or ''
-        is_webstaurantstore = 'WEBSTAURANTSTORE' in vendor_code.upper()
+        upper_vendor = vendor_code.upper()
+        is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
         
         # Verify calculated total against receipt total
+        # Exclude fees and no-charge items from COGS calculations
         calculated_item_total = sum(
             float(item.get('total_price') or 0) 
             for item in items 
-            if not item.get('is_fee', False)
+            if not item.get('is_fee', False) and not item.get('is_no_charge', False)
         )
         
         # Vendor-specific logic for subtotal calculation
@@ -764,10 +940,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                 calculated_subtotal = subtotal
             else:
                 # Fallback: calculate from items (unit_price × quantity, tax excluded)
+                # Exclude fees and no-charge items from COGS calculations
                 calculated_subtotal = sum(
                     float(item.get('unit_price') or 0) * float(item.get('quantity') or 0)
                     for item in items 
-                    if not item.get('is_fee', False)
+                    if not item.get('is_fee', False) and not item.get('is_no_charge', False)
                 )
         else:
             # For other vendors: use extracted subtotal if provided, otherwise use calculated from items
@@ -780,10 +957,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         receipt_total = receipt_data.get('total', 0.0) or 0.0
         
         # Verify calculated items quantity against items_sold from receipt
+        # Exclude fees and no-charge items from quantity calculations
         calculated_items_qty = sum(
             float(item.get('quantity') or 0) 
             for item in items 
-            if not item.get('is_fee', False)
+            if not item.get('is_fee', False) and not item.get('is_no_charge', False)
         )
         receipt_items_sold = receipt_data.get('items_sold')
         
@@ -811,6 +989,9 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         # Get receipt total (use calculated if not available from receipt)
         total = receipt_data.get('total', 0.0) or calculated_total or 0.0
         
+        # RD-specific: label tax as "Total Tax"
+        tax_label = 'Total Tax' if ('RD' in upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor) else 'Tax'
+
         html_content += f"""
             </div>
             <div class="receipt-total" style="padding: 0 20px 20px 20px;">
@@ -826,7 +1007,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${float(shipping):,.2f}</td>
                     </tr>
                     <tr>
-                        <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">Tax:</td>
+                        <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd;">{tax_label}:</td>
                         <td style="text-align: right; padding: 5px 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${float(tax):,.2f}</td>
                     </tr>
                     <tr>

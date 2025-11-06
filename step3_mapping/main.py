@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Step 2 Main Entry Point
-Reads Step 1 outputs (vendor-based and instacart-based) and executes mapping rules
+Step 3 Main Entry Point
+Reads Step 1 outputs (or reviewed data from Step 2) and executes mapping rules
 """
 
 import json
@@ -16,70 +16,81 @@ from .product_matcher import ProductMatcher
 logger = logging.getLogger(__name__)
 
 
-def load_step1_output(input_dir: Path) -> Dict[str, Any]:
+def load_step1_output(input_dir: Path, use_reviewed: bool = True) -> Dict[str, Any]:
     """
-    Load Step 1 output data from vendor_based and instacart_based folders
+    Load Step 1 output data (or reviewed data from Step 2) from source-type folders
     
     Args:
-        input_dir: Step 1 output directory (should contain vendor_based/ and instacart_based/)
+        input_dir: Step 1 output directory (contains source-type folders)
+        use_reviewed: If True, prefer reviewed_extracted_data.json from Step 2
         
     Returns:
-        Dictionary with 'vendor_based' and 'instacart_based' keys containing extracted data
+        Dictionary with source-type keys containing extracted data
     """
-    vendor_based_file = input_dir / 'vendor_based' / 'extracted_data.json'
-    instacart_based_file = input_dir / 'instacart_based' / 'extracted_data.json'
+    # Try to load reviewed data first (from Step 2)
+    if use_reviewed:
+        reviewed_file = input_dir / 'reviewed_extracted_data.json'
+        if reviewed_file.exists():
+            logger.info(f"Loading reviewed data from Step 2: {reviewed_file}")
+            with open(reviewed_file, 'r', encoding='utf-8') as f:
+                reviewed_data = json.load(f)
+            logger.info(f"Loaded {len(reviewed_data)} receipts from reviewed data")
+            # Convert to source-type structure for compatibility
+            data = {
+                'localgrocery_based': {},
+                'instacart_based': {},
+                'bbi_based': {},
+                'amazon_based': {},
+                'webstaurantstore_based': {}
+            }
+            # Group by source_type
+            for receipt_id, receipt_data in reviewed_data.items():
+                source_type = receipt_data.get('detected_source_type') or receipt_data.get('source_type', 'localgrocery_based')
+                if source_type not in data:
+                    source_type = 'localgrocery_based'  # fallback
+                data[source_type][receipt_id] = receipt_data
+            return data
     
-    data = {
-        'vendor_based': {},
-        'instacart_based': {}
-    }
+    # Load from source-type folders (Step 1 output)
+    source_types = ['localgrocery_based', 'instacart_based', 'bbi_based', 'amazon_based', 'webstaurantstore_based']
     
-    if vendor_based_file.exists():
-        logger.info(f"Loading vendor-based data from: {vendor_based_file}")
-        with open(vendor_based_file, 'r', encoding='utf-8') as f:
-            data['vendor_based'] = json.load(f)
-        logger.info(f"Loaded {len(data['vendor_based'])} vendor-based receipts")
-    else:
-        logger.warning(f"Vendor-based file not found: {vendor_based_file}")
+    data = {st: {} for st in source_types}
     
-    if instacart_based_file.exists():
-        logger.info(f"Loading instacart-based data from: {instacart_based_file}")
-        with open(instacart_based_file, 'r', encoding='utf-8') as f:
-            data['instacart_based'] = json.load(f)
-        logger.info(f"Loaded {len(data['instacart_based'])} instacart-based receipts")
-    else:
-        logger.warning(f"Instacart-based file not found: {instacart_based_file}")
+    for source_type in source_types:
+        json_file = input_dir / source_type / 'extracted_data.json'
+        if json_file.exists():
+            logger.info(f"Loading {source_type} data from: {json_file}")
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data[source_type] = json.load(f)
+            logger.info(f"Loaded {len(data[source_type])} {source_type} receipts")
+        else:
+            logger.debug(f"{source_type} file not found: {json_file}")
     
     return data
 
 
 def combine_receipts(step1_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Combine vendor-based and instacart-based receipts into a single structure
+    Combine receipts from all source types into a single structure
     
     Args:
-        step1_data: Dictionary with 'vendor_based' and 'instacart_based' keys
+        step1_data: Dictionary with source-type keys (localgrocery_based, instacart_based, etc.)
         
     Returns:
         Combined receipts dictionary with source_type metadata
     """
     combined = {}
     
-    # Add vendor-based receipts with source_type metadata
-    for receipt_id, receipt_data in step1_data.get('vendor_based', {}).items():
-        receipt_data = receipt_data.copy()
-        receipt_data['source_type'] = 'vendor_based'
-        if 'source_group' not in receipt_data:
-            receipt_data['source_group'] = 'vendor_based'
-        combined[receipt_id] = receipt_data
+    source_types = ['localgrocery_based', 'instacart_based', 'bbi_based', 'amazon_based', 'webstaurantstore_based']
     
-    # Add instacart-based receipts with source_type metadata
-    for receipt_id, receipt_data in step1_data.get('instacart_based', {}).items():
-        receipt_data = receipt_data.copy()
-        receipt_data['source_type'] = 'instacart_based'
-        if 'source_group' not in receipt_data:
-            receipt_data['source_group'] = 'instacart_based'
-        combined[receipt_id] = receipt_data
+    # Add receipts from all source types with source_type metadata
+    for source_type in source_types:
+        for receipt_id, receipt_data in step1_data.get(source_type, {}).items():
+            receipt_data = receipt_data.copy()
+            receipt_data['source_type'] = source_type
+            if 'source_group' not in receipt_data:
+                receipt_data['source_group'] = source_type
+            combined[receipt_id] = receipt_data
     
     logger.info(f"Combined {len(combined)} total receipts")
     return combined
@@ -88,15 +99,17 @@ def combine_receipts(step1_data: Dict[str, Any]) -> Dict[str, Any]:
 def process_rules(
     step1_input_dir: Path,
     output_dir: Path,
-    rules_dir: Path
+    rules_dir: Path,
+    use_reviewed: bool = True
 ) -> Dict[str, Any]:
     """
-    Main processing function - executes Step 2 rules
+    Main processing function - executes Step 3 rules
     
     Args:
-        step1_input_dir: Step 1 output directory (contains vendor_based/ and instacart_based/)
-        output_dir: Step 2 output directory
+        step1_input_dir: Step 1 output directory (or contains reviewed_extracted_data.json from Step 2)
+        output_dir: Step 3 output directory
         rules_dir: Directory containing rule YAML files
+        use_reviewed: If True, prefer reviewed data from Step 2
         
     Returns:
         Dictionary with mapped items and processing results
@@ -110,11 +123,13 @@ def process_rules(
     
     # Get meta information
     meta = rule_loader.get_meta()
-    logger.info(f"Step 2 Rules: {meta.get('version', 'unknown')} - {meta.get('description', 'No description')}")
+    logger.info(f"Step 3 Rules: {meta.get('version', 'unknown')} - {meta.get('description', 'No description')}")
     
-    # Load Step 1 output data
-    logger.info(f"Loading Step 1 output from: {step1_input_dir}")
-    step1_data = load_step1_output(step1_input_dir)
+    # Load Step 1 output data (or reviewed data from Step 2)
+    logger.info(f"Loading input data from: {step1_input_dir}")
+    if use_reviewed and (step1_input_dir / 'reviewed_extracted_data.json').exists():
+        logger.info("Using reviewed data from Step 2")
+    step1_data = load_step1_output(step1_input_dir, use_reviewed=use_reviewed)
     
     # Combine receipts for processing
     combined_receipts = combine_receipts(step1_data)
@@ -306,7 +321,7 @@ def process_rules(
     
     logger.info("")
     logger.info("=" * 80)
-    logger.info(f"Step 2 Complete: Processed {len(combined_receipts)} receipts, {len(all_items)} items")
+    logger.info(f"Step 3 Complete: Processed {len(combined_receipts)} receipts, {len(all_items)} items")
     logger.info(f"  - Matched: {matched_count} items")
     logger.info(f"  - Needs Review: {needs_review_count} items")
     logger.info("=" * 80)
@@ -315,7 +330,7 @@ def process_rules(
 
 
 def main() -> None:
-    """Main entry point for step2_mapping"""
+    """Main entry point for step3_mapping"""
     import argparse
     from pathlib import Path
     
@@ -326,33 +341,38 @@ def main() -> None:
     )
     
     parser = argparse.ArgumentParser(
-        description='Step 2: Map receipt items to database products using rules',
+        description='Step 3: Map receipt items to database products using rules',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
         'input_dir',
         type=str,
-        help='Step 1 output directory (contains vendor_based/ and instacart_based/)'
+        help='Step 1 output directory (or contains reviewed_extracted_data.json from Step 2)'
     )
     parser.add_argument(
         'output_dir',
         type=str,
         nargs='?',
-        default='data/step2_output',
-        help='Step 2 output directory (default: data/step2_output)'
+        default='data/step3_output',
+        help='Step 3 output directory (default: data/step3_output)'
     )
     parser.add_argument(
         '--rules-dir',
         type=str,
         default=None,
-        help='Directory containing rule YAML files (default: step2_rules in parent directory)'
+        help='Directory containing rule YAML files (default: step3_rules in parent directory)'
+    )
+    parser.add_argument(
+        '--no-reviewed',
+        action='store_true',
+        help='Skip reviewed data from Step 2, use original Step 1 output only'
     )
     
     args = parser.parse_args()
     
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
-    rules_dir = Path(args.rules_dir) if args.rules_dir else Path(__file__).parent.parent / 'step2_rules'
+    rules_dir = Path(args.rules_dir) if args.rules_dir else Path(__file__).parent.parent / 'step3_rules'
     
     logger.info(f"Input directory (Step 1 output): {input_dir}")
     logger.info(f"Output directory: {output_dir}")
@@ -367,7 +387,7 @@ def main() -> None:
         logger.error(f"Rules directory not found: {rules_dir}")
         return
     
-    process_rules(input_dir, output_dir, rules_dir)
+    process_rules(input_dir, output_dir, rules_dir, use_reviewed=not args.no_reviewed)
 
 
 if __name__ == "__main__":

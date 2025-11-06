@@ -19,12 +19,12 @@ category_keywords:
   keyword_rules:
     # Packaging
     - include_regex: '(?i)\b(cup|cups|tumbler)\b'
-      map_to_l2: C20
+      map_to_l2: C26
       priority: 90
       hints: ['Cups & Lids']
     
     - include_regex: '(?i)\b(lid|lids|cover)\b'
-      map_to_l2: C20
+      map_to_l2: C26
       priority: 90
       hints: ['Cups & Lids']
     
@@ -35,14 +35,14 @@ category_keywords:
     
     - include_regex: '(?i)\b(bag|bags|tote)\b'
       exclude_regex: '(?i)\b(tea bag|trash bag|garbage bag|checkout bag|carrier bag|bag fee)\b'
-      map_to_l2: C21
+      map_to_l2: C24
       priority: 85
       hints: ['Bags & Trays - Exclude tea bags, trash bags, and checkout bag fees (those are service fees)']
     
-    - include_regex: '(?i)(aluminum\s+tray|food\s+tray|serving\s+tray)'
-      map_to_l2: C21
-      priority: 90
-      hints: ['Bags & Trays - BBI "Aluminum Tray No Charge"']
+    - include_regex: '(?i)(aluminum\s+tray|food\s+tray|serving\s+tray|baking\s+tray)'
+      map_to_l2: C40
+      priority: 95
+      hints: ['Smallwares & Equipment - Kitchen tools like "Aluminum Tray"']
     
     - include_regex: '(?i)(chopsticks|utensil|fork|spoon|knife)'
       map_to_l2: C22
@@ -58,6 +58,12 @@ category_keywords:
       map_to_l2: C23
       priority: 90
       hints: ['Labels & Stickers']
+
+    # POS paper vs service paper distinction
+    - include_regex: '(?i)\b(thermal\s+paper|receipt\s+paper|register\s+tape|cash\s+register\s+tape|pos\s+paper|receipt\s+roll|pos\s+roll)\b'
+      map_to_l2: C61
+      priority: 92
+      hints: ['POS Paper & Register Supplies']
     
     - include_regex: '(?i)(décor\s+paper|decorative\s+paper|packing\s+paper)'
       map_to_l2: C22
@@ -68,7 +74,7 @@ category_keywords:
     - include_regex: '(?i)\b(uni\s+cap|uni\s+hoodie|uniform|cap|hoodie|apron|shirt)\b'
       map_to_l2: C60
       priority: 90
-      hints: ['Office/Admin - BBI "Uni Cap", "Uni Hoodie" (uniform expenses)']
+      hints: ['Office/Admin/Uniform - BBI "Uni Cap", "Uni Hoodie" (uniform expenses)']
     
     # Tea & Coffee
     - include_regex: '(?i)\b(tea|green tea|black tea|oolong|matcha|chai)\b'
@@ -115,16 +121,28 @@ category_keywords:
       priority: 85
       hints: ['Toppings & Jellies - BBI "Can Taro Mocha"']
     
-    # Dairy
-    - include_regex: '(?i)\b(milk|whole milk|skim|2%|oat milk|almond milk)\b'
+    # Dairy & Plant-based milks (general, all sources)
+    # Plant milks first with higher priority
+    - include_regex: '(?i)\b(coconut\s+milk|almond\s+milk|soy\s+milk|oat\s+milk|oatmilk|soymilk|plant[-\s]*based\s+milk|non[-\s]*dairy\s+milk)\b'
+      map_to_l2: C04
+      priority: 92
+      hints: ['Dairy & Milk - plant-based milk (non-dairy)']
+
+    - include_regex: '(?i)\b(milk|whole milk|skim|2%)\b'
+      exclude_regex: '(?i)\b(coconut|almond|soy|oat|oatmilk|soymilk|plant[-\s]*based|non[-\s]*dairy)\b'
       map_to_l2: C04
       priority: 85
-      hints: ['Dairy & Milk']
+      hints: ['Dairy & Milk - dairy milk']
     
     - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half|heavy whip|whipping cream)\b'
       map_to_l2: C04
       priority: 85
       hints: ['Dairy & Milk - Including heavy cream/whipping cream (Aldi "Heavy Whip")']
+
+    - include_regex: '(?i)\b(yogurt|greek yogurt)\b'
+      map_to_l2: C04
+      priority: 90
+      hints: ['Dairy & Milk - Yogurt products']
     
     # Sweeteners & Sugar
     - include_regex: '(?i)\b(sugar|granulated sugar|cane sugar|brown sugar)\b'
@@ -137,6 +155,18 @@ category_keywords:
       priority: 85
       hints: ['Sweeteners/Sugar']
     
+    # Fruit cups in syrup → Syrups & Sauces (per user)
+    - include_regex: '(?i)\b(fruit\s+cup|grapefruit)\b.*\b(in\s+extra\s+light\s+syrup|in\s+syrup|light\s+syrup)\b'
+      map_to_l2: C02
+      priority: 92
+      hints: ['Syrups & Sauces - Canned fruit cups in (extra light) syrup']
+
+    # Fresh Fruit - Grapefruit
+    - include_regex: '(?i)\b(grapefruit|grapefruits)\b'
+      map_to_l2: C09
+      priority: 85
+      hints: ['Fresh Fruit - Grapefruit']
+
     # Grains & Starches
     - include_regex: '(?i)\b(panko|breadcrumb|bread crumb|coating)\b'
       map_to_l2: C07
@@ -186,7 +216,7 @@ category_keywords:
     
     # Fresh Vegetables (Parktoshop and others)
     - include_regex: '(?i)\b(green onion|scallion|onion|basil|cilantro|parsley|herb|lettuce|spinach|kale)\b'
-      map_to_l2: C12
+      map_to_l2: C16
       priority: 85
       hints: ['Fresh Vegetables - Including herbs (Parktoshop "GREEN ONION", "BASIL LEAVE")']
     
@@ -212,6 +242,22 @@ category_keywords:
       map_to_l2: C40
       priority: 90
       hints: ['Smallwares & Equipment - Tents and canopies (e.g., Galaxy Equipment 10x10 White Straight Leg Instant Pop Up Canopy Tent)']
+
+    - include_regex: '(?i)\b(sand\s*bags?)\b.*\b(canopy|canopies|tent)\b'
+      map_to_l2: C40
+      priority: 92
+      hints: ['Smallwares & Equipment - canopy/tent stabilization sand bags']
+    
+    - include_regex: '(?i)\b(straw\s*holder|stirrers?\s*holder|stirrer\s*holder|utensil\s*holder|organizer|caddy|dispenser\s*rack)\b'
+      map_to_l2: C31
+      priority: 88
+      hints: ['Non-food consumables - Holders/organizers/caddies/racks for service area']
+    
+    # Explicit IQF strawberry mapping
+    - include_regex: '(?i)\bIQF\b.*\bstrawberr(y|ies)\b|\bstrawberr(y|ies)\b.*\bIQF\b'
+      map_to_l2: C10
+      priority: 96
+      hints: ['Frozen Fruit - IQF strawberries']
   
   # Vendor-specific abbreviations and normalizations
   vendor_abbreviations:
@@ -335,8 +381,8 @@ category_keywords:
         - 'Example: "Jam Passion fruit" → C03 Jam/Purée'
         - 'Example: "Powder Mochi" → C08 Toppings & Jellies'
         - 'Example: "Can Taro Mocha" → C08 Toppings & Jellies'
-        - 'Example: "Uni Cap" → C60 Office/Admin (uniform)'
-        - 'Example: "Aluminum Tray No Charge" → C21 Bags & Trays'
+        - 'Example: "Uni Cap" → C60 Office/Admin/Uniform'
+        - 'Example: "Aluminum Tray No Charge" → C40 Smallwares & Equipment'
   
   # Heuristic classifiers (smart pattern detection)
   heuristics:
@@ -345,6 +391,7 @@ category_keywords:
       description: >
         Detects fruit items and classifies as Fresh/Frozen based on context.
         Includes Costco abbreviations (STRAWBRY, GRPS).
+        Excludes items with "powder", "jelly", "jam", "purée", "topping" to avoid false positives.
       tokens:
         - apple
         - banana
@@ -372,12 +419,16 @@ category_keywords:
         - melon
         - watermelon
         - cantaloupe
+      unless_name_matches:
+        - "(?i)\\bpowder\\b"
+        - "(?i)\\b(jelly|jam|pur[ée]e|topping)\\b"
       freezer_markers:
         - frozen
         - freeze-dried
         - freeze dried
         - '°F'
         - '-°F'
+        - iqf
       map_to_l2_fresh: C09   # Fresh Fruit
       map_to_l2_frozen: C10  # Frozen Fruit
       confidence: 0.85
@@ -403,7 +454,7 @@ category_keywords:
         - napkin
         - label
         - sticker
-      map_to_l2: C20  # Default to Cups & Lids (refined by other rules)
+      map_to_l2: C26  # Default to Cups & Lids (refined by other rules)
       confidence: 0.80
     
     # Topping classifier

@@ -40,6 +40,9 @@ playwright>=1.40.0
 # Image processing (for OCR)
 Pillow>=10.2.0
 
+# OpenCV for advanced image preprocessing (binarization, deskewing, scaling)
+opencv-python>=4.5.0
+
 # OCR for image-based PDFs (optional, requires tesseract system dependency)
 pytesseract>=0.3.10
 # After install, install tesseract:

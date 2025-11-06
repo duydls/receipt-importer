@@ -1,0 +1,50 @@
+version: 1
+
+entries:
+  - id: rd-pos-thermal-paper
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Thermal Receipt Paper (POS)"
+    aliases: ["thermal paper","receipt roll","pos paper","thermal roll"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "POS Paper & Register Supplies" }
+    category_lock: true
+    priority: 95
+
+  - id: rd-napkin-dinner-3000ct
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Napkin Dinner 3000ct"
+    aliases: ["napkin dinner 3000ct","dinner napkin 3000 ct","napkins 3000ct"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "Napkins & Paper (service)" }
+    category_lock: true
+    priority: 95
+
+  - id: rd-skyline-emerald-dish-soap-1gal
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Skyline Emerald Dish Soap 1 gal"
+    aliases: ["skyline emerld dsh sgal","emerald dish soap 1 gal","dish soap sgal"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "Cleaning Chemicals" }
+    category_lock: true
+    priority: 95
+
+  - id: rd-glove-vinyl-med-100ct
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Glove PF Vinyl Medium 100 ct"
+    aliases: ["glove pf vinyl med 100 ct","vinyl gloves med 100ct","gloves vinyl medium 100 ct"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "Gloves & Food Service Supplies" }
+    category_lock: true
+    priority: 95
+
+
+entries:
+  - id: rd-pos-thermal-paper
+    scope: vendor
+    vendor: "RD"
+    canonical_name: "Thermal Receipt Paper (POS)"
+    aliases: ["thermal paper","receipt roll","pos paper","thermal roll"]
+    category: { L1: "A03 COGS–Non-food Consumables", L2: "POS Paper & Register Supplies" }
+    category_lock: true
+    priority: 95
+
