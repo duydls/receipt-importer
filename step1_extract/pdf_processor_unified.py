@@ -809,7 +809,14 @@ class UnifiedPDFProcessor:
                 if not any(pattern_def.get('multiline') for pattern_def in item_patterns):
                     line = ' '.join(line.split())
             
-            # Skip non-product lines (from rules)
+            # Skip non-product lines (from rules) - A) Robust line tokenization
+            # Guard against headers/dates that shouldn't start items
+            # Match dates like 09.11.2025 or 3.11.2025 (flexible day/month)
+            HEADER_OR_DATE = re.compile(r'(?:^Qty\s+Item|^\d{1,2}\.\d{1,2}\.\d{4}|^Invoice\s+#|^Sold\s+to:)', re.I)
+            if HEADER_OR_DATE.match(line.strip()):
+                line_idx += 1
+                continue
+            
             skip_keywords = rules.get('skip_keywords', [])
             skip_line = False
             for kw in skip_keywords:
@@ -889,6 +896,13 @@ class UnifiedPDFProcessor:
                         # Check conditions if specified (from rules)
                         conditions = pattern_def.get('conditions', [])
                         if conditions:
+                            # A) Additional validation: product_name should not contain date patterns
+                            product_name = item_data.get('product_name', '')
+                            if product_name and re.search(r'\d{1,2}\.\d{1,2}\.\d{4}', product_name):
+                                # Skip if product_name contains a date (likely merged with date line)
+                                match_found = False
+                                continue
+                            
                             if not self._check_conditions(line, match, item_data, conditions):
                                 match_found = False
                                 continue

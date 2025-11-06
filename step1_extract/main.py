@@ -567,23 +567,32 @@ def process_files(
                                     item['pricing_confidence'] = confidence
                                     determined_count += 1
                                     
-                                    # Set the actual UoM value from baseline based on pricing unit
+                                    # D) Fix pack/EACH inconsistency - set purchase_uom based on pricing_unit
                                     if pricing_unit == 'Pack':
-                                        # Use Pack Size UoM (e.g., extract "kg" from "20*1-kg")
+                                        # Pack items: set purchase_uom to "pack" (not "EACH")
+                                        item['purchase_uom'] = 'pack'
+                                        
+                                        # Store pack size info
                                         pack_size = baseline_item.get('pack_size', '').strip()
                                         if pack_size:
-                                            # Extract UoM from pack size (e.g., "20*1-kg" -> "kg")
+                                            item['baseline_pack_size'] = pack_size
+                                            # Extract UoM from pack size for reference (e.g., "20*1-kg" -> "kg")
                                             baseline_uom = bbi_baseline._extract_uom_unit(pack_size)
                                             if baseline_uom:
                                                 item['baseline_uom'] = baseline_uom
-                                                item['purchase_uom'] = baseline_uom
                                                 item['raw_uom_text'] = baseline_uom
-                                                item['baseline_pack_size'] = pack_size
-                                                item['baseline_pack_count'] = baseline_item.get('pack_count', 1)
-                                                uom_set_count += 1
-                                                logger.debug(f"  Set UoM from Pack Size for '{product_name}': {baseline_uom}")
+                                        else:
+                                            # If no pack_size, use uom from baseline if available
+                                            baseline_uom = baseline_item.get('uom', '').strip()
+                                            if baseline_uom:
+                                                item['baseline_uom'] = baseline_uom
+                                                item['raw_uom_text'] = baseline_uom
+                                        
+                                        item['baseline_pack_count'] = baseline_item.get('pack_count', 1)
+                                        uom_set_count += 1
+                                        logger.debug(f"  Set Pack pricing for '{product_name}': purchase_uom=pack")
                                     else:  # pricing_unit == 'UoM'
-                                        # Use UoM from baseline
+                                        # UoM items: use UoM from baseline
                                         baseline_uom = baseline_item.get('uom', '').strip()
                                         if baseline_uom:
                                             item['baseline_uom'] = baseline_uom
@@ -591,6 +600,17 @@ def process_files(
                                             item['raw_uom_text'] = baseline_uom
                                             uom_set_count += 1
                                             logger.debug(f"  Set UoM from baseline for '{product_name}': {baseline_uom}")
+                                        else:
+                                            # If baseline has no UoM but pack_size exists, it's a Pack item
+                                            # This handles cases where baseline.uom == "" and baseline.pack_size exists
+                                            pack_size = baseline_item.get('pack_size', '').strip()
+                                            if pack_size:
+                                                item['pricing_unit'] = 'Pack'
+                                                item['purchase_uom'] = 'pack'
+                                                item['baseline_pack_size'] = pack_size
+                                                item['baseline_pack_count'] = baseline_item.get('pack_count', 1)
+                                                uom_set_count += 1
+                                                logger.debug(f"  Set Pack pricing for '{product_name}' (baseline has pack_size but no uom): purchase_uom=pack")
                     
                     if uom_set_count > 0:
                         logger.info(f"  ✓ Set UoM from baseline for {uom_set_count}/{len(items)} items")

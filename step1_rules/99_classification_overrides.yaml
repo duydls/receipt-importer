@@ -82,7 +82,7 @@ overrides:
       L2_code: "C12"
     weight: 90
 
-  # Cakes & Mousse (UNI_Mousse; English + Chinese) - cross-line tolerant
+  # Cakes & Mousse (UNI_Mousse; English + Chinese) - cross-line tolerant (E) Belt-and-suspenders
   - id: cakes_mousse_uni_mousse
     when_vendor_in: ["UNI_Mousse"]
     when_name_matches:

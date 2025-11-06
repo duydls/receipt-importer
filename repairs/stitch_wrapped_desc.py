@@ -10,7 +10,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Pattern to match letters/CJK (words, not price/qty lines)
-LETTER_CJK = re.compile(r'^[\w\u3400-\u9FFF\uF900-\uFAFF][\w\s\u3400-\u9FFF\uF900-\uFAFF-]*$', re.IGNORECASE)
+# B) Tail pattern for stray tails like "Cake" that were split by price columns
+TAIL_RX = re.compile(r'^(?:Cake|蛋糕|瑞士卷|千层|千層)\s*$', re.I)
 
 
 def is_stray_tail(it: dict) -> bool:
@@ -25,15 +26,11 @@ def is_stray_tail(it: dict) -> bool:
     """
     name = (it.get("display_name") or it.get("canonical_name") or it.get("product_name") or "").strip()
     
-    if not name or len(name) > 20:  # tails are usually short
+    if not name:
         return False
     
-    # Must be pure words (no $/digits that indicate a price/qty line)
-    if not LETTER_CJK.fullmatch(name):
-        return False
-    
-    # The common case we saw: exactly "Cake" or similar short words
-    return name.lower() in {"cake", "cakes", "mousse", "mousses"}
+    # Use TAIL_RX pattern to match common tail words
+    return bool(TAIL_RX.match(name))
 
 
 def merge_tail(prev: dict, tail: dict) -> None:

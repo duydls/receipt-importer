@@ -73,6 +73,7 @@ rule_sets:
           total_price: "total_price"
       
       # Pattern 3: No-charge / free items (e.g., giveaways)
+      # Must have quantity at start, then description, then $ - $ - (no date lines)
       - type: "qty_desc_no_charge"
         regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+(?:No\\s+Charge\\s+)?(?:\\$\\s*)?-\\s+(?:\\$\\s*)?-\\s*$"
         groups:
@@ -83,19 +84,22 @@ rule_sets:
           product_name: "product_name"
           unit_price: "0.00"
           total_price: "0.00"
+        conditions:
+          - "product_name should not contain date pattern (dd.mm.yyyy)"
     
     skip_keywords:
       - "^\\s*Qty\\s+Item\\s*#\\s+Description\\s+Unit\\s+Price\\s+Discount\\s+Line\\s+Total"
       - "^\\s*Payment\\s+Method"
       - "^\\s*Logo"
       - "^\\s*Sold\\s+to:"
+      - "^\\s*Invoice\\s+#"  # Invoice header
       - "^\\s*Subtotal\\b"
       - "^\\s*Tax\\b"
       - "^\\s*Total\\b"
       - "^\\s*Grand\\s+Total\\b"
       - "^\\s*Amount\\s+Due\\b"
       - "^\\s*Balance\\s+Due\\b"
-      - "^\\s*\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s*$"  # numeric date line like 3.11.2025
+      - "^\\s*\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s*$"  # numeric date line like 09.11.2025 or 3.11.2025
     
     summary_keywords:
       - "Subtotal"
@@ -147,10 +151,11 @@ rule_sets:
         case_insensitive: true
     
     item_patterns:
-      # Pattern 1: Single-line format with Chinese characters
+      # Pattern 1: Robust single-line format (anchor on qty + two prices)
       # Format: "2.00       巧克力慕斯蛋糕Chocolate Mousse Cake $ 18.00    $          36.00"
+      # Anchors: start-of-line qty, then description, then $ unit_price $ total_price
       - type: "qty_desc_price_total_single_line"
-        regex: "^\\s*(\\d+(?:\\.\\d+)?)\\s+(.+?)\\s+\\$\\s*(\\d+(?:\\.\\d{2})?)\\s+\\$\\s*(\\d+(?:\\.\\d{2})?)\\s*$"
+        regex: "^\\s*(\\d+(?:\\.\\d{1,2})?)\\s+(?:(?:[A-Za-z0-9#-]+)\\s+)?(.+?)\\s+\\$\\s*(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)\\s+\\$\\s*(\\(?-?(?:\\d{1,3}(?:,\\d{3})*|\\d+)\\.\\d{2}\\)?)\\s*$"
         groups:
           - quantity
           - product_name
