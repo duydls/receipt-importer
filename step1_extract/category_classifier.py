@@ -33,6 +33,7 @@ class CategoryClassifier:
         self.instacart_rules = rule_loader.load_rule_file_by_name('57_category_maps_instacart.yaml')
         self.amazon_rules = rule_loader.load_rule_file_by_name('58_category_maps_amazon.yaml')
         self.keyword_rules = rule_loader.load_rule_file_by_name('59_category_keywords.yaml')
+        self.classification_overrides = rule_loader.load_rule_file_by_name('60_classification_overrides.yaml')
         
         # Extract relevant sections
         self.l1_categories = self.l1_rules.get('categories_l1', {}).get('l1_categories', [])
@@ -109,7 +110,7 @@ class CategoryClassifier:
                     return result
             
             elif stage == 'vendor_overrides':
-                result = self._apply_vendor_overrides(item, vendor_code)
+                result = self._apply_vendor_overrides(item, vendor_code, source_type)
                 if result:
                     return result
             
@@ -293,7 +294,7 @@ class CategoryClassifier:
         
         return True
     
-    def _apply_vendor_overrides(self, item: Dict[str, Any], vendor_code: str) -> Optional[Dict[str, Any]]:
+    def _apply_vendor_overrides(self, item: Dict[str, Any], vendor_code: str, source_type: str = None) -> Optional[Dict[str, Any]]:
         """Apply vendor-specific hints from L2 catalog"""
         # Check for WebstaurantStore online lookup hints
         if vendor_code == 'WEBSTAURANTSTORE' and item.get('_webstaurantstore_l2_hint'):
@@ -308,6 +309,84 @@ class CategoryClassifier:
                 confidence=confidence
             )
         
+        # Apply classification overrides from YAML file
+        override_rules = self.classification_overrides.get('overrides', [])
+        if override_rules:
+            # Use clean_name if available (from name hygiene), otherwise fall back to product_name
+            product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
+            # Use passed source_type or fall back to item's source_type
+            if not source_type:
+                source_type = item.get('_source_type', '')
+            
+            # Sort by weight (highest first)
+            sorted_rules = sorted(override_rules, key=lambda r: r.get('weight', 0), reverse=True)
+            
+            for rule in sorted_rules:
+                # Check vendor match
+                vendor_match = False
+                if 'when_vendor_in' in rule:
+                    vendor_list = rule.get('when_vendor_in', [])
+                    vendor_match = vendor_code and vendor_code.upper() in [v.upper() for v in vendor_list]
+                
+                # Check source_type match
+                source_match = False
+                if 'when_source_type_in' in rule:
+                    source_list = rule.get('when_source_type_in', [])
+                    source_match = source_type and source_type.lower() in [s.lower() for s in source_list]
+                
+                # Must match at least one condition
+                if not vendor_match and not source_match:
+                    continue
+                
+                # Check name patterns
+                name_patterns = rule.get('when_name_matches', [])
+                name_matched = False
+                for pattern in name_patterns:
+                    if re.search(pattern, product_name):
+                        name_matched = True
+                        break
+                
+                if not name_matched:
+                    continue
+                
+                # Apply override
+                set_config = rule.get('set', {})
+                l1_str = set_config.get('L1', '')
+                l2_str = set_config.get('L2', '')
+                
+                # Extract category IDs from strings like "A02 - COGS–Finished Goods" or "C20 - Cakes & Mousse"
+                l1_category = None
+                l2_category = None
+                
+                if l1_str:
+                    # Extract L1 ID (e.g., "A02" from "A02 - COGS–Finished Goods")
+                    l1_match = re.search(r'^([A-Z]\d+)\s*-', l1_str)
+                    if l1_match:
+                        l1_category = l1_match.group(1)
+                
+                if l2_str:
+                    # Extract L2 ID (e.g., "C20" from "C20 - Cakes & Mousse")
+                    l2_match = re.search(r'^([A-Z]\d+)\s*-', l2_str)
+                    if l2_match:
+                        l2_category = l2_match.group(1)
+                
+                # If L2 is set but L1 is not, derive L1 from L2 mapping
+                if l2_category and not l1_category:
+                    l1_category = self.l2_to_l1_map.get(l2_category, 'A99')
+                
+                # Use weight as confidence (normalized to 0-1 range)
+                weight = rule.get('weight', 98)
+                confidence = min(weight / 100.0, 1.0)
+                
+                if l2_category:
+                    return self._build_result(
+                        l2_category=l2_category,
+                        l1_category=l1_category or self.l2_to_l1_map.get(l2_category, 'A99'),
+                        source='classification_override',
+                        rule_id=f"override_{rule.get('when_vendor_in', rule.get('when_source_type_in', ['unknown']))[0].lower()}_cake",
+                        confidence=confidence
+                    )
+        
         # RD-specific vendor heuristics (run early, before general keywords)
         # These use clean_name and size_spec from name hygiene
         if vendor_code in ['RD', 'RESTAURANT_DEPOT', 'RESTAURANT']:
@@ -315,7 +394,6 @@ class CategoryClassifier:
             if result:
                 return result
         
-        # TODO: Could implement other vendor-specific biasing here
         return None
     
     def _apply_keywords(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:

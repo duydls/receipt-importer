@@ -26,6 +26,89 @@ def _load_picked_weight_rules() -> Dict:
         return {}
 
 
+def _normalize_uom(uom: str) -> str:
+    """Normalize UoM value for display (EACH/ea → pc, lowercase)"""
+    if not uom:
+        return ''
+    uom_lower = uom.lower().strip()
+    # Map synonyms
+    if uom_lower in ['each', 'ea', 'eaches']:
+        return 'pc'
+    return uom_lower
+
+
+def _format_bbi_quantity_uom(item: Dict) -> str:
+    """
+    Format quantity/UoM for BBI orders with Pack-aware display
+    
+    Returns formatted string like:
+    - "2 packs (500 pc/pack)" for Pack-priced items
+    - "30 bag (50g*12/bag)" for UoM-priced items with multi-unit spec
+    - "60 kg (≈ 3 packs × 20*1 kg)" for UoM-priced items with pack hint
+    """
+    quantity = item.get('quantity', 0)
+    pricing_unit = item.get('pricing_unit', '')  # 'Pack' or 'UoM'
+    purchase_uom = item.get('purchase_uom', '')
+    baseline_match = item.get('baseline_match', {}) or {}
+    
+    # Normalize UoM
+    purchase_uom_normalized = _normalize_uom(purchase_uom)
+    
+    # Get baseline info (from item or baseline_match dict)
+    baseline_pack_size = item.get('baseline_pack_size') or (baseline_match.get('pack_size', '') if isinstance(baseline_match, dict) else '')
+    baseline_pack_count = item.get('baseline_pack_count') or (baseline_match.get('pack_count', 1) if isinstance(baseline_match, dict) else 1)
+    baseline_uom_raw = item.get('baseline_uom') or (baseline_match.get('uom_raw', '') if isinstance(baseline_match, dict) else '')
+    raw_uom_text = item.get('raw_uom_text', '')
+    
+    # Format quantity (remove trailing zeros)
+    qty_float = float(quantity) if quantity else 0.0
+    qty_display = f"{qty_float:g}" if qty_float == int(qty_float) else f"{qty_float:.2f}".rstrip('0').rstrip('.')
+    
+    if pricing_unit == 'Pack':
+        # Pack-priced: "N pack(s) (PACK_SIZE)"
+        pack_size = baseline_pack_size or ''
+        if pack_size:
+            # Pluralize "pack" when N > 1
+            pack_word = 'packs' if qty_float > 1 else 'pack'
+            return f"{qty_display} {pack_word} ({pack_size})"
+        else:
+            pack_word = 'packs' if qty_float > 1 else 'pack'
+            return f"{qty_display} {pack_word}"
+    
+    else:
+        # UoM-priced: "N UOM" with optional hints
+        uom_display = purchase_uom_normalized or 'unknown'
+        
+        # Check for multi-unit string in raw_uom_text or baseline_uom_raw
+        import re
+        multi_unit_hint = ''
+        if raw_uom_text:
+            # Check if it contains patterns like "50g*12-bag" or "20*1-kg"
+            if re.search(r'\d+[*×]\d+', raw_uom_text):
+                multi_unit_hint = f"({raw_uom_text})"
+        elif baseline_uom_raw:
+            if re.search(r'\d+[*×]\d+', baseline_uom_raw):
+                multi_unit_hint = f"({baseline_uom_raw})"
+        
+        # Check if quantity is divisible by pack_count (show pack hint)
+        pack_hint = ''
+        if baseline_pack_count and baseline_pack_count > 1 and qty_float > 0:
+            packs = qty_float / baseline_pack_count
+            if packs == int(packs) and packs > 0:
+                # Quantity is exactly divisible by pack_count
+                pack_label = baseline_uom_raw or purchase_uom_normalized
+                pack_hint = f" (≈ {int(packs)} packs × {pack_label})"
+        
+        # Combine UoM display with hints
+        result = f"{qty_display} {uom_display}"
+        if multi_unit_hint:
+            result += f" {multi_unit_hint}"
+        if pack_hint:
+            result += pack_hint
+        
+        return result
+
+
 def _format_size_for_display(size_str: str) -> str:
     """
     Format size string for display: "3.0 lb" -> "3-lb", "64 fl oz" -> "64-fl oz"
@@ -467,9 +550,15 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
     for receipt_id, receipt_data in sorted(extracted_data.items()):
         items = receipt_data.get('items', [])
         vendor = receipt_data.get('vendor') or 'Unknown'
-        order_date = receipt_data.get('order_date') or receipt_data.get('date') or 'N/A'
+        order_date = receipt_data.get('order_date') or receipt_data.get('date') or receipt_data.get('transaction_date') or 'N/A'
+        transaction_date = receipt_data.get('transaction_date') or receipt_data.get('date') or receipt_data.get('order_date')
         filename = receipt_data.get('filename', receipt_id)
         total = receipt_data.get('total', 0)
+        
+        # Quality flag for missing transaction date
+        missing_date_flag = ''
+        if not transaction_date or transaction_date == 'N/A':
+            missing_date_flag = '<span style="background:#dc3545;color:white;padding:4px 8px;border-radius:3px;font-size:0.85em;margin-left:10px;">⚠️ Missing Date</span>'
         
         # Get source type information
         source_type = receipt_data.get('source_type', 'unknown')
@@ -499,7 +588,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
         html_content += f"""
         <div class="receipt-section">
             <div class="receipt-header">
-                <h3>{receipt_id}</h3>
+                <h3>{receipt_id} {missing_date_flag}</h3>
             </div>
             <div style="padding: 20px;">
             <div class="metadata">
@@ -697,8 +786,12 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     {', '.join(unit_info_parts)}
                 </div>'''
             
+            # BBI-specific: Use Pack-aware quantity/UoM formatting
+            if is_bbi:
+                quantity_display = _format_bbi_quantity_uom(item)
+                unit_str = f" {quantity_display}"
             # Use Size instead of UoM for price display, but use picked weight + UoM for weight items (like bananas)
-            if _should_use_picked_weight(item, picked_weight_rules):
+            elif _should_use_picked_weight(item, picked_weight_rules):
                 # For weight items with picked_weight, use picked_weight + UoM instead of size
                 picked_weight = item.get('picked_weight', '')
                 try:
@@ -726,6 +819,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
             is_costco = 'COSTCO' in upper_vendor or 'COSTCO' in (receipt_data.get('vendor','').upper())
             is_rd = 'RD' == upper_vendor or 'RESTAURANT_DEPOT' in upper_vendor or 'RESTAURANT DEPOT' in (receipt_data.get('vendor','').upper())
+            is_bbi = 'BBI' in upper_vendor
 
             # Vendor-specific display rule for unit_price:
             # - Costco: display unit_price computed from total_price / quantity (KB price is only for inference)
@@ -747,6 +841,17 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Check if they match (allow small rounding differences of 0.01)
             price_match = abs(expected_total - total_price_float) < 0.01
             
+            # Quality flags for BBI and all vendors
+            quality_flags = []
+            # Zero price warning
+            if unit_price_float == 0 or total_price_float == 0:
+                quality_flags.append('<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:0.8em;margin-left:6px;">⚠️ Zero Price</span>')
+            
+            # Missing transaction date warning (for receipt level, not item level)
+            # This will be checked at receipt level
+            
+            quality_flags_html = ' '.join(quality_flags) if quality_flags else ''
+            
             # Apply highlighting if prices don't match
             price_style = ""
             price_warning = ""
@@ -767,7 +872,7 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                     </div>
                     <div class="item-details">
                         <div style="font-size: 1em; margin-bottom: 5px;">
-                            <strong>Quantity:</strong> {qty_float:g}{unit_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f}
+                            <strong>Quantity:</strong> {qty_float:g}{unit_str} | <strong>Unit Price:</strong> ${unit_price_float:.2f} | <strong>Total Price:</strong> ${total_price_float:.2f} {quality_flags_html}
                         </div>
                         <div style="font-size: 0.9em; color: #666; margin-top: 3px;">
                             Calculation: {calculation_display} {'✅' if price_match else '❌'}

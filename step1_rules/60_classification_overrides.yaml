@@ -1,0 +1,28 @@
+# Classification Overrides
+# Vendor-specific and source-specific classification rules that override default keyword matching
+# These rules have high weight/priority to ensure they win over generic flavor or ingredient rules
+
+version: 1
+
+overrides:
+  # BBI: map any "Cake" item to Cakes & Mousse (finished goods)
+  - when_vendor_in: ["BBI"]
+    when_name_matches: 
+      - "(?i)\\bcake\\b"
+      - "蛋糕"
+    set:
+      L1: "A02 - COGS–Finished Goods"
+      L2: "C20 - Cakes & Mousse"
+    weight: 98  # outrank flavor/ingredient rules
+  
+  # Note: If using source_type: "bbi" instead of vendor, use:
+  # - when_source_type_in: ["bbi"]
+  #   when_name_matches: [...]
+  #   set: {...}
+
+notes:
+  - "(?i)\\bcake\\b" is case-insensitive and avoids matching "cupcake" accidentally
+  - If you want cupcakes too, add "(?i)\\bcup\\s*cake\\b"
+  - Keep weight high (98) so this wins over generic flavor or ingredient rules
+  - If pipeline uses source_type: "bbi" instead of vendor value, mirror the same rule with when_source_type_in: ["bbi"]
+
