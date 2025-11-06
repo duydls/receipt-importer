@@ -614,7 +614,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
                 # Prefer showing size/spec (raw_uom_text) as UoM display when available
                 uom_display = raw_uom_text
             else:
-                uom_display = purchase_uom.upper() if purchase_uom and purchase_uom != 'unknown' else 'UNKNOWN'
+                # Safely convert purchase_uom to string and uppercase
+                if purchase_uom and isinstance(purchase_uom, str) and purchase_uom != 'unknown':
+                    uom_display = purchase_uom.upper()
+                else:
+                    uom_display = 'UNKNOWN'
             # Normalization spec fields (from 00_normalize.yaml)
             spec_pack = item.get('spec.pack') or (item.get('spec', {}).get('pack') if isinstance(item.get('spec', {}), dict) else None)
             spec_size = item.get('spec.size') or (item.get('spec', {}).get('size') if isinstance(item.get('spec', {}), dict) else None)

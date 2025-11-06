@@ -56,27 +56,37 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         input_dir: Base input directory
         
     Returns:
-        'localgrocery_based', 'instacart_based', 'bbi_based', 'amazon_based', or 'webstaurantstore_based'
+        'localgrocery_based', 'instacart_based', 'bbi_based', 'amazon_based', 'webstaurantstore_based', 'wismettac_based', or 'odoo_based'
     """
     try:
         rel_path = file_path.relative_to(input_dir)
-        folder_name = str(rel_path.parent) if rel_path.parent != Path('.') else ''
+        # Get full path parts for nested folder detection
+        path_parts = [part.lower() for part in rel_path.parts]
+        folder_name = str(rel_path.parent).lower() if rel_path.parent != Path('.') else ''
         filename_lower = file_path.name.lower()
         
+        # Odoo-based = Receipts/Odoo folder (new structure)
+        if 'odoo' in path_parts or 'odoo' in folder_name:
+            return 'odoo_based'
+        
+        # Wismettac-based = Wismettac folder or filename patterns
+        if 'wismettac' in folder_name or 'wismettac' in filename_lower:
+            return 'wismettac_based'
+        
         # WebstaurantStore-based = WebstaurantStore folder
-        if 'webstaurant' in folder_name.lower():
+        if 'webstaurant' in folder_name:
             return 'webstaurantstore_based'
         
         # BBI-based = BBI folder or BBI filename patterns
-        if 'bbi' in folder_name.lower() or 'uni_il_ut' in filename_lower:
+        if 'bbi' in folder_name or 'uni_il_ut' in filename_lower:
             return 'bbi_based'
         
         # Amazon-based = AMAZON folder or Amazon order ID pattern
-        if 'amazon' in folder_name.lower() or 'orders_from_' in filename_lower:
+        if 'amazon' in folder_name or 'orders_from_' in filename_lower:
             return 'amazon_based'
         
         # Instacart-based = Instacart folder
-        if 'instacart' in folder_name.lower() or 'instarcart' in folder_name.lower():
+        if 'instacart' in folder_name or 'instarcart' in folder_name:
             return 'instacart_based'
         
         # Local grocery-based = Costco, Jewel-Osco, RD, Aldi, Parktoshop, etc.
@@ -84,6 +94,10 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
     except ValueError:
         # If can't determine relative path, check filename
         filename_lower = file_path.name.lower()
+        if 'odoo' in filename_lower:
+            return 'odoo_based'
+        if 'wismettac' in filename_lower:
+            return 'wismettac_based'
         if 'webstaurant' in filename_lower:
             return 'webstaurantstore_based'
         if 'bbi' in filename_lower or 'uni_il_ut' in filename_lower:
@@ -156,6 +170,8 @@ def process_files(
     bbi_based_files: List[Path] = []
     amazon_based_files: List[Path] = []
     webstaurantstore_based_files: List[Path] = []
+    wismettac_based_files: List[Path] = []
+    odoo_based_files: List[Path] = []
     
     # Group PDF files (Excel files removed - no longer processed for RD, Costco, Aldi, Jewel, Parktoshop)
     for file_path in pdf_files:
@@ -170,10 +186,19 @@ def process_files(
             amazon_based_files.append(file_path)
         elif receipt_type == 'webstaurantstore_based':
             webstaurantstore_based_files.append(file_path)
+        elif receipt_type == 'wismettac_based':
+            wismettac_based_files.append(file_path)
+        elif receipt_type == 'odoo_based':
+            odoo_based_files.append(file_path)
     
     # Skip Excel files for localgrocery_based vendors (they only use PDF now)
-    # Excel files are only for BBI-based receipts
+    # Excel files are only for BBI-based receipts, but exclude BBI_Size.xlsx files (baseline files)
     for file_path in excel_files:
+        # Skip BBI baseline files (they should not be processed as receipts)
+        if 'BBI_Size' in file_path.name:
+            logger.debug(f"Skipping BBI baseline file (not a receipt): {file_path.relative_to(input_dir)}")
+            continue
+        
         receipt_type = detect_group(file_path, input_dir)
         if receipt_type == 'bbi_based':
             bbi_based_files.append(file_path)
@@ -191,7 +216,7 @@ def process_files(
         else:
             logger.warning(f"CSV file found in localgrocery location (ignoring): {file_path.relative_to(input_dir)}")
     
-    logger.info(f"LocalGrocery-based files: {len(localgrocery_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}, WebstaurantStore-based files: {len(webstaurantstore_based_files)}")
+    logger.info(f"LocalGrocery-based files: {len(localgrocery_based_files)}, Instacart-based files: {len(instacart_based_files)}, BBI-based files: {len(bbi_based_files)}, Amazon-based files: {len(amazon_based_files)}, WebstaurantStore-based files: {len(webstaurantstore_based_files)}, Wismettac-based files: {len(wismettac_based_files)}, Odoo-based files: {len(odoo_based_files)}")
     
     ### Process localgrocery-based files (Costco, RD, Aldi, Jewel-Osco, Parktoshop)
     localgrocery_based_output_dir = output_base_dir / 'localgrocery_based'
@@ -377,6 +402,14 @@ def process_files(
     bbi_based_output_dir = output_base_dir / 'bbi_based'
     bbi_based_data: Dict[str, Any] = {}
     
+    # Load BBI baseline for UoM/Pack determination (before processing)
+    from .bbi_baseline import load_bbi_baseline
+    bbi_baseline = load_bbi_baseline(input_dir)
+    if not bbi_baseline:
+        logger.warning("BBI baseline (BBI_Size.xlsx) not found. UoM/Pack determination will be skipped.")
+    else:
+        logger.info(f"Loaded BBI baseline with {len(bbi_baseline.baseline_data)} items")
+    
     if bbi_based_files:
         logger.info("Processing BBI-based receipts...")
         
@@ -390,11 +423,14 @@ def process_files(
                 initial_receipt_data = vendor_detector.apply_detection_to_receipt(file_path, initial_receipt_data)
                 detected_vendor_code = initial_receipt_data.get('detected_vendor_code')
                 
-                # BBI files are Excel files - use Excel processor
+                # BBI files can be Excel (.xlsx) or PDF (UNI_IL_UT_*.pdf)
                 if file_path.suffix.lower() in ['.xlsx', '.xls']:
                     receipt_data = excel_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
+                elif file_path.suffix.lower() == '.pdf':
+                    # BBI PDF files - use unified PDF processor
+                    receipt_data = unified_pdf_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
                 else:
-                    logger.warning(f"Unsupported file type for BBI (Excel only): {file_path.suffix}")
+                    logger.warning(f"Unsupported file type for BBI (Excel or PDF only): {file_path.suffix}")
                     return file_path.stem, None
                 
                 if receipt_data:
@@ -409,7 +445,12 @@ def process_files(
                     if 'source_file' not in receipt_data:
                         receipt_data['source_file'] = str(file_path.relative_to(input_dir))
                     
-                    item_count = len(receipt_data.get('items', []))
+                    # Apply UoM/Pack determination for BBI items (if baseline is available)
+                    items = receipt_data.get('items', [])
+                    if items:
+                        receipt_data['items'] = items  # Store for later processing
+                    
+                    item_count = len(items)
                     if item_count > 0:
                         logger.info(f"  ✓ Extracted {item_count} items")
                     else:
@@ -437,6 +478,71 @@ def process_files(
         for file_path in bbi_based_files:
             receipt_id, receipt_data = process_bbi_file(file_path)
             if receipt_data:
+                # Apply UoM/Pack determination if baseline is available
+                if bbi_baseline:
+                    items = receipt_data.get('items', [])
+                    determined_count = 0
+                    uom_set_count = 0
+                    
+                    for item in items:
+                        product_name = item.get('product_name', '')
+                        unit_price = item.get('unit_price', 0.0)
+                        quantity = item.get('quantity', 0.0)
+                        
+                        # First, try to find a baseline match (even without pricing determination)
+                        baseline_item = None
+                        if product_name:
+                            # Use lower threshold for matching (0.6 instead of 0.8)
+                            baseline_item = bbi_baseline.find_match(product_name, threshold=0.6)
+                        
+                        if baseline_item:
+                            # Store baseline match info
+                            item['baseline_match'] = baseline_item
+                            item['baseline_description'] = baseline_item.get('description', '')
+                            item['baseline_match_score'] = baseline_item.get('match_score', 0.0)
+                            
+                            # Determine pricing unit (UoM vs Pack) by comparing receipt price to baseline prices
+                            # Use 20% tolerance to account for price changes over time
+                            if unit_price > 0:
+                                pricing_unit, confidence, _ = bbi_baseline.determine_pricing_unit(
+                                    product_name, unit_price, quantity, price_tolerance=0.20
+                                )
+                                
+                                if pricing_unit:
+                                    item['pricing_unit'] = pricing_unit  # 'UoM' or 'Pack'
+                                    item['pricing_confidence'] = confidence
+                                    determined_count += 1
+                                    
+                                    # Set the actual UoM value from baseline based on pricing unit
+                                    if pricing_unit == 'Pack':
+                                        # Use Pack Size UoM (e.g., extract "kg" from "20*1-kg")
+                                        pack_size = baseline_item.get('pack_size', '').strip()
+                                        if pack_size:
+                                            # Extract UoM from pack size (e.g., "20*1-kg" -> "kg")
+                                            baseline_uom = bbi_baseline._extract_uom_unit(pack_size)
+                                            if baseline_uom:
+                                                item['baseline_uom'] = baseline_uom
+                                                item['purchase_uom'] = baseline_uom
+                                                item['raw_uom_text'] = baseline_uom
+                                                item['baseline_pack_size'] = pack_size
+                                                item['baseline_pack_count'] = baseline_item.get('pack_count', 1)
+                                                uom_set_count += 1
+                                                logger.debug(f"  Set UoM from Pack Size for '{product_name}': {baseline_uom}")
+                                    else:  # pricing_unit == 'UoM'
+                                        # Use UoM from baseline
+                                        baseline_uom = baseline_item.get('uom', '').strip()
+                                        if baseline_uom:
+                                            item['baseline_uom'] = baseline_uom
+                                            item['purchase_uom'] = baseline_uom
+                                            item['raw_uom_text'] = baseline_uom
+                                            uom_set_count += 1
+                                            logger.debug(f"  Set UoM from baseline for '{product_name}': {baseline_uom}")
+                    
+                    if uom_set_count > 0:
+                        logger.info(f"  ✓ Set UoM from baseline for {uom_set_count}/{len(items)} items")
+                    if determined_count > 0:
+                        logger.info(f"  ✓ Determined pricing unit for {determined_count}/{len(items)} items")
+                
                 bbi_based_data[receipt_id] = receipt_data
     
     ### Process Amazon-based files (CSV-first approach)
@@ -541,6 +647,183 @@ def process_files(
             except Exception as e:
                 logger.error(f"Error processing {file_path.name}: {e}", exc_info=True)
     
+    ### Process Wismettac-based files (PDF invoices)
+    wismettac_based_output_dir = output_base_dir / 'wismettac_based'
+    wismettac_based_data: Dict[str, Any] = {}
+    
+    if wismettac_based_files:
+        logger.info("Processing Wismettac-based receipts...")
+        
+        for file_path in wismettac_based_files:
+            try:
+                logger.info(f"Processing [Wismettac]: {file_path.name}")
+                
+                # Apply vendor detection FIRST (before processing)
+                initial_receipt_data = {'filename': file_path.name}
+                initial_receipt_data = vendor_detector.apply_detection_to_receipt(file_path, initial_receipt_data)
+                detected_vendor_code = initial_receipt_data.get('detected_vendor_code', 'WISMETTAC')
+                
+                # Wismettac files are PDF files - use unified PDF processor
+                if file_path.suffix.lower() == '.pdf':
+                    receipt_data = unified_pdf_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
+                else:
+                    logger.warning(f"Unsupported file type for Wismettac (PDF only): {file_path.suffix}")
+                    continue
+                
+                if receipt_data:
+                    receipt_id = receipt_data.get('order_id') or receipt_data.get('receipt_number') or file_path.stem
+                    
+                    # Preserve fields from vendor detection
+                    if 'detected_vendor_code' not in receipt_data:
+                        receipt_data['detected_vendor_code'] = detected_vendor_code
+                    if 'detected_source_type' not in receipt_data:
+                        receipt_data['detected_source_type'] = initial_receipt_data.get('detected_source_type', 'wismettac_based')
+                    
+                    # Add source info
+                    receipt_data['source_group'] = 'wismettac_based'
+                    if 'source_file' not in receipt_data:
+                        receipt_data['source_file'] = str(file_path.relative_to(input_dir))
+                    
+                    # Apply UoM extraction
+                    from .uom_extractor import UoMExtractor
+                    uom_extractor = UoMExtractor(rule_loader)
+                    receipt_data['items'] = uom_extractor.extract_uom_from_items(receipt_data.get('items', []))
+                    
+                    wismettac_based_data[receipt_id] = receipt_data
+                    item_count = len([i for i in receipt_data.get('items', []) if not i.get('is_fee')])
+                    logger.info(f"  ✓ Extracted {item_count} items")
+                else:
+                    logger.warning(f"  ✗ Failed to process {file_path.name}")
+                    
+            except Exception as e:
+                logger.error(f"Error processing {file_path.name}: {e}", exc_info=True)
+    
+    ### Process Odoo-based files (Receipts/Odoo folder - regenerated receipts)
+    # All Odoo receipts are processed using Odoo format rules
+    # But we detect the vendor for saving/display purposes
+    
+    odoo_based_data: Dict[str, Dict[str, Any]] = {}
+    
+    if odoo_based_files:
+        logger.info("Processing Odoo-based receipts (using Odoo format rules)...")
+        
+        # Known vendor names for detection (for saving purposes only)
+        vendor_names_map = {
+            'costco': 'COSTCO',
+            'restaurant depot': 'RD',
+            'rd': 'RD',
+            'jewel': 'JEWEL',
+            "jewel-osco": 'JEWEL',
+            'jewel osco': 'JEWEL',
+            'marianos': 'MARIANO',
+            'mariano': 'MARIANO',
+            "mariano's": 'MARIANO',
+            'aldi': 'ALDI',
+            'parktoshop': 'PARKTOSHOP',
+            'park to shop': 'PARKTOSHOP',
+            'wismettac': 'WISMETTAC',
+            'wismettac asian foods': 'WISMETTAC',
+            'webstaurantstore': 'WEBSTAURANTSTORE',
+            'webstaurant store': 'WEBSTAURANTSTORE',
+            'bbi': 'BBI',
+            'amazon': 'AMAZON',
+            'instacart': 'INSTACART',
+        }
+        
+        from difflib import SequenceMatcher
+        
+        for file_path in odoo_based_files:
+            try:
+                logger.info(f"Processing [Odoo]: {file_path.name}")
+                
+                # Extract text from PDF to detect vendor
+                pdf_text = unified_pdf_processor._extract_pdf_text(file_path)
+                if not pdf_text:
+                    logger.warning(f"Could not extract text from {file_path.name}, skipping")
+                    continue
+                
+                # Detect vendor for saving/display purposes (but process as Odoo format)
+                detected_vendor_code = 'ODOO'  # Default
+                detected_vendor_name = 'Odoo'  # Default
+                vendor_match_score = 0.5
+                
+                # Load Odoo rules to extract vendor metadata
+                odoo_rules = unified_pdf_processor._load_vendor_pdf_rules('ODOO')
+                if odoo_rules:
+                    metadata_patterns = odoo_rules.get('metadata_patterns', {})
+                    if metadata_patterns:
+                        extracted_metadata = unified_pdf_processor._extract_metadata_from_patterns(pdf_text, metadata_patterns)
+                        extracted_vendor = extracted_metadata.get('vendor', '').strip()
+                        if extracted_vendor:
+                            # Clean up vendor name (remove "Vendor Ref" etc.)
+                            extracted_vendor_clean = extracted_vendor.replace('Vendor Ref', '').strip()
+                            logger.info(f"  Extracted vendor from metadata: {repr(extracted_vendor_clean)}")
+                            
+                            # Try to match extracted vendor name
+                            extracted_lower = extracted_vendor_clean.lower()
+                            for vendor_name, vendor_code in vendor_names_map.items():
+                                if vendor_name in extracted_lower:
+                                    detected_vendor_code = vendor_code
+                                    detected_vendor_name = extracted_vendor_clean
+                                    vendor_match_score = 0.95
+                                    logger.info(f"  Matched vendor: {vendor_code}")
+                                    break
+                            
+                            # Try fuzzy matching if no exact match
+                            if detected_vendor_code == 'ODOO':
+                                for vendor_name, vendor_code in vendor_names_map.items():
+                                    similarity = SequenceMatcher(None, extracted_lower, vendor_name).ratio()
+                                    if similarity > vendor_match_score and similarity >= 0.6:
+                                        vendor_match_score = similarity
+                                        detected_vendor_code = vendor_code
+                                        detected_vendor_name = extracted_vendor_clean
+                                        logger.info(f"  Fuzzy matched vendor: {vendor_code} (score: {similarity:.2f})")
+                
+                # Check folder name as fallback
+                if detected_vendor_code == 'ODOO':
+                    folder_name_lower = file_path.parent.name.lower() if file_path.parent != Path('.') else ''
+                    for vendor_name, vendor_code in vendor_names_map.items():
+                        if vendor_name in folder_name_lower:
+                            detected_vendor_code = vendor_code
+                            vendor_match_score = 0.85
+                            logger.info(f"  Matched vendor from folder: {vendor_code}")
+                            break
+                
+                # Process using Odoo rules (not vendor-specific rules)
+                if file_path.suffix.lower() == '.pdf':
+                    receipt_data = unified_pdf_processor.process_file(file_path, detected_vendor_code='ODOO')
+                else:
+                    logger.warning(f"Unsupported file type for Odoo (PDF only): {file_path.suffix}")
+                    continue
+                
+                if receipt_data:
+                    receipt_id = receipt_data.get('order_id') or receipt_data.get('receipt_number') or file_path.stem
+                    
+                    # Set vendor info (for saving/display) but keep source as odoo_based
+                    receipt_data['vendor_code'] = detected_vendor_code
+                    receipt_data['detected_vendor_code'] = detected_vendor_code
+                    receipt_data['vendor_name'] = detected_vendor_name
+                    receipt_data['source_type'] = 'odoo_based'
+                    receipt_data['detected_source_type'] = 'odoo_based'
+                    receipt_data['source_group'] = 'odoo_based'
+                    receipt_data['source_file'] = str(file_path.relative_to(input_dir))
+                    receipt_data['odoo_original'] = True  # Flag that this came from Odoo folder
+                    receipt_data['odoo_vendor_match_score'] = vendor_match_score
+                    
+                    # Apply UoM extraction
+                    from .uom_extractor import UoMExtractor
+                    uom_extractor = UoMExtractor(rule_loader)
+                    receipt_data['items'] = uom_extractor.extract_uom_from_items(receipt_data.get('items', []))
+                    
+                    odoo_based_data[receipt_id] = receipt_data
+                    item_count = len([i for i in receipt_data.get('items', []) if not i.get('is_fee')])
+                    logger.info(f"  ✓ Processed as Odoo format, detected vendor: {detected_vendor_code}, extracted {item_count} items")
+                else:
+                    logger.warning(f"  ✗ Failed to process {file_path.name} as Odoo format")
+                    
+            except Exception as e:
+                logger.error(f"Error processing Odoo receipt {file_path.name}: {e}", exc_info=True)
+    
     ### Apply Name Hygiene (extract UPC/Item# and clean names BEFORE classification)
     logger.info("Applying name hygiene to all items...")
     
@@ -552,7 +835,9 @@ def process_files(
         instacart_based_data,
         bbi_based_data,
         amazon_based_data,
-        webstaurantstore_based_data
+        webstaurantstore_based_data,
+        wismettac_based_data,
+        odoo_based_data,
     ]:
         if not receipts_data:
             continue
@@ -577,7 +862,9 @@ def process_files(
         ('instacart_based', instacart_based_data),
         ('bbi_based', bbi_based_data),
         ('amazon_based', amazon_based_data),
-        ('webstaurantstore_based', webstaurantstore_based_data)
+        ('webstaurantstore_based', webstaurantstore_based_data),
+        ('wismettac_based', wismettac_based_data),
+        ('odoo_based', odoo_based_data),
     ]:
         if not receipts_data:
             continue
@@ -609,7 +896,9 @@ def process_files(
         'instacart_based': instacart_based_data,
         'bbi_based': bbi_based_data,
         'amazon_based': amazon_based_data,
-        'webstaurantstore_based': webstaurantstore_based_data
+        'webstaurantstore_based': webstaurantstore_based_data,
+        'wismettac_based': wismettac_based_data,
+        'odoo_based': odoo_based_data,
     }
     
     # Save vendor-based output and generate report
@@ -697,44 +986,45 @@ def process_files(
         except Exception as e:
             logger.warning(f"Could not generate WebstaurantStore-based report: {e}")
     
+    # Save Wismettac-based output and generate report
+    if wismettac_based_data:
+        wismettac_based_output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = wismettac_based_output_dir / 'extracted_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(wismettac_based_data, f, indent=2, ensure_ascii=False, default=str)
+        logger.info(f"Saved Wismettac-based data to: {output_file}")
+        
+        # Generate Wismettac-based report
+        try:
+            from .generate_report import generate_html_report
+            report_file = wismettac_based_output_dir / 'report.html'
+            generate_html_report(wismettac_based_data, report_file)
+            logger.info(f"Generated Wismettac-based report: {report_file}")
+        except Exception as e:
+            logger.warning(f"Could not generate Wismettac-based report: {e}")
+    
     # Generate combined final report at root output directory
+    # Note: Odoo receipts are routed to their matched vendor groups, so they're already included above
     all_receipts: Dict[str, Any] = {}
     all_receipts.update(localgrocery_based_data)
     all_receipts.update(instacart_based_data)
     all_receipts.update(bbi_based_data)
     all_receipts.update(amazon_based_data)
     all_receipts.update(webstaurantstore_based_data)
+    all_receipts.update(wismettac_based_data)
     
     if all_receipts:
+        # Generate standardized output FIRST (timestamped folder with CSV files)
+        standardized_output_dir = None
         try:
-            from .generate_report import generate_html_report
-            final_report_file = output_base_dir / 'report.html'
-            generate_html_report(all_receipts, final_report_file)
-            logger.info(f"Generated combined final report: {final_report_file}")
+            from .standardized_output import create_standardized_output
+            standardized_output_dir = create_standardized_output(all_receipts, output_base_dir, input_dir=input_dir)
+            logger.info(f"✅ Generated standardized output in: {standardized_output_dir}")
         except Exception as e:
-            logger.warning(f"Could not generate combined final report: {e}")
+            logger.warning(f"Could not generate standardized output: {e}", exc_info=True)
         
-        # Generate classification report
-        try:
-            from .generate_classification_report import generate_classification_report
-            html_path, csv_path = generate_classification_report(all_receipts, output_base_dir)
-            logger.info(f"Generated classification report: {html_path}")
-            logger.info(f"Generated classification CSV: {csv_path}")
-        except Exception as e:
-            logger.warning(f"Could not generate classification report: {e}", exc_info=True)
-        
-        # Generate PDF versions of all reports
-        try:
-            from .pdf_generator import generate_pdfs_for_all_reports
-            pdfs = generate_pdfs_for_all_reports(output_base_dir)
-            pdf_count = sum(1 for path in pdfs.values() if path.suffix == '.pdf')
-            if pdf_count > 0:
-                logger.info(f"✅ Generated {pdf_count} PDF reports")
-            else:
-                logger.info("ℹ️  PDF generation skipped (Chrome not available)")
-                logger.info("   You can print HTML reports to PDF manually from your browser")
-        except Exception as e:
-            logger.warning(f"Could not generate PDF reports: {e}", exc_info=True)
+        # Reports are now generated in Step 2
+        logger.info("✅ Standardized output created. Reports will be generated in Step 2.")
     
     # Feature 4: Log column-mapping cache stats
     try:
@@ -747,7 +1037,25 @@ def process_files(
     except Exception as e:
         logger.debug(f"Could not retrieve cache stats: {e}")
     
-    logger.info(f"\nStep 1 Complete: Extracted {len(localgrocery_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts, {len(bbi_based_data)} BBI receipts, {len(amazon_based_data)} Amazon receipts, {len(webstaurantstore_based_data)} WebstaurantStore receipts")
+    # Save Odoo-based output and generate report
+    odoo_based_output_dir = output_base_dir / 'odoo_based'
+    if odoo_based_data:
+        odoo_based_output_dir.mkdir(parents=True, exist_ok=True)
+        output_file = odoo_based_output_dir / 'extracted_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(odoo_based_data, f, indent=2, ensure_ascii=False, default=str)
+        logger.info(f"Saved Odoo-based data to: {output_file}")
+        
+        # Generate Odoo-based report
+        try:
+            from .generate_report import generate_html_report
+            report_file = odoo_based_output_dir / 'report.html'
+            generate_html_report(odoo_based_data, report_file)
+            logger.info(f"Generated Odoo-based report: {report_file}")
+        except Exception as e:
+            logger.warning(f"Could not generate Odoo-based report: {e}")
+    
+    logger.info(f"\nStep 1 Complete: Extracted {len(localgrocery_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts, {len(bbi_based_data)} BBI receipts, {len(amazon_based_data)} Amazon receipts, {len(webstaurantstore_based_data)} WebstaurantStore receipts, {len(wismettac_based_data)} Wismettac receipts, {len(odoo_based_data)} Odoo receipts")
     
     return results
 

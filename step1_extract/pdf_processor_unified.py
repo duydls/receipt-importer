@@ -91,8 +91,8 @@ class UnifiedPDFProcessor:
                 logger.info(f"Skipping Mariano's receipt {file_path.name} - not supported (OCR quality too poor)")
                 return None
             
-            # Load vendor-specific PDF rules
-            pdf_rules = self._load_vendor_pdf_rules(detected_vendor_code)
+            # Load vendor-specific PDF rules (pass file_path for router-based selection)
+            pdf_rules = self._load_vendor_pdf_rules(detected_vendor_code, file_path)
             if not pdf_rules:
                 logger.warning(f"No PDF rules found for vendor: {detected_vendor_code}")
                 return None
@@ -155,7 +155,24 @@ class UnifiedPDFProcessor:
                 'currency': 'USD'
             }
             
-            # Extract additional fields from rules
+            # Extract metadata from rules (metadata_patterns)
+            metadata_patterns = pdf_rules.get('metadata_patterns', {})
+            if metadata_patterns:
+                extracted_metadata = self._extract_metadata_from_patterns(pdf_text, metadata_patterns)
+                receipt_data.update(extracted_metadata)
+                
+                # Wismettac-specific: Use delivery_date for transaction_date (already set via YAML field mapping)
+                # But ensure delivery_date is used if transaction_date was set from invoice_date
+                if detected_vendor_code == 'WISMETTAC':
+                    if 'delivery_date' in receipt_data and 'transaction_date' not in receipt_data:
+                        receipt_data['transaction_date'] = receipt_data['delivery_date']
+                        logger.debug(f"Wismettac: Using delivery_date ({receipt_data['delivery_date']}) for transaction_date")
+                    elif 'delivery_date' in receipt_data and 'transaction_date' in receipt_data:
+                        # If both exist, prefer delivery_date (overwrite invoice_date)
+                        receipt_data['transaction_date'] = receipt_data['delivery_date']
+                        logger.debug(f"Wismettac: Using delivery_date ({receipt_data['delivery_date']}) for transaction_date instead of invoice_date")
+            
+            # Extract additional fields from rules (legacy support)
             if pdf_rules.get('extract_items_sold'):
                 items_sold = self._extract_items_sold(pdf_text, pdf_rules)
                 if items_sold is not None:
@@ -163,7 +180,7 @@ class UnifiedPDFProcessor:
             
             if pdf_rules.get('extract_transaction_date'):
                 date = self._extract_transaction_date(pdf_text, pdf_rules)
-                if date:
+                if date and 'transaction_date' not in receipt_data:
                     receipt_data['transaction_date'] = date
             
             # Costco-specific: infer integer quantities using knowledge base unit prices
@@ -190,8 +207,17 @@ class UnifiedPDFProcessor:
             logger.error(f"Error processing PDF {file_path.name}: {e}", exc_info=True)
             return None
     
-    def _load_vendor_pdf_rules(self, vendor_code: str) -> Optional[Dict[str, Any]]:
-        """Load vendor-specific PDF rules from YAML"""
+    def _load_vendor_pdf_rules(self, vendor_code: str, file_path: Optional[Path] = None) -> Optional[Dict[str, Any]]:
+        """
+        Load vendor-specific PDF rules from YAML
+        
+        Args:
+            vendor_code: Vendor code (e.g., 'BBI')
+            file_path: Optional file path for router-based rule selection
+            
+        Returns:
+            Dictionary containing PDF rules, or None if not found
+        """
         # Map vendor codes to YAML file names
         vendor_file_map = {
             'COSTCO': '20_costco_pdf.yaml',
@@ -203,6 +229,8 @@ class UnifiedPDFProcessor:
             'RD': '21_rd_pdf_layout.yaml',
             'RESTAURANT_DEPOT': '21_rd_pdf_layout.yaml',
             'WISMETTAC': '31_wismettac_pdf.yaml',
+            'ODOO': '32_odoo_pdf.yaml',
+            'BBI': '33_bbi_pdf.yaml',
         }
         
         yaml_file = vendor_file_map.get(vendor_code.upper())
@@ -211,6 +239,43 @@ class UnifiedPDFProcessor:
         
         try:
             rules = self.rule_loader.load_rule_file_by_name(yaml_file)
+            
+            # Check if this is a router-based rule file (has router and rule_sets)
+            if 'router' in rules and 'rule_sets' in rules and file_path:
+                # Match filename against router patterns
+                filename = file_path.name
+                router_rules = rules.get('router', [])
+                rule_sets = rules.get('rule_sets', {})
+                
+                for router_entry in router_rules:
+                    file_match = router_entry.get('file_match', '')
+                    rule_set_name = router_entry.get('use', '').replace('rule_sets.', '')
+                    
+                    if file_match and rule_set_name:
+                        try:
+                            # Compile regex pattern
+                            pattern = re.compile(file_match)
+                            if pattern.match(filename):
+                                logger.debug(f"Router matched: {router_entry.get('name')} -> {rule_set_name}")
+                                # Get the rule set
+                                rule_set = rule_sets.get(rule_set_name)
+                                if rule_set:
+                                    return rule_set
+                        except re.error as e:
+                            logger.warning(f"Invalid regex pattern in router: {file_match}: {e}")
+                            continue
+                
+                # If no router match, try to find a default rule set
+                logger.debug(f"No router match for {filename}, trying default rule set")
+                if rule_sets:
+                    # Use first rule set as default
+                    first_rule_set = list(rule_sets.values())[0]
+                    logger.debug(f"Using default rule set: {list(rule_sets.keys())[0]}")
+                    return first_rule_set
+                else:
+                    logger.warning(f"No rule sets found in router-based YAML file")
+                    return None
+            
             # Extract PDF-specific rules (might be nested)
             if 'pdf_rules' in rules:
                 return rules['pdf_rules']
@@ -226,7 +291,7 @@ class UnifiedPDFProcessor:
                 # Rules are at top level (new format)
                 return rules
         except Exception as e:
-            logger.warning(f"Could not load PDF rules from {yaml_file}: {e}")
+            logger.warning(f"Could not load PDF rules from {yaml_file}: {e}", exc_info=True)
             return None
     
     def _extract_pdf_text(self, file_path: Path, use_ocr: bool = False) -> str:
@@ -712,8 +777,15 @@ class UnifiedPDFProcessor:
         # Find summary section start (from rules)
         summary_keywords = rules.get('summary_keywords', ['SUBTOTAL', 'TAX', 'TOTAL'])
         summary_start = len(lines)
+        # Skip header lines (usually first 10 lines) when looking for summary
+        header_lines = rules.get('header_lines', 10)
         for i, line in enumerate(lines):
             line_upper = line.upper()
+            # Skip header lines when looking for summary
+            if i < header_lines:
+                # Check if this is a header line (contains column headers)
+                if any(header_word in line_upper for header_word in ['QTY', 'ITEM', 'DESCRIPTION', 'UNIT', 'PRICE', 'LINE']):
+                    continue
             # Check for summary keywords (exclude false positives)
             exclude_keywords = rules.get('summary_exclude_keywords', [])
             if any(str(kw).upper() in line_upper for kw in summary_keywords):
@@ -729,9 +801,36 @@ class UnifiedPDFProcessor:
         while line_idx < summary_start:
             line = lines[line_idx]
             
+            # Normalize whitespace for BBI (extra spaces between fields)
+            # But preserve newlines for multiline patterns (Mousse block format)
+            if 'BBI' in vendor_name or 'MOUSSE' in vendor_name or 'UNI_MOUSSE' in vendor_name:
+                # For single-line patterns, normalize whitespace
+                # For multiline patterns, preserve line structure
+                if not any(pattern_def.get('multiline') for pattern_def in item_patterns):
+                    line = ' '.join(line.split())
+            
             # Skip non-product lines (from rules)
             skip_keywords = rules.get('skip_keywords', [])
-            if any(str(kw).upper() in line.upper() for kw in skip_keywords):
+            skip_line = False
+            for kw in skip_keywords:
+                kw_str = str(kw)
+                # Check if skip keyword is a regex pattern (starts with ^ or contains regex special chars)
+                if kw_str.startswith('^') or '\\' in kw_str or '[' in kw_str or '(' in kw_str:
+                    try:
+                        if re.match(kw_str, line, re.IGNORECASE):
+                            skip_line = True
+                            break
+                    except re.error:
+                        # If regex fails, fall back to simple substring check
+                        if kw_str.upper() in line.upper():
+                            skip_line = True
+                            break
+                else:
+                    # Simple substring check for non-regex keywords
+                    if kw_str.upper() in line.upper():
+                        skip_line = True
+                        break
+            if skip_line:
                 line_idx += 1
                 continue
             
@@ -747,14 +846,26 @@ class UnifiedPDFProcessor:
                 
                 # Compile regex (flags from rules)
                 flags = re.IGNORECASE if pattern_def.get('case_insensitive', True) else 0
+                # Use normalized line for matching (BBI whitespace normalization already done)
                 match_text = line
                 consumed_lines = 1
                 
+                # Get regex flags from rules or pattern definition
+                regex_flags = rules.get('regex_flags', []) or pattern_def.get('regex_flags', [])
+                if 'MULTILINE' in regex_flags or 'multiline' in regex_flags:
+                    flags |= re.MULTILINE
+                if 'DOTALL' in regex_flags or 'dotall' in regex_flags:
+                    flags |= re.DOTALL
+                if 'UNICODE' in regex_flags or 'unicode' in regex_flags:
+                    flags |= re.UNICODE
+                
                 if pattern_def.get('multiline'):
-                    # Look ahead a few lines for the match
-                    lookahead = min(len(lines) - line_idx, 5)
+                    # Look ahead more lines for multiline patterns (up to 20 lines)
+                    lookahead = min(len(lines) - line_idx, 20)
                     match_text = '\n'.join(lines[line_idx:line_idx + lookahead])
-                    flags |= re.MULTILINE 
+                    flags |= re.MULTILINE
+                    if 'DOTALL' in regex_flags or pattern_def.get('multiline_dotall'):
+                        flags |= re.DOTALL 
                 
                 try:
                     pattern = re.compile(regex_str, flags)
@@ -888,7 +999,38 @@ class UnifiedPDFProcessor:
                     except ValueError:
                         continue
                 else:
-                    item[target_field] = str(value).strip()
+                    cleaned_value = str(value).strip()
+                    # Apply normalization rules if specified (before CJK stripping)
+                    normalization_rules = rules.get('normalization', [])
+                    if normalization_rules and target_field in ['product_name', 'raw_line']:
+                        for norm_rule in normalization_rules:
+                            norm_type = norm_rule.get('type', '')
+                            fields = norm_rule.get('fields', ['product_name'])
+                            
+                            if target_field in fields:
+                                if norm_type == 'nfkc':
+                                    # Apply NFKC normalization
+                                    import unicodedata
+                                    cleaned_value = unicodedata.normalize('NFKC', cleaned_value)
+                                elif norm_type == 'regex_sub':
+                                    # Apply regex substitution
+                                    pattern_str = norm_rule.get('pattern', '')
+                                    replacement = norm_rule.get('replacement', '')
+                                    if pattern_str:
+                                        try:
+                                            pattern = re.compile(pattern_str)
+                                            cleaned_value = pattern.sub(replacement, cleaned_value)
+                                        except re.error as e:
+                                            logger.warning(f"Invalid regex pattern in normalization: {pattern_str}: {e}")
+                    
+                    # Strip CJK characters from product_name for BBI/Mousse (before normalization)
+                    # This is a fallback if normalization rules don't handle it
+                    if target_field == 'product_name':
+                        vendor_name = rules.get('vendor_name', '').upper()
+                        if 'BBI' in vendor_name or 'MOUSSE' in vendor_name or 'UNI_MOUSSE' in vendor_name:
+                            cleaned_value = self._strip_cjk_characters(cleaned_value)
+                    
+                    item[target_field] = cleaned_value
         
         # Apply post-processing rules (from YAML)
         if pattern_def.get('post_process'):
@@ -1134,6 +1276,52 @@ class UnifiedPDFProcessor:
         cleaned = re.sub(r'(\d+)-(\d+)', r'\1.\2', cleaned)  # 1-00 -> 1.00
         return cleaned
     
+    def _strip_cjk_characters(self, text: str) -> str:
+        """
+        Strip CJK (Chinese, Japanese, Korean) characters and full-width punctuation from text.
+        
+        Removes:
+        - CJK Unified Ideographs (U+4E00-U+9FFF)
+        - CJK Extension A (U+3400-U+4DBF)
+        - Hangul Syllables (U+AC00-U+D7AF)
+        - Hiragana (U+3040-U+309F)
+        - Katakana (U+30A0-U+30FF)
+        - Full-width punctuation (U+FF00-U+FFEF)
+        
+        Args:
+            text: Input text that may contain CJK characters
+            
+        Returns:
+            Text with all CJK characters and full-width punctuation removed
+        """
+        if not text:
+            return text
+        
+        # Define CJK Unicode ranges
+        # CJK Unified Ideographs: U+4E00-U+9FFF
+        cjk_unified = r'\u4e00-\u9fff'
+        # CJK Extension A: U+3400-U+4DBF
+        cjk_ext_a = r'\u3400-\u4dbf'
+        # Hangul Syllables: U+AC00-U+D7AF
+        hangul = r'\uac00-\ud7af'
+        # Hiragana: U+3040-U+309F
+        hiragana = r'\u3040-\u309f'
+        # Katakana: U+30A0-U+30FF
+        katakana = r'\u30a0-\u30ff'
+        # Full-width punctuation: U+FF00-U+FFEF
+        fullwidth_punct = r'\uff00-\uffef'
+        
+        # Combine all ranges
+        cjk_pattern = f'[{cjk_unified}{cjk_ext_a}{hangul}{hiragana}{katakana}{fullwidth_punct}]'
+        
+        # Remove CJK characters
+        cleaned = re.sub(cjk_pattern, '', text)
+        
+        # Clean up extra spaces left by removed characters
+        cleaned = ' '.join(cleaned.split())
+        
+        return cleaned
+    
     def _extract_totals_from_text(self, text: str, rules: Dict[str, Any]) -> Dict[str, float]:
         """Extract subtotal, tax, and total from PDF text using rules (patterns from YAML)"""
         totals = {
@@ -1147,35 +1335,54 @@ class UnifiedPDFProcessor:
         
         # Extract subtotal (pattern from YAML)
         if 'subtotal' in total_patterns:
-            subtotal_match = re.search(total_patterns['subtotal'], text, re.IGNORECASE | re.MULTILINE)
-            if subtotal_match:
-                cleaned_val = subtotal_match.group(1).replace(',', '.').replace('$', '')
-                try:
-                    totals['subtotal'] = float(cleaned_val)
-                except ValueError:
-                    logger.debug(f"Could not convert subtotal value: {cleaned_val}")
+            subtotal_pattern_def = total_patterns['subtotal']
+            # Handle both dict (with 'pattern' key) and string patterns
+            subtotal_pattern = subtotal_pattern_def.get('pattern', subtotal_pattern_def) if isinstance(subtotal_pattern_def, dict) else subtotal_pattern_def
+            subtotal_group = subtotal_pattern_def.get('group', 1) if isinstance(subtotal_pattern_def, dict) else 1
+            if subtotal_pattern:
+                subtotal_match = re.search(subtotal_pattern, text, re.IGNORECASE | re.MULTILINE)
+                if subtotal_match:
+                    cleaned_val = subtotal_match.group(subtotal_group).replace(',', '').replace('$', '').strip()
+                    # Handle parentheses for negative numbers
+                    if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                        cleaned_val = '-' + cleaned_val[1:-1]
+                    try:
+                        totals['subtotal'] = float(cleaned_val)
+                    except ValueError:
+                        logger.debug(f"Could not convert subtotal value: {cleaned_val}")
         
         # Extract tax - try multiple patterns and sum them
         tax_amount = 0.0
         
         # Try main tax pattern (can match multiple times)
         if 'tax' in total_patterns:
-            tax_matches = re.finditer(total_patterns['tax'], text, re.IGNORECASE | re.MULTILINE)
-            for tax_match in tax_matches:
-                try:
-                    cleaned_val = tax_match.group(1).replace(',', '.').replace('$', '').strip()
-                    tax_value = float(cleaned_val)
-                    tax_amount += tax_value
-                    logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax'")
-                except (ValueError, IndexError) as e:
-                    logger.debug(f"Could not convert tax value: {e}")
+            tax_pattern_def = total_patterns['tax']
+            # Handle both dict (with 'pattern' key) and string patterns
+            tax_pattern = tax_pattern_def.get('pattern', tax_pattern_def) if isinstance(tax_pattern_def, dict) else tax_pattern_def
+            tax_group = tax_pattern_def.get('group', 1) if isinstance(tax_pattern_def, dict) else 1
+            if tax_pattern:
+                tax_matches = re.finditer(tax_pattern, text, re.IGNORECASE | re.MULTILINE)
+                for tax_match in tax_matches:
+                    try:
+                        cleaned_val = tax_match.group(tax_group).replace(',', '').replace('$', '').strip()
+                        # Handle parentheses for negative numbers
+                        if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                            cleaned_val = '-' + cleaned_val[1:-1]
+                        tax_value = float(cleaned_val)
+                        tax_amount += tax_value
+                        logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax'")
+                    except (ValueError, IndexError) as e:
+                        logger.debug(f"Could not convert tax value: {e}")
         
         # Try water tax pattern (separate)
         if 'tax_water' in total_patterns:
             tax_water_match = re.search(total_patterns['tax_water'], text, re.IGNORECASE | re.MULTILINE)
             if tax_water_match:
                 try:
-                    cleaned_val = tax_water_match.group(1).replace(',', '.').replace('$', '').strip()
+                    cleaned_val = tax_water_match.group(1).replace(',', '').replace('$', '').strip()
+                    # Handle parentheses for negative numbers
+                    if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                        cleaned_val = '-' + cleaned_val[1:-1]
                     tax_value = float(cleaned_val)
                     tax_amount += tax_value
                     logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax_water'")
@@ -1187,7 +1394,10 @@ class UnifiedPDFProcessor:
             tax_combined_matches = re.finditer(total_patterns['tax_combined'], text, re.IGNORECASE | re.MULTILINE)
             for tax_match in tax_combined_matches:
                 try:
-                    cleaned_val = tax_match.group(1).replace(',', '.').replace('$', '').strip()
+                    cleaned_val = tax_match.group(1).replace(',', '').replace('$', '').strip()
+                    # Handle parentheses for negative numbers
+                    if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                        cleaned_val = '-' + cleaned_val[1:-1]
                     tax_value = float(cleaned_val)
                     tax_amount += tax_value
                     logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'tax_combined'")
@@ -1199,21 +1409,37 @@ class UnifiedPDFProcessor:
             logger.debug(f"Total tax extracted: ${tax_amount:.2f}")
         
         # Extract total (pattern from YAML, handle special cases like "7 07" -> 7.07 or "11,02" -> 11.02)
+        # Use finditer to get all matches and take the last one (most likely to be the actual total line)
         if 'total' in total_patterns:
-            total_match = re.search(total_patterns['total'], text, re.IGNORECASE | re.MULTILINE)
-            if total_match:
-                # Check if we have two groups (dollars and cents separately - handles comma as decimal)
-                if len(total_match.groups()) >= 2:
-                    dollars = total_match.group(1)
-                    cents = total_match.group(2)
-                    totals['total'] = float(f"{dollars}.{cents}")
-                elif len(total_match.groups()) == 1:
-                    # Single group - handle comma as decimal separator
-                    cleaned_val = total_match.group(1).replace(',', '.').replace('$', '').strip()
-                    try:
-                        totals['total'] = float(cleaned_val)
-                    except ValueError:
-                        logger.debug(f"Could not convert total value: {cleaned_val}")
+            total_pattern_def = total_patterns['total']
+            # Handle both dict (with 'pattern' key) and string patterns
+            total_pattern = total_pattern_def.get('pattern', total_pattern_def) if isinstance(total_pattern_def, dict) else total_pattern_def
+            total_group = total_pattern_def.get('group', 1) if isinstance(total_pattern_def, dict) else 1
+            if total_pattern:
+                # Find all matches and take the last one (actual total is usually at the end)
+                total_matches = list(re.finditer(total_pattern, text, re.IGNORECASE | re.MULTILINE))
+                if total_matches:
+                    # Use the last match (most likely the actual total line, not dates or other "Total" lines)
+                    total_match = total_matches[-1]
+                    # Check if we have two groups (dollars and cents separately - handles comma as decimal)
+                    if len(total_match.groups()) >= 2:
+                        dollars = total_match.group(1)
+                        cents = total_match.group(2)
+                        totals['total'] = float(f"{dollars}.{cents}")
+                    elif len(total_match.groups()) == 1:
+                        # Single group - remove thousands separators (comma) and dollar signs
+                        cleaned_val = total_match.group(total_group).replace(',', '').replace('$', '').strip()
+                        # Handle parentheses for negative numbers
+                        if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                            cleaned_val = '-' + cleaned_val[1:-1]
+                        # Skip if it looks like a date (e.g., "09.01" or "09.01.2025")
+                        if re.match(r'^\d{1,2}\.\d{1,2}(\.\d{2,4})?$', cleaned_val):
+                            logger.debug(f"Skipping date-like total value: {cleaned_val}")
+                        else:
+                            try:
+                                totals['total'] = float(cleaned_val)
+                            except ValueError:
+                                logger.debug(f"Could not convert total value: {cleaned_val}")
         
         # For Aldi: SUBTOTAL is before tax, AMOUNT DUE is the real total (after tax)
         # If we have both subtotal and total, verify the math
@@ -1376,6 +1602,67 @@ class UnifiedPDFProcessor:
                 UnifiedPDFProcessor._kb_cache = kb
         except Exception as e:
             logger.debug(f"Knowledge base update skipped: {e}")
+    
+    def _extract_metadata_from_patterns(self, text: str, metadata_patterns: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract metadata from patterns defined in YAML rules"""
+        extracted_metadata = {}
+        
+        # Handle case where metadata_patterns might be a list or other structure
+        if not isinstance(metadata_patterns, dict):
+            logger.debug(f"metadata_patterns is not a dict (type: {type(metadata_patterns)}), skipping metadata extraction")
+            return extracted_metadata
+        
+        for field_name, pattern_config in metadata_patterns.items():
+            # Handle case where pattern_config might be a string (legacy format)
+            if isinstance(pattern_config, str):
+                logger.debug(f"metadata_patterns[{field_name}] is a string, treating as pattern string")
+                pattern_str = pattern_config
+                group_num = 1
+                target_field = field_name
+            elif isinstance(pattern_config, dict):
+                pattern_str = pattern_config.get('pattern', '')
+                group_num = pattern_config.get('group', 1)
+                target_field = pattern_config.get('field', field_name)
+            else:
+                logger.debug(f"metadata_patterns[{field_name}] has unsupported type {type(pattern_config)}, skipping")
+                continue
+            
+            if not pattern_str:
+                continue
+            
+            try:
+                # Compile pattern
+                # Check case_insensitive flag only if pattern_config is a dict
+                case_insensitive = False
+                if isinstance(pattern_config, dict):
+                    case_insensitive = pattern_config.get('case_insensitive', False)
+                flags = re.IGNORECASE if case_insensitive else 0
+                pattern = re.compile(pattern_str, flags)
+                
+                # Search for match
+                match = pattern.search(text)
+                if match:
+                    # Extract the specified group
+                    if group_num == 0:
+                        # Group 0 means use entire match
+                        value = match.group(0)
+                    elif group_num <= len(match.groups()):
+                        value = match.group(group_num)
+                    else:
+                        logger.debug(f"Pattern {field_name}: group {group_num} not found, using group 1")
+                        value = match.group(1) if match.groups() else match.group(0)
+                    
+                    # Clean value
+                    value = value.strip() if value else ''
+                    
+                    if value:
+                        extracted_metadata[target_field] = value
+                        logger.debug(f"Extracted {target_field} from {field_name}: {value}")
+            except Exception as e:
+                logger.debug(f"Error extracting metadata field {field_name}: {e}")
+                continue
+        
+        return extracted_metadata
     
     def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
         """Extract items sold count from text (pattern from YAML)"""
