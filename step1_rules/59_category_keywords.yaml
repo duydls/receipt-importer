@@ -242,11 +242,16 @@ category_keywords:
       map_to_l2: C40
       priority: 90
       hints: ['Smallwares & Equipment - Tents and canopies (e.g., Galaxy Equipment 10x10 White Straight Leg Instant Pop Up Canopy Tent)']
-    
-    - include_regex: '(?i)\b(straw\s+holder|stirrers?\s+holder|stirrer\s+holder|utensil\s+holder|organizer|caddy|rack)\b'
+
+    - include_regex: '(?i)\b(sand\s*bags?)\b.*\b(canopy|canopies|tent)\b'
       map_to_l2: C40
+      priority: 92
+      hints: ['Smallwares & Equipment - canopy/tent stabilization sand bags']
+    
+    - include_regex: '(?i)\b(straw\s*holder|stirrers?\s*holder|stirrer\s*holder|utensil\s*holder|organizer|caddy|dispenser\s*rack)\b'
+      map_to_l2: C31
       priority: 88
-      hints: ['Smallwares & Equipment - Holders/organizers/caddies/racks for kitchen tools']
+      hints: ['Non-food consumables - Holders/organizers/caddies/racks for service area']
     
     # Explicit IQF strawberry mapping
     - include_regex: '(?i)\bIQF\b.*\bstrawberr(y|ies)\b|\bstrawberr(y|ies)\b.*\bIQF\b'
