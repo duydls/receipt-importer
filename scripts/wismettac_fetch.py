@@ -101,8 +101,30 @@ def fetch_wismettac_by_keyword(keyword: str, branch: str = "3", verify: bool = T
                 data["itemNumber"] = mm.group(1) if mm else val
             elif lk.startswith("category") and "category" not in data:
                 data["category"] = val
-            elif lk.startswith("brand") and "brand" not in data:
+            elif (lk.startswith("brand") or lk.startswith("brand name")) and "brand" not in data:
                 data["brand"] = val
+
+        # Breadcrumb-based fallback for Category
+        if "category" not in data:
+            crumbs = [a.get_text(strip=True) for a in dsoup.select('.breadcrumb a, nav.breadcrumb a, .breadcrumbs a')]
+            if crumbs:
+                data["categoryBreadcrumb"] = crumbs
+                # Heuristic: take the last crumb before the product page (exclude product name if present)
+                if len(crumbs) >= 1:
+                    data["category"] = crumbs[-1]
+
+        # Alternate brand extraction: look for elements with label-like text
+        if "brand" not in data:
+            for lbl in dsoup.select('th, dt, .label, .lbl, strong'):
+                t = lbl.get_text(" ", strip=True).lower()
+                if t.startswith('brand'):
+                    # neighbor value
+                    sib = lbl.find_next('td') or lbl.find_next('dd') or lbl.parent
+                    if sib:
+                        val = sib.get_text(" ", strip=True)
+                        if val and ':' not in val:
+                            data['brand'] = val
+                            break
             elif lk.startswith("pack size") and "packSizeRaw" not in data:
                 data["packSizeRaw"] = val
             elif "minimum order" in lk and "minOrderQty" not in data:
