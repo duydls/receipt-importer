@@ -8,6 +8,9 @@ import re
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
+import os
+from .external_catalogs import ExternalCatalogs
+from .. import config as cfg
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +35,9 @@ class CategoryClassifier:
         self.l2_rules = rule_loader.load_rule_file_by_name('56_categories_l2.yaml')
         self.instacart_rules = rule_loader.load_rule_file_by_name('57_category_maps_instacart.yaml')
         self.amazon_rules = rule_loader.load_rule_file_by_name('58_category_maps_amazon.yaml')
-        # Optional relaxed Amazon overrides (low-priority, source-scoped)
-        try:
-            self.amazon_relaxed_overrides = rule_loader.load_rule_file_by_name('56_amazon_keywords_relaxed.yaml')
-        except Exception:
-            self.amazon_relaxed_overrides = {}
         self.keyword_rules = rule_loader.load_rule_file_by_name('59_category_keywords.yaml')
         self.classification_overrides = rule_loader.load_rule_file_by_name('99_classification_overrides.yaml')
+        self.ext_category_maps = rule_loader.load_rule_file_by_name('ext_categories_to_l2.yaml')
         
         # Extract relevant sections
         self.l1_categories = self.l1_rules.get('categories_l1', {}).get('l1_categories', [])
@@ -55,6 +54,11 @@ class CategoryClassifier:
         self.default_confidence = pipeline_config.get('default_confidence', {})
         self.review_threshold = pipeline_config.get('review_threshold', 0.60)
         self.fallback_l2 = pipeline_config.get('fallback_l2', 'C99')
+        # External catalogs client (optional)
+        cache_dir = Path(getattr(cfg, 'EXTERNAL_CACHE_DIR', 'data/cache'))
+        fdc_key = os.environ.get('FDC_API_KEY', getattr(cfg, 'FDC_API_KEY', ''))
+        self.use_external_lookup = getattr(cfg, 'USE_EXTERNAL_LOOKUP', False)
+        self.ext_client = ExternalCatalogs(cache_dir, fdc_key)
         
         logger.info(f"CategoryClassifier initialized with {len(self.l1_categories)} L1 and {len(self.l2_categories)} L2 categories")
     
@@ -114,6 +118,11 @@ class CategoryClassifier:
                 if result:
                     return result
             
+            elif stage == 'external_lookup':
+                result = self._apply_external_lookup(item)
+                if result:
+                    return result
+            
             elif stage == 'vendor_overrides':
                 result = self._apply_vendor_overrides(item, vendor_code, source_type)
                 if result:
@@ -139,6 +148,54 @@ class CategoryClassifier:
         
         # Should never reach here, but safety fallback
         return self._apply_fallback(item)
+
+    def _apply_external_lookup(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not self.use_external_lookup:
+            return None
+        name = (item.get('canonical_name') or item.get('display_name') or item.get('product_name') or '').strip()
+        if not name:
+            return None
+        # Try FDC first
+        try:
+            fdc = self.ext_client.search_fdc(name, page_size=3)
+            l2 = self._map_external_categories(fdc, provider='fdc') if fdc else None
+            if l2:
+                return self._build_result(l2_category=l2, source='external_fdc', rule_id='fdc_map', confidence=0.78)
+        except Exception:
+            pass
+        # Try OFF
+        try:
+            off = self.ext_client.search_off(name, page_size=3)
+            l2 = self._map_external_categories(off, provider='off') if off else None
+            if l2:
+                return self._build_result(l2_category=l2, source='external_off', rule_id='off_map', confidence=0.75)
+        except Exception:
+            pass
+        return None
+
+    def _map_external_categories(self, payload: Dict[str, Any], provider: str) -> Optional[str]:
+        maps = self.ext_category_maps.get('maps', {})
+        if provider == 'fdc':
+            # FDC: foods[*].foodCategory
+            foods = (payload or {}).get('foods', [])
+            for f in foods:
+                cat = (f.get('foodCategory') or '').strip()
+                if not cat:
+                    continue
+                for rule in maps.get('fdc', {}).get('foodCategory', []):
+                    if rule.get('match', '').lower() in cat.lower():
+                        return rule.get('l2')
+        elif provider == 'off':
+            # OFF: products[*].categories_tags (array)
+            products = (payload or {}).get('products', [])
+            for p in products:
+                tags = p.get('categories_tags') or []
+                tags = [str(t).lower() for t in tags]
+                for rule in maps.get('off', {}).get('categories_tags', []):
+                    needle = rule.get('match', '').lower()
+                    if any(needle in t for t in tags):
+                        return rule.get('l2')
+        return None
     
     def _apply_source_map(self, item: Dict[str, Any], source_type: str) -> Optional[Dict[str, Any]]:
         """Apply source-specific rules (Instacart/Amazon)"""
@@ -322,10 +379,6 @@ class CategoryClassifier:
         
         # Apply classification overrides from YAML file (highest priority)
         override_rules = self.classification_overrides.get('overrides', [])
-        # Append relaxed Amazon overrides (kept low weight) to the pool
-        relaxed_rules = self.amazon_relaxed_overrides.get('overrides', [])
-        if relaxed_rules:
-            override_rules = override_rules + relaxed_rules
         if override_rules:
             # Build text for matching (canonical_name or display_name or product_name)
             text = (item.get('canonical_name') or 

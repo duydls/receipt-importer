@@ -100,3 +100,8 @@ LOGGING = {
     'level': 'INFO',
     'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 }
+
+# External Lookups (optional)
+USE_EXTERNAL_LOOKUP = False  # enable via CLI flag or set True to always use
+FDC_API_KEY = ''  # set via env FDC_API_KEY or here if needed
+EXTERNAL_CACHE_DIR = 'data/cache'

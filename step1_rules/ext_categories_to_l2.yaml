@@ -1,0 +1,34 @@
+version: 1
+
+notes:
+  - Mapping of external category tags (OFF categories_tags, FDC foodCategory strings) to internal L2 codes
+  - Partial, can be extended safely by editing this file
+
+maps:
+  # OFF tags (normalized lower-case)
+  off:
+    categories_tags:
+      - match: 'en:confectionery'
+        l2: C33
+      - match: 'en:chocolate'
+        l2: C33
+      - match: 'en:coconut-milks'
+        l2: C04
+      - match: 'en:water-filters'
+        l2: C32
+      - match: 'en:labels'
+        l2: C23
+
+  # FDC categories (as returned in foodCategory)
+  fdc:
+    foodCategory:
+      - match: 'Confectionery'
+        l2: C33
+      - match: 'Milk and milk substitutes'
+        l2: C04
+      - match: 'Water filters'
+        l2: C32
+      - match: 'Labels'
+        l2: C23
+
+
