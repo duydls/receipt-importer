@@ -36,6 +36,33 @@ category_maps_amazon:
       map_to_l2: C04  # Dairy & Milk
       priority: 100
       notes: Dairy products
+
+    # ===== AMAZON CSV CATEGORY FIELDS (UNSPSC family/commodity) =====
+    # Labels via UNSPSC commodity/family
+    - match:
+        unspsc_commodity: 'Labels'
+      map_to_l2: C23  # Labels & Stickers
+      priority: 120
+      notes: Amazon CSV commodity → Labels
+
+    - match:
+        unspsc_family: 'Signage and accessories'
+      map_to_l2: C23  # Labels & Stickers
+      priority: 110
+      notes: Amazon CSV family signage/accessories often label rolls
+
+    # Water filters via UNSPSC family/commodity
+    - match:
+        unspsc_family: 'Industrial filtering and purification'
+      map_to_l2: C32  # Filters & Disposables
+      priority: 120
+      notes: Water/industrial filters
+
+    - match:
+        unspsc_commodity: 'Water filters'
+      map_to_l2: C32  # Filters & Disposables
+      priority: 130
+      notes: Water filter commodity
     
     # ===== PACKAGING ===== (vendor-agnostic keywords handle these)
     
