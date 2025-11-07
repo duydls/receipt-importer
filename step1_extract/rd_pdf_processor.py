@@ -190,6 +190,9 @@ class RDPDFProcessor:
             # Use the same enrichment logic as Excel processor for RD
             receipt_data['items'] = self._enrich_rd_items(receipt_data.get('items', []))
             
+            # Validate totals and flag mismatches
+            self._validate_rd_totals(receipt_data)
+            
             logger.info(f"Extracted {len(items)} items from RD PDF {file_path.name}")
             return receipt_data
             
@@ -257,13 +260,20 @@ class RDPDFProcessor:
         """
         try:
             tables = []
+            all_pages_processed = []
             with pdfplumber.open(file_path) as pdf:
+                total_pages = len(pdf.pages)
+                logger.info(f"Processing {total_pages} page(s) from {file_path.name}")
+                
                 for page_num, page in enumerate(pdf.pages):
+                    page_tables = []
+                    
                     # Try multiple table extraction strategies
                     # Strategy 1: Standard table extraction
                     page_tables = page.extract_tables()
                     if page_tables:
                         tables.extend(page_tables)
+                        all_pages_processed.append(page_num + 1)
                         logger.debug(f"Found {len(page_tables)} tables on page {page_num + 1} using standard extraction")
                         continue
                     
@@ -279,26 +289,33 @@ class RDPDFProcessor:
                     })
                     if page_tables:
                         tables.extend(page_tables)
+                        all_pages_processed.append(page_num + 1)
                         logger.debug(f"Found {len(page_tables)} tables on page {page_num + 1} using line-based extraction")
                         continue
                     
                     # Strategy 3: Try text-based extraction (if PDF has text but no table structure)
                     text = page.extract_text()
                     if text and "Item Description" in text:
-                        logger.debug(f"Found text with 'Item Description' on page {page_num + 1}, but no table structure")
+                        logger.warning(f"Found text with 'Item Description' on page {page_num + 1}, but no table structure - may need OCR")
                         # Could try to parse text as table manually, but for now just log
+                    elif not text:
+                        logger.warning(f"No text found on page {page_num + 1} - may be image-based and need OCR")
             
             if not tables:
-                logger.debug(f"No tables found in PDF {file_path.name} - may be image-based or unstructured")
+                logger.warning(f"No tables found in PDF {file_path.name} (processed {len(all_pages_processed)}/{total_pages} pages) - may be image-based or unstructured")
                 return None
             
-            # Find the table with the header row matching RD layout
+            if len(all_pages_processed) < total_pages:
+                logger.warning(f"Only processed {len(all_pages_processed)}/{total_pages} pages from {file_path.name} - some pages may have been skipped")
+            
+            # Find tables with header row matching RD layout
             # Look for headers: "Item Description" and "Extended Amount"
             header_patterns = [
                 r'Item\s+Description',
                 r'Extended\s+Amount',
             ]
             
+            matching_tables = []
             for table in tables:
                 if not table or len(table) < 2:
                     continue
@@ -314,12 +331,28 @@ class RDPDFProcessor:
                         break
                 
                 if matches:
-                    # Convert table to DataFrame
-                    df = pd.DataFrame(table[1:], columns=table[0])
+                    matching_tables.append(table)
+            
+            # Merge all matching tables (in case items are split across pages)
+            if matching_tables:
+                if len(matching_tables) > 1:
+                    logger.info(f"Found {len(matching_tables)} matching tables - merging rows from all tables")
+                    # Use header from first table
+                    header = matching_tables[0][0]
+                    # Combine all data rows (skip header from subsequent tables)
+                    all_rows = [header]
+                    for table in matching_tables:
+                        all_rows.extend(table[1:])
                     
-                    # Clean column names
+                    df = pd.DataFrame(all_rows[1:], columns=header)
                     df.columns = [str(col).strip() if col else '' for col in df.columns]
-                    
+                    logger.info(f"Merged {len(matching_tables)} tables into one DataFrame with {len(df)} rows")
+                    return df
+                else:
+                    # Single matching table
+                    table = matching_tables[0]
+                    df = pd.DataFrame(table[1:], columns=table[0])
+                    df.columns = [str(col).strip() if col else '' for col in df.columns]
                     logger.info(f"Extracted table with {len(df)} rows from PDF")
                     return df
             
@@ -329,7 +362,7 @@ class RDPDFProcessor:
                 if table and len(table) >= 2:
                     df = pd.DataFrame(table[1:], columns=table[0])
                     df.columns = [str(col).strip() if col else '' for col in df.columns]
-                    logger.info(f"Using first table with {len(df)} rows (header may not match)")
+                    logger.warning(f"Using first table with {len(df)} rows (header may not match RD layout)")
                     return df
             
             return None
@@ -402,6 +435,10 @@ class RDPDFProcessor:
             data_rows = []
             seen_lines = set()  # Deduplicate OCR artifacts
             
+            # Load knowledge base for UPC/product name lookups
+            from . import vendor_profiles
+            kb = vendor_profiles._ensure_kb_loaded()
+            
             # Get OCR config from YAML (RD-specific patterns)
             ocr_config = self.ocr_config or {}
             item_pattern = ocr_config.get('item_pattern', {}).get('regex')
@@ -442,6 +479,12 @@ class RDPDFProcessor:
                     elif skip_pattern.upper() in line.upper():
                         skip_this_line = True
                         break
+                
+                # Also skip summary lines (single character lines like "$", "} $", etc.)
+                line_clean = line.strip()
+                if len(line_clean) <= 3 and (line_clean in ['$', '} $', '| $'] or re.match(r'^[}\|]?\s*\$?\s*$', line_clean)):
+                    skip_this_line = True
+                
                 if skip_this_line:
                     continue
                 
@@ -458,33 +501,146 @@ class RDPDFProcessor:
                             # Simple string replacement
                             line = line.replace(find_pattern, replace_pattern)
                 
-                # Try to match RD item pattern (from YAML)
+                # Step 1: Extract UPC from the beginning of the line (if present)
+                # NOTE: UPC extraction is RD-specific - RD receipts have UPC at the start of each line
+                # UPC is typically 10-13 digits at the start
+                # Format: UPC ItemNumber Description UnitPrice Qty U(T) ExtAmount Tax
+                upc_match = re.match(r'^(\d{10,13})\s+', line)
+                upc = upc_match.group(1) if upc_match else ''
+                
+                # Step 2: Try to extract item_number early (before pattern match) for KB lookup
+                # RD format: UPC ItemNumber Description...
+                # Try to extract item_number after UPC (5-10 digits)
+                # This is RD-specific - other vendors may not have this format
+                item_number_for_kb = None
+                if upc:
+                    # After UPC, look for item_number (5-10 digits)
+                    after_upc = line[len(upc):].strip()
+                    item_no_match = re.match(r'^(\d{5,10})\s+', after_upc)
+                    if item_no_match:
+                        item_number_for_kb = item_no_match.group(1)
+                
+                # Step 3: Look up product name in knowledge base using item_number
+                # NOTE: This KB lookup is RD-specific - uses UPC and item_number from RD format
+                # KB is keyed by item_number (not UPC), so we look up by item_number
+                kb_product_name = None
+                kb_item_number = None
+                if kb and item_number_for_kb:
+                    # KB is keyed by item_number, so look up by item_number
+                    kb_entry = kb.get(item_number_for_kb)
+                    if kb_entry:
+                        if isinstance(kb_entry, dict):
+                            kb_product_name = kb_entry.get('name', '')
+                            kb_item_number = item_number_for_kb
+                        elif isinstance(kb_entry, list) and len(kb_entry) > 0:
+                            # Old format: [name, store, spec, price]
+                            kb_product_name = kb_entry[0] if len(kb_entry) > 0 else ''
+                            kb_item_number = item_number_for_kb
+                
+                # Step 4: Apply common OCR error corrections before pattern matching
+                # Fix common OCR errors in prices: f/F -> 7, O/o -> 0, I/l -> 1
+                # But only fix in price-like patterns to avoid breaking descriptions
+                line_original = line
+                # Fix price OCR errors: "21.f2" -> "21.72", "2O.91" -> "20.91"
+                # Only fix f/F in price context (after digit, before 1-2 digits): "21.f2" -> "21.72"
+                # Match pattern: digit(s) + [.,] + f/F + 1-2 digits (common OCR error)
+                line = re.sub(r'(\d+)[.,]f(\d{1,2})', r'\1.7\2', line)  # f -> 7 (e.g., "21.f2" -> "21.72")
+                line = re.sub(r'(\d+)[.,]F(\d{1,2})', r'\1.7\2', line)  # F -> 7
+                # Fix O/o -> 0 only in price context (between digits)
+                line = re.sub(r'(\d+)O(\d)', r'\g<1>0\2', line)  # O -> 0 (but preserve in words)
+                line = re.sub(r'(\d+)o(\d)', r'\g<1>0\2', line)  # o -> 0
+                # Fix I/l -> 1 only in price context (between digits)
+                line = re.sub(r'(\d+)I(\d)', r'\g<1>1\2', line)  # I -> 1
+                line = re.sub(r'(\d+)l(\d)', r'\g<1>1\2', line)  # l -> 1
+                
+                # Step 5: Try to match RD item pattern (from YAML)
+                # If we have KB product name, we can use it to validate/correct the description
                 item_match = re.match(item_pattern, line)
                 
                 if item_match:
-                    upc = item_match.group(1)
+                    extracted_upc = item_match.group(1)
                     item_number = item_match.group(2)
                     description = item_match.group(3).strip()
+                    # Clean description (remove leading | and other OCR artifacts)
+                    description = re.sub(r'^\|\s*', '', description).strip()
                     unit_price = item_match.group(4).replace(',', '.')
                     qty = item_match.group(5)
                     ext_amount = item_match.group(6).replace(',', '.')
                     
-                    # Create a normalized line for deduplication
-                    normalized = f"{upc}_{item_number}_{description[:50]}_{ext_amount}"
+                    # Use KB product name if available and description seems wrong
+                    if kb_product_name and kb_product_name:
+                        # Check if description is significantly different from KB name
+                        # If KB name is more reliable, use it (but keep OCR description for reference)
+                        desc_upper = description.upper()
+                        kb_name_upper = kb_product_name.upper()
+                        
+                        # Check for poor OCR indicators
+                        has_ocr_errors = (
+                            len(description) < 10 or 
+                            description.count('|') > 2 or
+                            # Check for common OCR errors in product names
+                            any(err in desc_upper for err in ['TI ISE', 'A32Z', 'SJLOE', 'BREAST', 'PAS 1 U (T)']) or
+                            # Check if description starts with UPC (OCR artifact)
+                            description.startswith(extracted_upc) if extracted_upc else False
+                        )
+                        
+                        # If description has OCR errors, prefer KB name
+                        if has_ocr_errors:
+                            description = kb_product_name
+                            logger.debug(f"Using KB product name for UPC {extracted_upc} (OCR errors detected): {kb_product_name}")
+                        # If KB name is found in description, use KB name (cleaner)
+                        elif kb_name_upper in desc_upper:
+                            description = kb_product_name
+                            logger.debug(f"Using KB product name for UPC {extracted_upc} (found in OCR): {kb_product_name}")
+                        # Otherwise, keep OCR description but note KB name for validation
+                        elif kb_name_upper not in desc_upper and desc_upper not in kb_name_upper:
+                            # Names don't match - keep OCR but add KB name as reference
+                            logger.debug(f"Description mismatch for UPC {extracted_upc}: OCR='{description}' vs KB='{kb_product_name}'")
+                    
+                    # Normalize ext_amount for deduplication (handle OCR errors)
+                    try:
+                        ext_amount_float = float(ext_amount)
+                    except ValueError:
+                        # Skip if can't parse
+                        continue
+                    
+                    # Create a normalized line for deduplication (use original line before OCR correction)
+                    # Use UPC + item_number + ext_amount for deduplication (most reliable)
+                    if extracted_upc and item_number:
+                        normalized = f"{extracted_upc}_{item_number}_{ext_amount_float:.2f}"
+                    elif item_number:
+                        normalized = f"{item_number}_{ext_amount_float:.2f}"
+                    else:
+                        # Fallback: use description + ext_amount
+                        normalized = f"{description[:50]}_{ext_amount_float:.2f}"
+                    
                     if normalized in seen_lines:
                         continue  # Skip duplicate OCR artifacts
                     seen_lines.add(normalized)
                     
                     # Create row: Item Description, QTY, Unit Price, Extended Amount, UPC, Item Number
                     # Include UPC and item_number for knowledge base lookup
-                    row = [description, qty, unit_price, ext_amount, upc, item_number]
+                    row = [description, qty, unit_price, ext_amount, extracted_upc, item_number]
                     data_rows.append(row)
                     continue
                 
                 # Fallback: Try to find price patterns and split by price positions
-                # Look for price patterns: "28.91", "32.15", etc.
-                price_pattern = r'\d+[.,]\d{2}'
-                prices = list(re.finditer(price_pattern, line))
+                # Look for price patterns: "28.91", "32.15", etc. (handle OCR errors like "21.f2" -> "21.72")
+                # First try strict pattern, then try OCR-error-tolerant pattern
+                price_pattern_strict = r'\d+[.,]\d{2}'
+                price_pattern_ocr = r'\d+[.,fF]\d{2}'  # Handle OCR errors: f/F instead of digit
+                
+                prices_strict = list(re.finditer(price_pattern_strict, line))
+                prices_ocr = list(re.finditer(price_pattern_ocr, line))
+                
+                # Use OCR-tolerant pattern if strict pattern finds fewer prices
+                prices = prices_strict if len(prices_strict) >= 2 else prices_ocr
+                
+                # Skip summary lines (very short lines with only prices, no product description)
+                line_clean = line.strip()
+                if len(line_clean) <= 5 and len(prices) > 0:
+                    # Very short line with prices - likely a summary line
+                    continue
                 
                 if len(prices) >= 2:  # At least unit price and extended amount
                     # First price is likely unit price, last is extended amount
@@ -493,6 +649,23 @@ class RDPDFProcessor:
                     
                     # Extract description (before first price)
                     description = line[:unit_price_match.start()].strip()
+                    
+                    # Clean description (remove leading | and other OCR artifacts)
+                    description = re.sub(r'^\|\s*', '', description).strip()
+                    
+                    # If we have KB product name, try to find it in the description and use it
+                    if kb_product_name and kb_product_name:
+                        # Try to find KB product name in the OCR line (fuzzy match)
+                        kb_name_upper = kb_product_name.upper()
+                        desc_upper = description.upper()
+                        # If KB name is found in description, use KB name (cleaner)
+                        if kb_name_upper in desc_upper:
+                            description = kb_product_name
+                            logger.debug(f"Using KB product name from fallback for UPC {upc}: {kb_product_name}")
+                        # If description is very short or mostly OCR artifacts, prefer KB name
+                        elif len(description) < 10 or description.count('|') > 2:
+                            description = kb_product_name
+                            logger.debug(f"Replacing short/artifacts description with KB name for UPC {upc}: {kb_product_name}")
                     
                     # Extract qty (between prices, or assume 1)
                     qty = '1'
@@ -503,16 +676,89 @@ class RDPDFProcessor:
                         if qty_match:
                             qty = qty_match.group(1)
                     
-                    unit_price = unit_price_match.group(0).replace(',', '.')
-                    ext_amount = ext_amount_match.group(0).replace(',', '.')
+                    # Clean prices (handle OCR errors: f/F -> digit, | -> nothing)
+                    unit_price_raw = unit_price_match.group(0).replace(',', '.').replace('f', '7').replace('F', '7').replace('|', '')
+                    ext_amount_raw = ext_amount_match.group(0).replace(',', '.').replace('f', '7').replace('F', '7').replace('|', '')
+                    
+                    # Try to parse as float, if fails, try OCR correction
+                    try:
+                        unit_price = float(unit_price_raw)
+                        ext_amount = float(ext_amount_raw)
+                    except ValueError:
+                        # Try OCR correction: common errors
+                        unit_price_raw = unit_price_raw.replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+                        ext_amount_raw = ext_amount_raw.replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+                        try:
+                            unit_price = float(unit_price_raw)
+                            ext_amount = float(ext_amount_raw)
+                        except ValueError:
+                            # Skip if still can't parse
+                            continue
+                    
+                    # Extract UPC and item number from description if present
+                    upc = ''
+                    item_number = ''
+                    # Try to extract from beginning of description (UPC ItemNumber Description)
+                    desc_match = re.match(r'^(\d{10,13})\s+(\d{5,10})\s+(.+)$', description)
+                    if desc_match:
+                        upc = desc_match.group(1)
+                        item_number = desc_match.group(2)
+                        description = desc_match.group(3).strip()
                     
                     # Create normalized line for deduplication
-                    normalized = f"{description[:50]}_{ext_amount}"
+                    normalized = f"{upc}_{item_number}_{description[:50]}_{ext_amount:.2f}"
                     if normalized in seen_lines:
                         continue
                     seen_lines.add(normalized)
                     
-                    row = [description, qty, unit_price, ext_amount]
+                    # Create row: Item Description, QTY, Unit Price, Extended Amount, UPC, Item Number
+                    row = [description, qty, f"{unit_price:.2f}", f"{ext_amount:.2f}", upc, item_number]
+                    data_rows.append(row)
+                    continue
+                
+                # Second fallback: If only one price found, might be extended amount only
+                if len(prices) == 1:
+                    # Skip if line is too short (likely summary line)
+                    line_clean = line.strip()
+                    if len(line_clean) <= 5:
+                        continue
+                    
+                    price_match = prices[0]
+                    description = line[:price_match.start()].strip()
+                    description = re.sub(r'^\|\s*', '', description).strip()
+                    
+                    # Skip if description is empty or just a symbol
+                    if not description or description in ['$', '} $', '| $']:
+                        continue
+                    
+                    # Try to extract UPC/item number from description
+                    upc = ''
+                    item_number = ''
+                    desc_match = re.match(r'^(\d{10,13})\s+(\d{5,10})\s+(.+)$', description)
+                    if desc_match:
+                        upc = desc_match.group(1)
+                        item_number = desc_match.group(2)
+                        description = desc_match.group(3).strip()
+                    
+                    # Clean price
+                    ext_amount_raw = price_match.group(0).replace(',', '.').replace('f', '7').replace('F', '7').replace('|', '')
+                    try:
+                        ext_amount = float(ext_amount_raw)
+                    except ValueError:
+                        ext_amount_raw = ext_amount_raw.replace('O', '0').replace('o', '0').replace('I', '1').replace('l', '1')
+                        try:
+                            ext_amount = float(ext_amount_raw)
+                        except ValueError:
+                            continue
+                    
+                    # Create normalized line for deduplication
+                    normalized = f"{upc}_{item_number}_{description[:50]}_{ext_amount:.2f}"
+                    if normalized in seen_lines:
+                        continue
+                    seen_lines.add(normalized)
+                    
+                    # Create row with qty=1 (default)
+                    row = [description, '1', f"{ext_amount:.2f}", f"{ext_amount:.2f}", upc, item_number]
                     data_rows.append(row)
                     continue
             
@@ -774,4 +1020,86 @@ class RDPDFProcessor:
             enriched_items.append(item)
         
         return enriched_items
+    
+    def _validate_rd_totals(self, receipt_data: Dict[str, Any]):
+        """
+        Validate RD receipt totals and flag mismatches.
+        
+        Checks if calculated total from items matches receipt total.
+        Flags receipts with significant mismatches for review.
+        """
+        items = receipt_data.get('items', [])
+        if not items:
+            return
+        
+        # Calculate totals from items (excluding fees)
+        calculated_subtotal = sum(
+            float(item.get('total_price', 0)) 
+            for item in items 
+            if not item.get('is_fee', False)
+        )
+        
+        # Get receipt totals
+        receipt_subtotal = float(receipt_data.get('subtotal', 0) or 0)
+        receipt_tax = float(receipt_data.get('tax', 0) or 0)
+        receipt_total = float(receipt_data.get('total', 0) or 0)
+        
+        # Calculate expected total
+        expected_total = calculated_subtotal + receipt_tax
+        
+        # Check for mismatches
+        subtotal_diff = abs(calculated_subtotal - receipt_subtotal) if receipt_subtotal > 0 else 0
+        total_diff = abs(expected_total - receipt_total) if receipt_total > 0 else 0
+        
+        # Flag if mismatch is significant (> $1.00 or > 5% of receipt total)
+        threshold_absolute = 1.00
+        threshold_percent = 0.05
+        
+        is_mismatch = False
+        mismatch_reasons = []
+        
+        if receipt_subtotal > 0 and subtotal_diff > threshold_absolute:
+            pct_diff = (subtotal_diff / receipt_subtotal) * 100 if receipt_subtotal > 0 else 0
+            if pct_diff > (threshold_percent * 100):
+                is_mismatch = True
+                mismatch_reasons.append(
+                    f"Subtotal mismatch: calculated ${calculated_subtotal:.2f} vs receipt ${receipt_subtotal:.2f} "
+                    f"(diff: ${subtotal_diff:.2f}, {pct_diff:.1f}%)"
+                )
+        
+        if receipt_total > 0 and total_diff > threshold_absolute:
+            pct_diff = (total_diff / receipt_total) * 100 if receipt_total > 0 else 0
+            if pct_diff > (threshold_percent * 100):
+                is_mismatch = True
+                mismatch_reasons.append(
+                    f"Total mismatch: calculated ${expected_total:.2f} vs receipt ${receipt_total:.2f} "
+                    f"(diff: ${total_diff:.2f}, {pct_diff:.1f}%)"
+                )
+        
+        if is_mismatch:
+            # Flag receipt for review
+            receipt_data['needs_review'] = True
+            if 'review_reasons' not in receipt_data:
+                receipt_data['review_reasons'] = []
+            
+            for reason in mismatch_reasons:
+                if reason not in receipt_data['review_reasons']:
+                    receipt_data['review_reasons'].append(reason)
+            
+            # Add detailed mismatch info
+            receipt_data['total_mismatch'] = {
+                'calculated_subtotal': calculated_subtotal,
+                'receipt_subtotal': receipt_subtotal,
+                'subtotal_diff': subtotal_diff,
+                'calculated_total': expected_total,
+                'receipt_total': receipt_total,
+                'total_diff': total_diff,
+                'item_count': len([i for i in items if not i.get('is_fee', False)]),
+            }
+            
+            logger.warning(
+                f"RD total mismatch detected for {receipt_data.get('filename', 'unknown')}: "
+                f"calculated ${expected_total:.2f} vs receipt ${receipt_total:.2f} "
+                f"(diff: ${total_diff:.2f}). {len(items)} items extracted."
+            )
 

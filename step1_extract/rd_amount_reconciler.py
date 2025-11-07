@@ -119,8 +119,10 @@ def _score_candidate(item: Dict[str, Any], candidate_total: float, doc_totals: D
     return max(0.0, min(1.0, score))
 
 
-def reconcile_rd_amounts(receipt: Dict[str, Any]) -> Dict[str, Any]:
-    """Apply RD-only reconciliation for suspicious short amounts and merge duplicates.
+def reconcile_rd_amounts(receipt: Dict[str, Any], merge_duplicates: bool = False) -> Dict[str, Any]:
+    """Apply RD-only reconciliation for suspicious short amounts.
+    
+    Optionally merge duplicates if merge_duplicates=True (default: False - keep items separate).
 
     Adds metadata to item:
       - rd_fix_status: 'fixed' | 'flagged' | None
@@ -206,7 +208,11 @@ def reconcile_rd_amounts(receipt: Dict[str, Any]) -> Dict[str, Any]:
                     it['rd_fix_reason'] = 'RD: suspicious short amount; insufficient evidence to auto-fix'
                     it['rd_fix_improvement_pct'] = round(best_score * 100, 1)
 
-    # Merge duplicates within clusters (post-fix)
+    # Merge duplicates within clusters (post-fix) - only if merge_duplicates=True
+    if not merge_duplicates:
+        # Skip merging - keep all items separate as they appear on receipt
+        return receipt
+    
     merged_items: List[Dict[str, Any]] = []
     consumed = set()
     for key, pairs in clusters.items():
