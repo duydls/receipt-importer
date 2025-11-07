@@ -670,6 +670,40 @@ categories_l2:
     - title_contains:
       - tax
       - fee
+  - id: "C71"
+    name: "Ramen Ingredients｜拉面原料"
+    description: "拉面核心与配料：面条、汤底/酱（tare/ma-yu/黑蒜油）、海苔、腌制竹笋、鱼板/鱼糜、叉烧等"
+    synonyms:
+    - ramen ingredient
+    - ramen noodle
+    - noodle ramen
+    - shinuchi
+    - tonkotsu
+    - miso
+    - shoyu
+    - shio
+    - soup base
+    - ramen base
+    - tare
+    - ma yu
+    - mayu
+    - black garlic oil
+    - menma
+    - bamboo shoot
+    - seasoned bamboo
+    - marinated bamboo
+    - narutomaki
+    - kamaboko
+    - surimi
+    - fish cake
+    - nori
+    - roasted seaweed
+    - yaki nori
+    - chashu
+    - pork belly
+    vendor_hints:
+      - title_contains: ["ramen","noodle","shinuchi","tonkotsu","miso","shoyu","shio","tare","ma-yu","black","garlic","oil","soup","base","menma","bamboo","narutomaki","kamaboko","surimi","fish","cake","nori","seaweed","chashu","belly"]
+    notes: "Vendor-specific: Wismettac only. Use classification overrides for vendor restriction."
   - id: C80
     name: Shipping/Delivery
     description: Shipping and delivery charges

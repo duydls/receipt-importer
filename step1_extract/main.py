@@ -997,43 +997,94 @@ def process_files(
             except Exception as e:
                 logger.warning(f"Error normalizing names for {receipt_id}: {e}", exc_info=True)
     
-    # Optional: Enrich Wismettac items from saved web fetch (brand/category/pack/barcode)
+    # Optional: Enrich Wismettac items from knowledge base (brand/category/pack/barcode)
     try:
         from pathlib import Path as _Path
         import json as _json
-        enrich_path = _Path(wismettac_based_output_dir) / 'wismettac_enrichment.json'
-        if enrich_path.exists() and wismettac_based_data:
-            with open(enrich_path, 'r', encoding='utf-8') as f:
-                wismettac_enrich = _json.load(f)
-            # Build map by itemNumber string
-            enrich_map = {str(k): v for k, v in wismettac_enrich.items()}
+        # Load knowledge base
+        kb_path = _Path('data/step1_input/knowledge_base.json')
+        if not kb_path.exists():
+            kb_path = _Path('data/knowledge_base.json')
+        
+        if kb_path.exists() and wismettac_based_data:
+            with open(kb_path, 'r', encoding='utf-8') as f:
+                kb = _json.load(f)
+            
+            enriched_count = 0
             for receipt_id, receipt_data in wismettac_based_data.items():
                 for item in receipt_data.get('items', []):
-                    item_no = (item.get('item_number') or '').strip()
+                    item_no = (item.get('item_number') or '').strip().lstrip('#')
                     if not item_no:
                         continue
-                    rec = enrich_map.get(item_no)
-                    if not rec:
+                    
+                    # Look up in knowledge base
+                    kb_entry = kb.get(item_no)
+                    if not kb_entry:
                         continue
-                    # Brand & Category from site (vendor-scoped fields)
-                    if rec.get('brand'):
-                        item['vendor_brand'] = rec['brand']
-                    if rec.get('category'):
-                        item['vendor_category'] = rec['category']
-                    # Barcode/UPC
-                    if rec.get('barcode') and not item.get('upc'):
-                        item['upc'] = rec['barcode']
-                    # Pack size enrichment
-                    if rec.get('packSizeRaw') and not item.get('pack_size_raw'):
-                        item['pack_size_raw'] = rec['packSizeRaw']
-                    pp = rec.get('packParsed') or {}
-                    if pp:
-                        if pp.get('caseQty') is not None and not item.get('pack_case_qty'):
-                            item['pack_case_qty'] = pp.get('caseQty')
-                        if pp.get('each') is not None and not item.get('each_qty'):
-                            item['each_qty'] = pp.get('each')
-                        if pp.get('uom') and not item.get('each_uom'):
-                            item['each_uom'] = pp.get('uom')
+                    
+                    # Handle both old format (list) and new format (dict)
+                    if isinstance(kb_entry, dict):
+                        # New format with all fields
+                        # Brand & Category from KB (vendor-scoped fields)
+                        if kb_entry.get('brand') and not item.get('vendor_brand'):
+                            item['vendor_brand'] = kb_entry['brand']
+                        if kb_entry.get('category') and not item.get('vendor_category'):
+                            item['vendor_category'] = kb_entry['category']
+                        # Pack size enrichment
+                        if kb_entry.get('pack_size') and not item.get('pack_size_raw'):
+                            item['pack_size_raw'] = kb_entry['pack_size']
+                        # Product name enrichment (if better than OCR)
+                        if kb_entry.get('name') and not item.get('product_name'):
+                            item['product_name'] = kb_entry['name']
+                        # Size spec enrichment
+                        if kb_entry.get('size_spec') and not item.get('size_spec'):
+                            item['size_spec'] = kb_entry['size_spec']
+                        enriched_count += 1
+                    elif isinstance(kb_entry, list) and len(kb_entry) >= 4:
+                        # Old format: [name, store, size_spec, unit_price]
+                        if kb_entry[0] and not item.get('product_name'):
+                            item['product_name'] = kb_entry[0]
+                        if kb_entry[2] and not item.get('size_spec'):
+                            item['size_spec'] = kb_entry[2]
+                        enriched_count += 1
+            
+            if enriched_count > 0:
+                logger.info("Enriched %d Wismettac items from knowledge base", enriched_count)
+        else:
+            # Fallback to old enrichment file if KB doesn't exist
+            enrich_path = _Path(wismettac_based_output_dir) / 'wismettac_enrichment.json'
+            if enrich_path.exists() and wismettac_based_data:
+                with open(enrich_path, 'r', encoding='utf-8') as f:
+                    wismettac_enrich = _json.load(f)
+                # Build map by itemNumber string
+                enrich_map = {str(k): v for k, v in wismettac_enrich.items()}
+                for receipt_id, receipt_data in wismettac_based_data.items():
+                    for item in receipt_data.get('items', []):
+                        item_no = (item.get('item_number') or '').strip()
+                        if not item_no:
+                            continue
+                        rec = enrich_map.get(item_no)
+                        if not rec:
+                            continue
+                        # Brand & Category from site (vendor-scoped fields)
+                        if rec.get('brand'):
+                            item['vendor_brand'] = rec['brand']
+                        if rec.get('category'):
+                            item['vendor_category'] = rec['category']
+                        # Barcode/UPC
+                        if rec.get('barcode') and not item.get('upc'):
+                            item['upc'] = rec['barcode']
+                        # Pack size enrichment
+                        if rec.get('packSizeRaw') and not item.get('pack_size_raw'):
+                            item['pack_size_raw'] = rec['packSizeRaw']
+                        pp = rec.get('packParsed') or {}
+                        if pp and isinstance(pp, dict):
+                            if pp.get('caseQty') is not None and not item.get('pack_case_qty'):
+                                item['pack_case_qty'] = pp.get('caseQty')
+                            if pp.get('each') is not None and not item.get('each_qty'):
+                                item['each_qty'] = pp.get('each')
+                            if pp.get('uom') and not item.get('each_uom'):
+                                item['each_uom'] = pp.get('uom')
             logger.info("Applied Wismettac enrichment from %s", enrich_path)
     except Exception as e:
         logger.warning("Wismettac enrichment failed: %s", e, exc_info=True)

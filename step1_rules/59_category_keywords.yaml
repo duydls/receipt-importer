@@ -268,7 +268,10 @@ category_keywords:
       map_to_l2: C10
       priority: 96
       hints: ['Frozen Fruit - IQF strawberries']
-  
+    
+    # Note: Ramen Ingredients (C71) is vendor-specific to Wismettac only.
+    # See 99_classification_overrides.yaml for vendor-restricted mapping.
+ 
   # Vendor-specific abbreviations and normalizations
   vendor_abbreviations:
     costco:

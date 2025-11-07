@@ -258,6 +258,19 @@ class UnifiedPDFProcessor:
             if receipt_data.get('items'):
                 receipt_data['items'] = self._enrich_items(receipt_data['items'], detected_vendor_code)
             
+            # For Odoo: If total is still 0, calculate from items
+            if detected_vendor_code == 'ODOO' and receipt_data.get('total', 0.0) == 0.0:
+                items = receipt_data.get('items', [])
+                if items:
+                    # Calculate total from items
+                    items_total = sum(float(item.get('total_price', 0.0) or item.get('extended_amount', 0.0)) for item in items)
+                    # Add tax if present
+                    if receipt_data.get('tax', 0.0) > 0:
+                        items_total += receipt_data['tax']
+                    if items_total > 0:
+                        receipt_data['total'] = items_total
+                        logger.debug(f"Odoo: Calculated total from items: ${receipt_data['total']:.2f} (items: ${items_total - receipt_data.get('tax', 0.0):.2f}, tax: ${receipt_data.get('tax', 0.0):.2f})")
+            
             logger.info(f"Extracted {len(items)} items from PDF {file_path.name}")
             if len(items) != len(receipt_data.get('items', [])):
                 logger.warning(f"Item count mismatch: parsed {len(items)} items, but receipt_data has {len(receipt_data.get('items', []))} items")
@@ -1536,6 +1549,37 @@ class UnifiedPDFProcessor:
                     except (ValueError, IndexError) as e:
                         logger.debug(f"Could not convert tax value: {e}")
         
+        # Try grocery tax pattern (for all vendors - handles both summary and item-like formats)
+        # Pattern 1: Summary format "Grocery Tax $ 0.11" (must have $ immediately after "Tax")
+        grocery_tax_pattern1 = r'(?im)^\s*Grocery\s+Tax\s+\$\s*(\d{1,3}(?:,\d{3})*\.\d{2})(?:\s|$)'
+        grocery_tax_match1 = re.search(grocery_tax_pattern1, text, re.IGNORECASE | re.MULTILINE)
+        if grocery_tax_match1:
+            try:
+                cleaned_val = grocery_tax_match1.group(1).replace(',', '').replace('$', '').strip()
+                if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                    cleaned_val = '-' + cleaned_val[1:-1]
+                tax_value = float(cleaned_val)
+                tax_amount += tax_value
+                logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'grocery_tax' (summary format)")
+            except (ValueError, IndexError) as e:
+                logger.debug(f"Could not convert grocery tax value (summary): {e}")
+        
+        # Pattern 2: Item-like format "Grocery Tax 0.11 Units $ 1.00 $ 0.11" (extract last $ amount from end)
+        # Only try if pattern 1 didn't match (to avoid double counting)
+        if not grocery_tax_match1:
+            grocery_tax_pattern2 = r'(?im)^\s*Grocery\s+Tax\s+.*?\$\s*(\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+            grocery_tax_match2 = re.search(grocery_tax_pattern2, text, re.IGNORECASE | re.MULTILINE)
+            if grocery_tax_match2:
+                try:
+                    cleaned_val = grocery_tax_match2.group(1).replace(',', '').replace('$', '').strip()
+                    if cleaned_val.startswith('(') and cleaned_val.endswith(')'):
+                        cleaned_val = '-' + cleaned_val[1:-1]
+                    tax_value = float(cleaned_val)
+                    tax_amount += tax_value
+                    logger.debug(f"Found tax: ${tax_value:.2f} from pattern 'grocery_tax' (item-like format)")
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Could not convert grocery tax value (item-like): {e}")
+        
         # Try water tax pattern (separate)
         if 'tax_water' in total_patterns:
             tax_water_match = re.search(total_patterns['tax_water'], text, re.IGNORECASE | re.MULTILINE)
@@ -1632,6 +1676,16 @@ class UnifiedPDFProcessor:
                 expected_total = totals['subtotal'] + totals.get('tax', 0.0)
                 totals['total'] = expected_total
                 logger.debug(f"Costco: Set total to subtotal + tax: ${totals['total']:.2f} (subtotal: ${totals['subtotal']:.2f}, tax: ${totals.get('tax', 0.0):.2f})")
+        
+        # For Odoo: If total is not extracted, calculate from items or subtotal + tax
+        if vendor_name in ('ODOO', 'ODOO SYSTEM'):
+            if totals['total'] == 0.0:
+                # Try to calculate from subtotal + tax first
+                if totals['subtotal'] > 0:
+                    expected_total = totals['subtotal'] + totals.get('tax', 0.0)
+                    totals['total'] = expected_total
+                    logger.debug(f"Odoo: Set total to subtotal + tax: ${totals['total']:.2f} (subtotal: ${totals['subtotal']:.2f}, tax: ${totals.get('tax', 0.0):.2f})")
+                # If subtotal is also 0, we'll calculate from items later in the process
         
         return totals
 

@@ -1,0 +1,87 @@
+# Wismettac Vendor Category Mapping
+# Maps Wismettac vendor_category values to L2 categories
+# This is used when vendor_category is enriched from the knowledge base
+
+wismettac_category_map:
+  description: >
+    Maps Wismettac vendor_category values (from their online catalog) to L2 operational categories.
+    Rules are evaluated in priority order (first match wins).
+    Used when vendor_category is present in item data (enriched from knowledge base).
+  
+  maps:
+    # ===== BEVERAGES =====
+    - match: '^BEER$'
+      l2: C99  # Other (alcohol not in standard categories)
+      priority: 100
+      notes: Beer/alcohol products
+    
+    - match: 'SAKE.*720ML|SAKE.*500ML|^SAKE'
+      l2: C99  # Other (alcohol not in standard categories)
+      priority: 100
+      notes: Sake products
+    
+    # ===== SWEETS & SNACKS =====
+    - match: 'CANDY.*GUM|CANDY, GUM'
+      l2: C33  # Retail Snacks & Beverages
+      priority: 100
+      notes: Candy and gum products
+    
+    - match: 'CHOCOLATE.*BISCUIT|CHOCOLATE, BISCUIT'
+      l2: C33  # Retail Snacks & Beverages
+      priority: 100
+      notes: Chocolate and biscuit products
+    
+    - match: 'JAPANESE SWEETS'
+      l2: C33  # Retail Snacks & Beverages
+      priority: 100
+      notes: Japanese sweets and confections
+    
+    # ===== CONDIMENTS & SAUCES =====
+    - match: '^DRESSING$'
+      l2: C12  # Seasonings & Marinades (dressings are condiments)
+      priority: 100
+      notes: Salad dressings and condiments
+    
+    - match: '^SESAME OIL$'
+      l2: C12  # Seasonings & Marinades (oils are condiments)
+      priority: 100
+      notes: Sesame oil
+    
+    - match: 'MISO INSTANT'
+      l2: C12  # Seasonings & Marinades (miso is a seasoning base)
+      priority: 100
+      notes: Miso instant soup base
+    
+    # ===== INGREDIENTS =====
+    - match: '^SESAME SEED$'
+      l2: C12  # Seasonings & Marinades (seeds/spices)
+      priority: 100
+      notes: Sesame seeds
+    
+    - match: '^KOMBU$'
+      l2: C16  # Fresh Vegetables (seaweed/kelp)
+      priority: 100
+      notes: Kombu seaweed
+    
+    - match: '^PANKO$'
+      l2: C12  # Seasonings & Marinades (breadcrumbs for coating)
+      priority: 100
+      notes: Panko breadcrumbs
+    
+    # ===== SEAFOOD =====
+    - match: 'SOFT SHELL CRAB|SOFT SHELL'
+      l2: C14  # Meat & Seafood
+      priority: 100
+      notes: Soft shell crab
+    
+    # ===== PACKAGING & SUPPLIES =====
+    - match: 'KITCHEN ITEM OTHER|PAPER|SKEWER'
+      l2: C22  # Utensils & Misc Packaging
+      priority: 100
+      notes: Kitchen items like paper, skewers
+    
+    - match: '^WRAPPER$'
+      l2: C22  # Utensils & Misc Packaging
+      priority: 100
+      notes: Wrappers for food items
+

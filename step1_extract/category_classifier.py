@@ -159,7 +159,14 @@ class CategoryClassifier:
     def _map_wismettac_category_string(self, category_text: str) -> Optional[Dict[str, Any]]:
         if not category_text:
             return None
-        for rule in self.wismettac_map.get('maps', []):
+        # Handle both direct 'maps' key and nested 'wismettac_category_map.maps' structure
+        maps = self.wismettac_map.get('maps', [])
+        if not maps:
+            # Try nested structure
+            nested = self.wismettac_map.get('wismettac_category_map', {})
+            maps = nested.get('maps', [])
+        
+        for rule in maps:
             pat = rule.get('match')
             if pat and re.search(pat, category_text, re.IGNORECASE):
                 l2 = rule.get('l2')
@@ -173,32 +180,76 @@ class CategoryClassifier:
         return None
 
     def _apply_wismettac_lookup(self, item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Use Wismettac online catalog by item number to get category → map to L2."""
+        """Use Wismettac online catalog by item number or product name to get category and pack size → map to L2."""
         try:
             from .wismettac_client import WismettacClient
         except Exception:
             return None
+        
         item_no = (item.get('item_number') or '').strip()
-        if not item_no:
+        product_name = (item.get('product_name') or item.get('canonical_name') or '').strip()
+        
+        if not item_no and not product_name:
             return None
+        
         try:
             client = WismettacClient()
-            prod = client.lookup_product(item_no)
+            prod = None
+            
+            # Try item number first (more reliable)
+            if item_no:
+                prod = client.lookup_product(item_no)
+            
+            # If item number lookup failed, try product name
+            if not prod and product_name:
+                prod = client.lookup_product_by_name(product_name)
+            
+            if not prod:
+                return None
+            
             # Enrich item fields when available
-            if prod and prod.name and not item.get('product_name'):
+            if prod.name and not item.get('product_name'):
                 item['product_name'] = prod.name
-            if prod and prod.pack_size_raw:
+            if prod.brand:
+                item['brand'] = prod.brand
+            if prod.pack_size_raw:
                 item['pack_size_raw'] = prod.pack_size_raw
-            if prod and prod.pack is not None:
+                # Also set size_spec for consistency
+                if not item.get('size_spec'):
+                    item['size_spec'] = prod.pack_size_raw
+            if prod.pack is not None:
                 item['pack_case_qty'] = prod.pack
-            if prod and prod.each_qty is not None:
+                item['pack_count'] = prod.pack
+            if prod.each_qty is not None:
                 item['each_qty'] = prod.each_qty
-            if prod and prod.each_uom:
+                item['unit_size'] = prod.each_qty
+            if prod.each_uom:
                 item['each_uom'] = prod.each_uom
-            if prod and prod.barcode:
+                item['unit_uom'] = prod.each_uom
+                # Also set purchase_uom if not already set
+                if not item.get('purchase_uom'):
+                    item['purchase_uom'] = prod.each_uom
+            if prod.barcode:
                 item['upc'] = prod.barcode
-            if prod and prod.detail_url:
+            if prod.min_order_qty:
+                item['min_order_qty'] = prod.min_order_qty
+            if prod.detail_url:
                 item['vendor_detail_url'] = prod.detail_url
+            if prod.item_number and not item.get('item_number'):
+                item['item_number'] = prod.item_number
+            
+            # Store category for mapping
+            if prod.category:
+                item['vendor_category'] = prod.category
+            
+            # Add to knowledge base if not already present
+            try:
+                self._add_wismettac_to_kb(prod, item.get('unit_price'))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Failed to add Wismettac product to KB: {e}")
+            
             # If no pack info from site, try to parse from product name string
             if not item.get('pack_size_raw'):
                 try:
@@ -208,15 +259,18 @@ class CategoryClassifier:
                         item['pack_size_raw'] = item.get('product_name')
                         if p is not None:
                             item['pack_case_qty'] = p
+                            item['pack_count'] = p
                         if q is not None:
                             item['each_qty'] = q
+                            item['unit_size'] = q
                         if u:
                             item['each_uom'] = u
+                            item['unit_uom'] = u
                 except Exception:
                     pass
 
             # Map by site Category first (only if available)
-            if prod and prod.category:
+            if prod.category:
                 category = prod.category
                 for rule in self.wismettac_map.get('maps', []):
                     pat = rule.get('match')
@@ -229,8 +283,12 @@ class CategoryClassifier:
                                 rule_id='wismettac_online_map',
                                 confidence=0.90
                             )
-        except Exception:
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Wismettac lookup failed: {e}")
             pass
+        
         # Name-based fallback mapping regardless of online success
         text = (item.get('canonical_name') or item.get('product_name') or '')
         for rule in self.wismettac_map.get('name_maps', []):
@@ -245,6 +303,73 @@ class CategoryClassifier:
                         confidence=0.85
                     )
         return None
+    
+    def _add_wismettac_to_kb(self, product: Any, unit_price: Optional[float] = None) -> None:
+        """Add Wismettac product to knowledge base if not already present."""
+        try:
+            from .vendor_profiles import _ensure_kb_loaded
+            from pathlib import Path
+            import json
+            
+            # Get KB path
+            kb_path = Path('data/step1_input/knowledge_base.json')
+            if not kb_path.exists():
+                kb_path = Path('data/knowledge_base.json')
+            
+            if not kb_path.exists():
+                return  # KB doesn't exist, skip
+            
+            # Load KB
+            try:
+                with kb_path.open('r', encoding='utf-8') as f:
+                    kb = json.load(f)
+            except Exception:
+                return  # Can't load KB, skip
+            
+            # Get item number
+            item_no = product.item_number
+            if not item_no:
+                return
+            
+            # Normalize item number (remove # prefix)
+            item_no_clean = str(item_no).strip().lstrip('#')
+            
+            # Check if already in KB
+            if item_no_clean in kb:
+                return  # Already in KB, skip
+            
+            # Build size_spec
+            size_spec = product.pack_size_raw or ''
+            if not size_spec and product.pack and product.each_qty and product.each_uom:
+                size_spec = f"{product.pack}/{product.each_qty} {product.each_uom}"
+            elif not size_spec and product.pack:
+                size_spec = f"{product.pack} pack"
+            
+            # Get product name
+            product_name = product.name or ''
+            
+            # Use provided unit_price or default to 0.0
+            price = float(unit_price) if unit_price is not None else 0.0
+            
+            # Add to KB in old format: [product_name, store, size_spec, unit_price]
+            kb[item_no_clean] = [
+                product_name,
+                'Wismettac',
+                size_spec,
+                price
+            ]
+            
+            # Save KB
+            try:
+                with kb_path.open('w', encoding='utf-8') as f:
+                    json.dump(kb, f, indent=2, ensure_ascii=False)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Added Wismettac product {item_no_clean} to KB: {product_name}")
+            except Exception:
+                pass  # Can't save, skip silently
+        except Exception:
+            pass  # Fail silently to not interrupt processing
 
     
     

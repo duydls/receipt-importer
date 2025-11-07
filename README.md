@@ -122,6 +122,8 @@ This system processes receipts from **4 distinct source types**:
 | `25_instacart_csv.yaml` | Instacart CSV matching rules |
 | `28_amazon_csv.yaml` | Amazon CSV field mappings |
 | `30_uom_extraction.yaml` | UoM regex patterns |
+| `31_rd_weight_heuristics.yaml` | RD-specific weight heuristics |
+| `32_odoo_pdf.yaml` | Odoo Purchase Order PDF rules |
 | `40_vendor_normalization.yaml` | Vendor name cleanup |
 | `shared.yaml` | Shared rules (fees, text parsing, validation) |
 | `vendor_profiles.yaml` | Vendor KB lookup configs |
@@ -137,13 +139,14 @@ This system processes receipts from **4 distinct source types**:
 
 ### Data Extraction
 - ✅ **Multi-format support**: Excel (.xlsx, .xls), PDF, CSV
-- ✅ **Vendor-specific parsers**: Costco, RD, Jewel-Osco, Aldi, Mariano's, ParkToShop, BBI, Instacart, Amazon
+- ✅ **Vendor-specific parsers**: Costco, RD, Jewel-Osco, Aldi, Mariano's, ParkToShop, BBI, Instacart, Amazon, Odoo
 - ✅ **Smart header detection**: Dynamically finds headers in messy Excel files
 - ✅ **Robust numeric parsing**: Handles currency symbols, commas, negatives, Excel-quoted strings
 - ✅ **Multi-layout support**: Each vendor can have multiple layouts with conditional matching
 - ✅ **Graceful fallback**: Uses legacy rules if modern layouts don't match
 - ✅ **CSV baseline matching**: Instacart PDFs enriched with CSV data
 - ✅ **CSV-first processing**: Amazon treats CSV as authoritative, PDFs for validation
+- ✅ **Global tax extraction**: "Grocery Tax" recognized as tax for all vendors (see [Tax Extraction](docs/TAX_EXTRACTION.md))
 
 ### Unit of Measure (UoM)
 - ✅ **Pattern-based extraction**: Regex patterns for standard units (lb, kg, oz, ct, etc.)
@@ -699,6 +702,7 @@ grep -r "category_l1" step1_rules/
 - `README.md` - This file (overview, quick start, configuration)
 - `docs/CATEGORY_CLASSIFICATION_GUIDE.md` - Complete category system guide
 - `step1_rules/README.md` - Rule system architecture
+- `docs/TAX_EXTRACTION.md` - Tax extraction patterns and "Grocery Tax" handling
 
 ### Feature Documentation
 - `docs/FEATURE_2_VECTORIZED_EXTRACTION.md` - Vectorized extraction details

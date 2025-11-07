@@ -158,5 +158,21 @@ overrides:
     weight: 74
 
   # --- Wismettac vendor-specific mappings ---
-  # Pruned in favor of online category mapping via wismettac_category_map.yaml
+  # Ramen Ingredients (C71) - Wismettac only
+  - id: wismettac_ramen_ingredients
+    when_vendor_in: ["WISMETTAC"]
+    when_name_matches:
+      - "(?i)\\bramen\\b.*\\bnoodles?\\b|\\bnoodles?\\b.*\\bramen\\b"
+      - "(?i)\\bshinuchi\\b"
+      - "(?i)\\b(tonkotsu|miso|shoyu|shio)\\b.*\\b(base|soup|ramen)\\b|\\b(base|soup|ramen)\\b.*\\b(tonkotsu|miso|shoyu|shio)\\b"
+      - "(?i)\\btare\\b"
+      - "(?i)\\bma[\\s-]?yu\\b|\\bblack\\s*garlic\\s*oil\\b"
+      - "(?i)\\bmenma\\b|\\b(bamboo\\s*shoots?)\\b|\\bseasoned\\s*bamboo\\b|\\bmarinated\\s*bamboo\\b"
+      - "(?i)\\b(narutomaki|kamaboko|surimi|fish\\s*cake)\\b"
+      - "(?i)\\b(nori|roasted\\s*seaweed|yaki\\s*nori|sushi\\s*nori)\\b"
+      - "(?i)\\b(chashu|pork\\s*belly)\\b"
+      - "拉面|面条|汤底|酱|tare|ma-yu|黑蒜油|海苔|竹笋|鱼板|鱼糜|叉烧"
+    set:
+      L2_code: "C71"
+    weight: 98
 
