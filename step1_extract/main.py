@@ -207,12 +207,15 @@ def process_files(
         else:
             logger.warning(f"Excel file in unsupported location: {file_path.relative_to(input_dir)}")
     
-    # CSV files are only for instacart-based (Instacart baseline files)
-    # They should only be in Instacart folders
+    # CSV files are for instacart-based (Instacart baseline files) or RD (Restaurant Depot)
+    # They should be in Instacart folders or RD folder
     for file_path in csv_files:
         receipt_type = detect_group(file_path, input_dir)
         if receipt_type == 'instacart_based':
             instacart_based_files.append(file_path)
+        elif receipt_type == 'localgrocery_based' and ('RD' in str(file_path) or 'Restaurant Depot' in str(file_path)):
+            # RD CSV files are allowed in localgrocery location
+            localgrocery_based_files.append(file_path)
         else:
             logger.warning(f"CSV file found in localgrocery location (ignoring): {file_path.relative_to(input_dir)}")
     
@@ -236,7 +239,7 @@ def process_files(
                 initial_receipt_data = vendor_detector.apply_detection_to_receipt(file_path, initial_receipt_data)
                 detected_vendor_code = initial_receipt_data.get('detected_vendor_code')
                 
-                # Only process PDF files (Excel files no longer supported for localgrocery vendors)
+                # Process PDF files or CSV files (for RD)
                 if file_path.suffix.lower() == '.pdf':
                     # Route to appropriate PDF processor
                     if detected_vendor_code in ['RD', 'RESTAURANT_DEPOT']:
@@ -245,8 +248,13 @@ def process_files(
                     else:
                         # Use unified PDF processor for all other vendors (Costco, Jewel, Aldi, Parktoshop)
                         receipt_data = unified_pdf_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
+                elif file_path.suffix.lower() == '.csv' and detected_vendor_code in ['RD', 'RESTAURANT_DEPOT']:
+                    # RD CSV files
+                    from .rd_csv_processor import RDCSVProcessor
+                    rd_csv_processor = RDCSVProcessor(rule_loader, input_dir=input_dir)
+                    receipt_data = rd_csv_processor.process_file(file_path, detected_vendor_code=detected_vendor_code)
                 else:
-                    logger.warning(f"Unsupported file type for localgrocery vendor (PDF only): {file_path.suffix}")
+                    logger.warning(f"Unsupported file type for localgrocery vendor: {file_path.suffix}")
                     return file_path.stem, None
                 
                 if receipt_data:
@@ -276,6 +284,13 @@ def process_files(
                             receipt_data = reconcile_rd_amounts(receipt_data, merge_duplicates=False)
                     except Exception as e:
                         logger.debug(f"RD reconciler skipped: {e}")
+                    
+                    # Apply date hierarchy to normalize transaction_date from all available date fields
+                    try:
+                        from .date_normalizer import apply_date_hierarchy
+                        receipt_data = apply_date_hierarchy(receipt_data)
+                    except Exception as e:
+                        logger.debug(f"Date normalization skipped: {e}")
 
                     item_count = len(receipt_data.get('items', []))
                     if item_count > 0:

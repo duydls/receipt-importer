@@ -195,6 +195,35 @@ class UnifiedPDFProcessor:
                             receipt_data['transaction_date'] = date_time
                             logger.debug(f"Aldi: Using transaction_date_time ({date_time}) for transaction_date (no date extraction)")
             
+                # Aldi-specific: transaction_date_time contains the purchase date (and optionally time)
+                # Convert it to transaction_date so date hierarchy can normalize it
+                if detected_vendor_code == 'ALDI' and 'transaction_date' not in receipt_data:
+                    tx_datetime = receipt_data.get('transaction_date_time')
+                    if tx_datetime:
+                        # Extract the date portion (before any whitespace/time info)
+                        date_token = str(tx_datetime).strip().split()[0]
+                        if date_token:
+                            normalized_date = None
+                            try:
+                                from .date_normalizer import _normalize_date_value
+                                normalized_date = _normalize_date_value(date_token)
+                            except Exception as exc:
+                                logger.debug(f"Aldi: could not normalize date '{date_token}': {exc}")
+                            if normalized_date:
+                                receipt_data['transaction_date'] = normalized_date
+                                receipt_data.setdefault('order_date', normalized_date)
+                                logger.debug(
+                                    "Aldi: Derived transaction_date from transaction_date_time: %s",
+                                    normalized_date,
+                                )
+                            else:
+                                receipt_data['transaction_date'] = date_token
+                                receipt_data.setdefault('order_date', date_token)
+                                logger.debug(
+                                    "Aldi: Set transaction_date using raw token (normalization failed): %s",
+                                    date_token,
+                                )
+
             # Extract additional fields from rules (legacy support)
             if pdf_rules.get('extract_items_sold'):
                 items_sold = self._extract_items_sold(pdf_text, pdf_rules)
@@ -205,6 +234,14 @@ class UnifiedPDFProcessor:
                 date = self._extract_transaction_date(pdf_text, pdf_rules)
                 if date and 'transaction_date' not in receipt_data:
                     receipt_data['transaction_date'] = date
+            
+            # Apply date hierarchy to normalize transaction_date from all available date fields
+            # This ensures all receipts have a consistent transaction_date field
+            try:
+                from .date_normalizer import apply_date_hierarchy
+                receipt_data = apply_date_hierarchy(receipt_data)
+            except Exception as e:
+                logger.debug(f"Date normalization skipped: {e}")
             
             # Costco-specific: infer integer quantities using knowledge base unit prices
             if detected_vendor_code == 'COSTCO' and receipt_data.get('items'):

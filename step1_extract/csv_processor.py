@@ -235,11 +235,18 @@ class CSVProcessor:
                 store_name = first_row['Store Name'].strip()
                 receipt_data['vendor'] = f"IC-{store_name}" if store_name else None
                 
-                # Extract dates
+                # Extract dates (preserve all date fields for hierarchy)
                 if first_row.get('Delivery Created At'):
                     receipt_data['order_date'] = self._parse_datetime(first_row['Delivery Created At'])
                 if first_row.get('Delivered At'):
                     receipt_data['delivery_date'] = self._parse_datetime(first_row['Delivered At'])
+                
+                # Apply date hierarchy to set transaction_date from available dates
+                try:
+                    from .date_normalizer import apply_date_hierarchy
+                    receipt_data = apply_date_hierarchy(receipt_data)
+                except Exception as e:
+                    logger.debug(f"Date normalization skipped for CSV: {e}")
                 
                 # Extract delivery address (customer address for Instacart)
                 address_parts = [

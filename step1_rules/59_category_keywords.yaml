@@ -237,7 +237,17 @@ category_keywords:
       priority: 90
       hints: ['Cleaning & Chemicals - Trash bags']
     
+    - include_regex: '(?i)\bSKYLINE\s+EMERLD\s+DSH\b'
+      map_to_l2: C50
+      priority: 96
+      hints: ['Cleaning & Chemicals - Dishwashing liquid']
+    
     # Smallwares & Equipment
+    - include_regex: '(?i)\b(cooler|ice\s+chest|chest\s+cooler)\b'
+      map_to_l2: C40
+      priority: 90
+      hints: ['Smallwares & Equipment - Portable coolers/ice chests']
+    
     - include_regex: '(?i)\b(tent|canopy|pop up canopy|straight leg canopy)\b'
       map_to_l2: C40
       priority: 90
