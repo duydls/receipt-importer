@@ -250,24 +250,39 @@ def clean_product_name(name: str, upc: Optional[str] = None, item_number: Option
             clean = re.sub(rf'\b{re.escape(variant)}\b', '', clean, flags=re.IGNORECASE)  # Anywhere else
     
     # Strip Item Number if provided (from start of line for RD, or anywhere for others)
+    # BUT: Only strip if item_number is a valid item number (all digits, 3-10 digits)
+    # Don't strip if item_number is clearly wrong (e.g., "BREAST", "CRINKL", "PINEAPPLE")
     if item_number:
-        # Remove Item Number in various formats
-        item_variants = [
-            item_number,  # Exact match
-            f"Item {item_number}",
-            f"Item #{item_number}",
-            f"Item No {item_number}",
-            f"Item No. {item_number}",
-            f"Item Number {item_number}",
-            f"SKU {item_number}",
-            f"MFR {item_number}",
-            f"RD {item_number}",
-            f"ITM {item_number}",
-        ]
-        for variant in item_variants:
-            # Remove from start, middle, or end
-            clean = re.sub(rf'^{re.escape(variant)}\s+', '', clean, flags=re.IGNORECASE)  # Start of line
-            clean = re.sub(rf'\b{re.escape(variant)}\b', '', clean, flags=re.IGNORECASE)  # Anywhere else
+        # Check if item_number is a valid item number (all digits, reasonable length)
+        is_valid_item_number = (
+            item_number.isdigit() and 
+            len(item_number) >= 3 and 
+            len(item_number) <= 10
+        )
+        
+        # Also check if it's a common word that shouldn't be stripped (OCR error)
+        common_words = ['BREAST', 'CRINKL', 'PINEAPPLE', 'SJLOE', 'TI', 'ISE', 'KA', 'BS', 'AP', 'RO']
+        is_common_word = item_number.upper() in common_words
+        
+        # Only strip if it's a valid item number and not a common word
+        if is_valid_item_number and not is_common_word:
+            # Remove Item Number in various formats
+            item_variants = [
+                item_number,  # Exact match
+                f"Item {item_number}",
+                f"Item #{item_number}",
+                f"Item No {item_number}",
+                f"Item No. {item_number}",
+                f"Item Number {item_number}",
+                f"SKU {item_number}",
+                f"MFR {item_number}",
+                f"RD {item_number}",
+                f"ITM {item_number}",
+            ]
+            for variant in item_variants:
+                # Remove from start, middle, or end
+                clean = re.sub(rf'^{re.escape(variant)}\s+', '', clean, flags=re.IGNORECASE)  # Start of line
+                clean = re.sub(rf'\b{re.escape(variant)}\b', '', clean, flags=re.IGNORECASE)  # Anywhere else
     
     # Strip size/spec if provided
     if size_spec:
@@ -347,9 +362,15 @@ def apply_name_hygiene(item: Dict[str, Any]) -> Dict[str, Any]:
             upc = rd_upc
             item['upc'] = upc
         if rd_item_num:
-            item_number = rd_item_num
-            item['item_number'] = item_number
-            item['vendor_item_no'] = item_number  # Also set vendor_item_no for RD
+            # Validate that rd_item_num is actually numeric (not OCR error)
+            if rd_item_num.isdigit() and len(rd_item_num) >= 3 and len(rd_item_num) <= 10:
+                item_number = rd_item_num
+                item['item_number'] = item_number
+                item['vendor_item_no'] = item_number  # Also set vendor_item_no for RD
+            else:
+                # Invalid item_number (likely OCR error) - don't set it
+                logger.debug(f"RD: Skipping invalid item_number from line-start '{rd_item_num}' (not numeric or wrong length) for '{product_name[:50]}...'")
+                # Don't set item_number if it's invalid
     
     # If UPC not in item, try general extraction
     if not upc:
@@ -358,12 +379,23 @@ def apply_name_hygiene(item: Dict[str, Any]) -> Dict[str, Any]:
             item['upc'] = upc
     
     # If Item Number not in item, try general extraction
+    # BUT: For RD, validate that extracted item_number is actually a number (not a word)
     if not item_number:
         item_number = extract_item_number(product_name)
         if item_number:
-            item['item_number'] = item_number
+            # For RD, validate item_number is actually numeric (not OCR error like "BREAST")
             if is_rd:
-                item['vendor_item_no'] = item_number  # Also set vendor_item_no for RD
+                # Only use if it's all digits and reasonable length (3-10 digits)
+                if item_number.isdigit() and len(item_number) >= 3 and len(item_number) <= 10:
+                    item['item_number'] = item_number
+                    item['vendor_item_no'] = item_number  # Also set vendor_item_no for RD
+                else:
+                    # Invalid item_number (likely OCR error) - don't set it
+                    logger.debug(f"RD: Skipping invalid item_number '{item_number}' (not numeric or wrong length) for '{product_name[:50]}...'")
+                    item_number = None  # Don't use invalid item_number
+            else:
+                # For non-RD vendors, use as-is
+                item['item_number'] = item_number
     
     # Extract size/spec
     size_spec = item.get('size_spec')
