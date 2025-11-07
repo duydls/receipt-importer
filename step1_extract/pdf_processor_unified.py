@@ -141,9 +141,11 @@ class UnifiedPDFProcessor:
             totals = self._extract_totals_from_text(pdf_text, pdf_rules)
             
             # Build receipt data
+            vendor_name = pdf_rules.get('vendor_name', detected_vendor_code)
             receipt_data = {
                 'filename': file_path.name,
-                'vendor': pdf_rules.get('vendor_name', detected_vendor_code),
+                'vendor': vendor_name,
+                'vendor_name': vendor_name,  # Also set vendor_name for consistency
                 'detected_vendor_code': detected_vendor_code,
                 'detected_source_type': 'localgrocery_based',
                 'source_file': str(file_path.name),
@@ -1558,6 +1560,13 @@ class UnifiedPDFProcessor:
                 else:
                     logger.debug(f"Aldi: Total matches expected: ${totals['total']:.2f} = ${totals['subtotal']:.2f} + ${totals['tax']:.2f}")
         
+        # For Jewel-Osco: If total is not extracted but we have subtotal and tax, calculate it
+        if vendor_name in ('JEWEL-OSCO', 'JEWEL', 'JEWELOSCO'):
+            if totals['subtotal'] > 0 and totals['total'] == 0.0:
+                expected_total = totals['subtotal'] + totals['tax']
+                totals['total'] = expected_total
+                logger.debug(f"Jewel-Osco: Set total to subtotal + tax: ${totals['total']:.2f} (subtotal: ${totals['subtotal']:.2f}, tax: ${totals['tax']:.2f})")
+        
         return totals
 
     # --- Costco quantity inference ---
@@ -1585,7 +1594,16 @@ class UnifiedPDFProcessor:
         return UnifiedPDFProcessor._kb_cache
 
     def _infer_costco_quantities(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """For Costco items without explicit quantity, use KB unit price to infer integer quantity."""
+        """
+        For Costco items without explicit quantity, use KB unit price to infer integer quantity.
+        
+        Logic:
+        1. If KB has unit price, use it to infer quantity: qty = total_price / kb_unit_price
+        2. Round to nearest integer (Costco quantities are typically whole numbers)
+        3. Validate: check if inferred quantity makes sense (1-100 range, reasonable price match)
+        4. Calculate actual unit price from receipt: unit_price = total_price / inferred_qty
+        5. Store KB price for reference in kb_estimated_unit_price
+        """
         kb = self._load_knowledge_base()
         updated: List[Dict[str, Any]] = []
         for item in items:
@@ -1594,8 +1612,14 @@ class UnifiedPDFProcessor:
                 total_price = float(item.get('total_price') or 0)
                 quantity = item.get('quantity')
                 unit_price = item.get('unit_price')
+                product_name = item.get('product_name', 'Unknown')
 
-                # Only infer when quantity is missing/zero and total_price present and KB has price
+                # Skip if no item number or total price
+                if not item_number or total_price <= 0:
+                    updated.append(item)
+                    continue
+
+                # Get KB unit price
                 kb_entry = kb.get(item_number) if item_number else None
                 kb_price = None
                 if isinstance(kb_entry, list) and len(kb_entry) >= 4:
@@ -1604,21 +1628,69 @@ class UnifiedPDFProcessor:
                     except Exception:
                         kb_price = None
 
-                if total_price > 0 and kb_price and kb_price > 0:
-                    # Always infer integer quantity for Costco using KB price
-                    inferred_qty = int(round(total_price / kb_price))
+                # Infer quantity using KB price
+                if kb_price and kb_price > 0:
+                    # Calculate inferred quantity
+                    inferred_qty_float = total_price / kb_price
+                    inferred_qty = int(round(inferred_qty_float))
+                    
+                    # Validate inferred quantity (must be at least 1, reasonable max)
                     if inferred_qty < 1:
                         inferred_qty = 1
-                    item['quantity'] = int(inferred_qty)
-                    item['unit_price'] = float(kb_price)
-                elif (unit_price is None or float(unit_price or 0) == 0.0) and total_price > 0 and float(quantity or 0) > 0:
-                    # Fallback: derive unit price from total/qty
-                    try:
+                    elif inferred_qty > 100:
+                        # If inferred qty is too high, might be wrong KB price
+                        logger.warning(f"Costco: {product_name} ({item_number}) - inferred qty={inferred_qty} seems too high (total=${total_price:.2f}, KB_price=${kb_price:.2f})")
+                        # Try to use existing quantity if it seems reasonable
+                        if quantity and 1 <= float(quantity) <= 100:
+                            inferred_qty = int(float(quantity))
+                        else:
+                            inferred_qty = 1
+                    
+                    # Calculate actual unit price from receipt
+                    actual_unit_price = round(total_price / inferred_qty, 2)
+                    
+                    # Check if the inference makes sense (within reasonable error)
+                    expected_total = inferred_qty * kb_price
+                    error = abs(total_price - expected_total)
+                    error_percent = (error / total_price * 100) if total_price > 0 else 0
+                    
+                    # If error is small (< 5% or < $0.50), use inferred quantity
+                    if error_percent < 5.0 or error < 0.50:
+                        item['quantity'] = int(inferred_qty)
+                        item['unit_price'] = actual_unit_price
+                        item['kb_estimated_unit_price'] = float(kb_price)
+                        item['qty_inferred'] = True
+                        item['qty_inference_method'] = 'kb_unit_price'
+                        logger.info(f"Costco: {product_name} ({item_number}) - inferred qty={inferred_qty} from total=${total_price:.2f} / KB_price=${kb_price:.2f} = unit_price=${actual_unit_price:.2f} (error: ${error:.2f}, {error_percent:.1f}%)")
+                    else:
+                        # Error too large - might be wrong KB price or multiple items
+                        logger.warning(f"Costco: {product_name} ({item_number}) - inference error too large: ${error:.2f} ({error_percent:.1f}%), keeping existing qty={quantity}")
+                        # Keep existing quantity if available, otherwise use inferred
+                        if not quantity or float(quantity) == 1.0:
+                            item['quantity'] = int(inferred_qty)
+                            item['unit_price'] = actual_unit_price
+                            item['kb_estimated_unit_price'] = float(kb_price)
+                            item['qty_inferred'] = True
+                            item['qty_inference_method'] = 'kb_unit_price_with_warning'
+                        else:
+                            item['quantity'] = int(float(quantity))
+                            item['unit_price'] = round(total_price / float(quantity), 2)
+                            item['kb_estimated_unit_price'] = float(kb_price)
+                elif total_price > 0:
+                    # No KB price available - use existing quantity or default to 1
+                    if quantity and float(quantity) > 0:
+                        item['quantity'] = int(float(quantity))
                         item['unit_price'] = round(total_price / float(quantity), 2)
-                    except Exception:
-                        pass
-            except Exception:
+                    else:
+                        # No quantity available - default to 1
+                        item['quantity'] = 1
+                        item['unit_price'] = round(total_price, 2)
+                        item['qty_inferred'] = True
+                        item['qty_inference_method'] = 'default_to_one'
+                        logger.warning(f"Costco: {product_name} ({item_number}) - no KB price, defaulting qty=1, unit_price=${item['unit_price']:.2f}")
+            except Exception as e:
                 # Don't fail the whole receipt on one item
+                logger.debug(f"Error inferring quantity for Costco item {item.get('item_number', 'N/A')}: {e}")
                 pass
             updated.append(item)
         return updated
@@ -1668,7 +1740,7 @@ class UnifiedPDFProcessor:
         return items
 
     def _update_knowledge_base_costco(self, items: List[Dict[str, Any]]) -> None:
-        """Append missing Costco items to KB with inferred unit price and optional size/spec."""
+        """Update Costco items in KB with actual unit price from receipts (total/qty)."""
         try:
             kb_path = None
             try:
@@ -1684,17 +1756,30 @@ class UnifiedPDFProcessor:
                     item_number = str(item.get('item_number') or '').strip()
                     if not item_number:
                         continue
-                    if item_number in kb:
-                        continue
+                    # Use actual unit price from receipt (total/qty), not KB price
                     unit_price = float(item.get('unit_price') or 0)
                     if unit_price <= 0:
                         continue
                     product_name = (item.get('product_name') or '').strip()
                     size_text = (item.get('raw_uom_text') or '').strip()
-                    entry = [product_name or item_number, 'Costco', size_text, unit_price]
-                    kb[item_number] = entry
-                    modified = True
-                except Exception:
+                    
+                    if item_number in kb:
+                        # Update existing entry with new price
+                        existing_entry = kb[item_number]
+                        if isinstance(existing_entry, list) and len(existing_entry) >= 4:
+                            old_price = existing_entry[3]
+                            if abs(float(old_price) - unit_price) > 0.01:  # Price changed
+                                kb[item_number] = [product_name or existing_entry[0], 'Costco', size_text or existing_entry[2], unit_price]
+                                modified = True
+                                logger.debug(f"Costco KB: Updated {item_number} price: ${old_price:.2f} -> ${unit_price:.2f}")
+                    else:
+                        # Add new entry
+                        entry = [product_name or item_number, 'Costco', size_text, unit_price]
+                        kb[item_number] = entry
+                        modified = True
+                        logger.debug(f"Costco KB: Added new entry for {item_number}: {product_name} @ ${unit_price:.2f}")
+                except Exception as e:
+                    logger.debug(f"Error updating KB for item {item.get('item_number')}: {e}")
                     continue
             if modified:
                 import json as _json
@@ -1702,6 +1787,7 @@ class UnifiedPDFProcessor:
                     _json.dump(kb, f, indent=2)
                 # Update cache
                 UnifiedPDFProcessor._kb_cache = kb
+                logger.info(f"Updated knowledge base with {len([i for i in items if str(i.get('item_number', '')).strip()])} Costco items")
         except Exception as e:
             logger.debug(f"Knowledge base update skipped: {e}")
     

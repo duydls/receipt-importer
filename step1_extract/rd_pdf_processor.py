@@ -179,6 +179,8 @@ class RDPDFProcessor:
             
             if pdf_text:
                 self._extract_totals_from_text(pdf_text, receipt_data)
+                # Also extract transaction date from text
+                self._extract_transaction_date_from_text(pdf_text, receipt_data)
             
             # Set parsed_by (will be set by LayoutApplier if layout matched)
             if not receipt_data.get('parsed_by'):
@@ -660,6 +662,59 @@ class RDPDFProcessor:
                     receipt_data['total'] = value
                     break
                 except (ValueError, IndexError):
+                    continue
+        
+        logger.debug(f"RD totals extracted: subtotal=${receipt_data.get('subtotal', 0):.2f}, tax=${receipt_data.get('tax', 0):.2f}, total=${receipt_data.get('total', 0):.2f}")
+    
+    def _extract_transaction_date_from_text(self, text: str, receipt_data: Dict[str, Any]):
+        """Extract transaction date from PDF text using common date patterns"""
+        from datetime import datetime
+        
+        # First, try extracting from filename (RD_MMDD.pdf format) as primary source
+        filename = receipt_data.get('filename', '')
+        filename_date_match = re.search(r'RD_(\d{2})(\d{2})\.pdf', filename, re.IGNORECASE)
+        if filename_date_match:
+            month = filename_date_match.group(1)
+            day = filename_date_match.group(2)
+            year = datetime.now().year
+            # Try to construct date (e.g., RD_0902.pdf -> 09/02/2025)
+            try:
+                date_str = f"{month}/{day}/{year}"
+                parsed_date = datetime.strptime(date_str, '%m/%d/%Y')
+                receipt_data['transaction_date'] = date_str
+                logger.debug(f"RD transaction date extracted from filename: {date_str}")
+                return
+            except ValueError:
+                pass
+        
+        # If filename extraction failed, try extracting from PDF text
+        if not text:
+            return
+        
+        # Common date patterns for RD receipts
+        date_patterns = [
+            # Pattern: "Date: MM/DD/YYYY" or "Transaction Date: MM/DD/YYYY"
+            r'(?:Date|Transaction\s+Date|Trans\s+Date)[:\s]+(\d{1,2}/\d{1,2}/\d{4})',
+            # Pattern: "MM/DD/YYYY" near "Date" keyword
+            r'Date[:\s]+(\d{1,2}/\d{1,2}/\d{4})',
+            # Pattern: Standalone date in MM/DD/YYYY format (prefer dates near top of receipt)
+            r'(\d{1,2}/\d{1,2}/\d{4})',
+        ]
+        
+        # Try patterns in order of specificity
+        for pattern in date_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                date_str = match.group(1)
+                # Validate the date format (MM/DD/YYYY)
+                try:
+                    # Parse to ensure it's a valid date
+                    parsed_date = datetime.strptime(date_str, '%m/%d/%Y')
+                    receipt_data['transaction_date'] = date_str
+                    logger.debug(f"RD transaction date extracted from text: {date_str}")
+                    return
+                except ValueError:
+                    # Invalid date format, try next pattern
                     continue
 
     
