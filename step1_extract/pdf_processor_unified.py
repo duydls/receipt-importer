@@ -173,6 +173,27 @@ class UnifiedPDFProcessor:
                         # If both exist, prefer delivery_date (overwrite invoice_date)
                         receipt_data['transaction_date'] = receipt_data['delivery_date']
                         logger.debug(f"Wismettac: Using delivery_date ({receipt_data['delivery_date']}) for transaction_date instead of invoice_date")
+                
+                # Aldi-specific: Use transaction_date_time for transaction_date
+                if detected_vendor_code == 'ALDI':
+                    if 'transaction_date_time' in receipt_data and 'transaction_date' not in receipt_data:
+                        # Extract date part from transaction_date_time (e.g., "09/05/25 14:30" -> "09/05/25")
+                        date_time = receipt_data['transaction_date_time']
+                        # Extract date part (before time)
+                        date_match = re.match(r'(\d{2}/\d{2}/\d{2,4})', date_time)
+                        if date_match:
+                            date_str = date_match.group(1)
+                            # Convert 2-digit year to 4-digit year if needed
+                            if len(date_str.split('/')[-1]) == 2:
+                                # Assume 20xx for 2-digit years
+                                parts = date_str.split('/')
+                                date_str = f"{parts[0]}/{parts[1]}/20{parts[2]}"
+                            receipt_data['transaction_date'] = date_str
+                            logger.debug(f"Aldi: Using transaction_date_time ({date_time}) for transaction_date ({date_str})")
+                        else:
+                            # If no date pattern found, use as-is
+                            receipt_data['transaction_date'] = date_time
+                            logger.debug(f"Aldi: Using transaction_date_time ({date_time}) for transaction_date (no date extraction)")
             
             # Extract additional fields from rules (legacy support)
             if pdf_rules.get('extract_items_sold'):
@@ -1566,6 +1587,14 @@ class UnifiedPDFProcessor:
                 expected_total = totals['subtotal'] + totals['tax']
                 totals['total'] = expected_total
                 logger.debug(f"Jewel-Osco: Set total to subtotal + tax: ${totals['total']:.2f} (subtotal: ${totals['subtotal']:.2f}, tax: ${totals['tax']:.2f})")
+        
+        # For Costco: If total is not extracted but we have subtotal, calculate it (Costco receipts may not have explicit total)
+        if vendor_name == 'COSTCO':
+            if totals['subtotal'] > 0 and totals['total'] == 0.0:
+                # Costco receipts: total = subtotal + tax (if tax present)
+                expected_total = totals['subtotal'] + totals.get('tax', 0.0)
+                totals['total'] = expected_total
+                logger.debug(f"Costco: Set total to subtotal + tax: ${totals['total']:.2f} (subtotal: ${totals['subtotal']:.2f}, tax: ${totals.get('tax', 0.0):.2f})")
         
         return totals
 

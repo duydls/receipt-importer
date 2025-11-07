@@ -70,6 +70,11 @@ rd_pdf_layouts:
       - "PREVIOUS BALANCE"
       - "^$"  # Empty lines
       - "^\\s*$"  # Whitespace-only lines
+      - "MC/VISA"  # Payment method lines (e.g., "MC/VISA 8931")
+      - "^VISA\\s+\\d+"  # VISA payment method
+      - "^MC\\s+\\d+"  # MC payment method
+      - "^MASTERCARD\\s+\\d+"  # Mastercard payment method
+      - "^AMEX\\s+\\d+"  # American Express payment method
     
     # Totals extraction patterns
     totals:
