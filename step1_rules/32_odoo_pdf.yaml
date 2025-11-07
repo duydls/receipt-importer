@@ -78,7 +78,7 @@ item_patterns:
   # Pattern 1: Description | Qty | UoM | Unit Price | Amount (Odoo format)
   # Example: "Strawberry                     1.0    lb      $ 4.99       $ 4.99"
   - type: "odoo_structured_item"
-    regex: "(?im)^\\s*(?P<description>[A-Za-z][A-Za-z0-9 \\-'/&(),.]+?)\\s+(?P<qty>\\d+(?:\\.\\d+)?)\\s+(?P<uom>[A-Za-z]+)\\s+\\$?\\s*(?P<unit_price>\\d{1,3}(?:,\\d{3})*\\.\\d{2})\\s+\\$?\\s*(?P<amount>\\d{1,3}(?:,\\d{3})*\\.\\d{2})\\s*$"
+    regex: "(?im)^\\s*(?P<description>[A-Za-z][A-Za-z0-9 \\-'/&(),.]+?)\\s+(?P<qty>\\d+(?:\\.\\d+)?)\\s+(?P<uom>[A-Za-z]+)\\s+\\$?\\s*(?P<unit_price>\\d{1,3}(?:,\\d{3})*\\.\\d{2})\\s+(?:\\d+(?:\\.\\d+)?%\\s+)?\\$?\\s*(?P<amount>\\d{1,3}(?:,\\d{3})*\\.\\d{2})\\s*$"
     groups:
       - description
       - qty
@@ -158,7 +158,7 @@ total_patterns:
     case_insensitive: true
   
   tax:
-    pattern: "(?im)^\\s*(?:Tax|Sales\\s+Tax|Tax\\s+Amount)\\s*\\$?\\s*(\\d{1,3}(?:,\\d{3})*\\.\\d{2})"
+    pattern: "(?im)^\\s*(?:Tax|Sales\\s+Tax|Tax\\s+Amount)(?:\\s+\\d+(?:\\.\\d+)?%)?\\s*\\$?\\s*(\\d{1,3}(?:,\\d{3})*\\.\\d{2})"
     group: 1
     case_insensitive: true
 

@@ -1,0 +1,39 @@
+# RD Weight Heuristics
+# Heuristics for random-weight meats and bulk items in RD receipts
+
+rd_weight_heuristics:
+  description: >
+    Heuristics for determining UoM and pricing for random-weight meats in RD receipts.
+    Applies only to RD (Restaurant Depot) orders.
+  
+  # Random-weight meat patterns
+  random_weight_meats:
+    # Chicken breast pattern
+    - name_pattern: '(?i)(CHIX|CHICKEN)\s+BREAST\s+BNLS\s+SKLS'
+      quantity_threshold: 10  # If quantity >= 10, treat as weight
+      set_purchase_uom: 'lb'
+      set_unit_price_uom: 'per lb'
+      description: "Chicken breast boneless skinless - if qty >= 10, treat as weight (40 = 40 lb)"
+    
+    # Other chicken patterns
+    - name_pattern: '(?i)(CHIX|CHICKEN)\s+(BREAST|WING|THIGH|DRUMSTICK)'
+      quantity_threshold: 10
+      set_purchase_uom: 'lb'
+      set_unit_price_uom: 'per lb'
+      description: "Other chicken parts - if qty >= 10, treat as weight"
+    
+    # Beef patterns
+    - name_pattern: '(?i)(BF|BEEF)\s+(GROUND|CHUCK|ROAST)'
+      quantity_threshold: 5
+      set_purchase_uom: 'lb'
+      set_unit_price_uom: 'per lb'
+      description: "Beef products - if qty >= 5, treat as weight"
+  
+  # Application rules
+  apply_to:
+    vendor_codes: ['RD', 'RESTAURANT_DEPOT']
+    source_types: ['localgrocery_based']
+  
+  # Priority (applied after UoM extraction but before classification)
+  priority: 85
+
