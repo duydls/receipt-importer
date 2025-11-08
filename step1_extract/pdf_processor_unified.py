@@ -10,7 +10,7 @@ by reading parsing rules from YAML files in step1_rules/.
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -257,6 +257,10 @@ class UnifiedPDFProcessor:
             # Enrich with knowledge base (general)
             if receipt_data.get('items'):
                 receipt_data['items'] = self._enrich_items(receipt_data['items'], detected_vendor_code)
+            
+            # Ensure all items have unit_size, unit_uom, and qty
+            if receipt_data.get('items'):
+                receipt_data['items'] = self._ensure_unit_size_uom_qty(receipt_data['items'])
             
             # For Odoo: If total is still 0, calculate from items
             if detected_vendor_code == 'ODOO' and receipt_data.get('total', 0.0) == 0.0:
@@ -1044,22 +1048,53 @@ class UnifiedPDFProcessor:
                                         # If quantity not found but unit_price found, calculate from total_price
                                         if not quantity and 'total_price' in item and unit_price > 0:
                                             quantity = item['total_price'] / unit_price
-                                            item['quantity'] = round(quantity, 2)
-                                            logger.debug(f"Calculated quantity from total_price/unit_price: {quantity}")
+                                            # Round to integer if close to integer (within 0.01)
+                                            if abs(quantity - round(quantity)) < 0.01:
+                                                quantity = int(round(quantity))
+                                            else:
+                                                quantity = round(quantity, 2)
+                                            item['quantity'] = quantity
+                                            logger.debug(f"Calculated quantity from total_price/unit_price: {quantity} (total_price={item['total_price']}, unit_price={unit_price})")
                                     if quantity:
                                         item['quantity'] = quantity
                                     elif unit_price and 'total_price' in item and unit_price > 0:
                                         # Fallback: calculate quantity from total_price / unit_price
                                         quantity = item['total_price'] / unit_price
-                                        item['quantity'] = round(quantity, 2)
-                                        logger.debug(f"Calculated quantity from total_price/unit_price: {quantity}")
+                                        # Round to integer if close to integer (within 0.01)
+                                        if abs(quantity - round(quantity)) < 0.01:
+                                            quantity = int(round(quantity))
+                                        else:
+                                            quantity = round(quantity, 2)
+                                        item['quantity'] = quantity
+                                        logger.debug(f"Calculated quantity from total_price/unit_price: {quantity} (total_price={item['total_price']}, unit_price={unit_price})")
                                     consumed_lines += 1
                                 else:
-                                    # If no quantity found, still consume the line if it looks like a quantity line
+                                    # If no quantity found, still try to extract unit_price from next line
+                                    # This handles OCR errors where quantity might be misread (e.g., "é x 5.39")
                                     if line_idx + 1 < len(lines):
                                         next_line = lines[line_idx + 1]
                                         # Check if next line looks like a quantity line (has "x" or "@" with numbers)
                                         if re.search(r'[x@].*\d+[.,]\d', next_line, re.IGNORECASE):
+                                            # Try alternative pattern: just look for "x" or "@" followed by unit price
+                                            alt_pattern = r'[x@]\s*(\d+[.,]\d{1,2})'
+                                            alt_match = re.search(alt_pattern, next_line, re.IGNORECASE)
+                                            if alt_match:
+                                                try:
+                                                    unit_price_str = alt_match.group(1).replace(',', '.').replace('$', '').strip()
+                                                    unit_price = float(unit_price_str)
+                                                    item['unit_price'] = unit_price
+                                                    # Calculate quantity from total_price / unit_price
+                                                    if 'total_price' in item and unit_price > 0:
+                                                        quantity = item['total_price'] / unit_price
+                                                        # Round to integer if close to integer (within 0.01)
+                                                        if abs(quantity - round(quantity)) < 0.01:
+                                                            quantity = int(round(quantity))
+                                                        else:
+                                                            quantity = round(quantity, 2)
+                                                        item['quantity'] = quantity
+                                                        logger.debug(f"Extracted unit_price from next line (alternative pattern) and calculated quantity: unit_price={unit_price}, quantity={quantity} (total_price={item['total_price']})")
+                                                except (ValueError, IndexError):
+                                                    pass
                                             consumed_lines += 1
                             
                             # Update raw_line to include next line if quantity/prices were extracted from next line
@@ -1205,6 +1240,26 @@ class UnifiedPDFProcessor:
         # Apply post-processing rules (from YAML)
         if pattern_def.get('post_process'):
             item = self._apply_post_process(item, pattern_def.get('post_process'), line, rules)
+        
+        # Apply postprocess map rules (from YAML) - for field value transformations
+        if pattern_def.get('postprocess'):
+            postprocess_list = pattern_def.get('postprocess', [])
+            if isinstance(postprocess_list, list):
+                for postprocess_rule in postprocess_list:
+                    field = postprocess_rule.get('field')
+                    map_dict = postprocess_rule.get('map', {})
+                    
+                    if field and map_dict and field in item:
+                        value = str(item[field]).strip()
+                        # Apply mapping if value matches a key
+                        if value in map_dict:
+                            item[field] = map_dict[value]
+                        # Also try case-insensitive matching
+                        else:
+                            for key, mapped_value in map_dict.items():
+                                if value.lower() == key.lower():
+                                    item[field] = mapped_value
+                                    break
         
         # Validate item - ensure product_name is not empty/whitespace
         product_name = item.get('product_name', '').strip()
@@ -1715,43 +1770,84 @@ class UnifiedPDFProcessor:
 
     def _infer_costco_quantities(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        For Costco items without explicit quantity, use KB unit price to infer integer quantity.
+        For Costco items without explicit quantity, use KB instacart_price to infer integer quantity.
+        
+        Important: In Costco receipts, the price shown after each product name is the LINE TOTAL,
+        which equals QTY * unit_price (NOT the unit price, NOT the receipt total).
         
         Logic:
-        1. If KB has unit price, use it to infer quantity: qty = total_price / kb_unit_price
-        2. Round to nearest integer (Costco quantities are typically whole numbers)
-        3. Validate: check if inferred quantity makes sense (1-100 range, reasonable price match)
-        4. Calculate actual unit price from receipt: unit_price = total_price / inferred_qty
-        5. Store KB price for reference in kb_estimated_unit_price
+        1. Costco receipts show line_total = QTY * unit_price (the price after product name)
+        2. If KB has instacart_price, adjust for 10-20% markup to get estimated unit price
+        3. Calculate QTY = line_total / estimated_unit_price (round to INT)
+        4. Calculate actual unit_price = line_total / QTY
+        5. Validate: check if inferred quantity makes sense (1-100 range)
+        6. Store instacart_price and estimated unit price for reference
+        
+        Facts:
+        - instacart_price is 10-20% higher than in-store price
+        - QTY for Costco products is INT
+        - line_total (stored as total_price) = QTY * unit_price
         """
         kb = self._load_knowledge_base()
         updated: List[Dict[str, Any]] = []
         for item in items:
             try:
                 item_number = str(item.get('item_number') or '').strip()
-                total_price = float(item.get('total_price') or 0)
+                # line_total is the price shown after product name = QTY * unit_price
+                line_total = float(item.get('total_price') or 0)
                 quantity = item.get('quantity')
                 unit_price = item.get('unit_price')
                 product_name = item.get('product_name', 'Unknown')
 
-                # Skip if no item number or total price
-                if not item_number or total_price <= 0:
+                # Skip if no item number or line total
+                if not item_number or line_total <= 0:
                     updated.append(item)
                     continue
 
-                # Get KB unit price
+                # Get KB entry
                 kb_entry = kb.get(item_number) if item_number else None
-                kb_price = None
-                if isinstance(kb_entry, list) and len(kb_entry) >= 4:
-                    try:
-                        kb_price = float(kb_entry[3])
-                    except Exception:
-                        kb_price = None
+                instacart_price = None
+                
+                # Only use instacart_price from KB (no fallback to unit_price)
+                if isinstance(kb_entry, dict):
+                    # New dict format: check for instacart_price
+                    instacart_price = kb_entry.get('instacart_price')
+                    if instacart_price:
+                        try:
+                            instacart_price = float(instacart_price)
+                        except (ValueError, TypeError):
+                            instacart_price = None
 
-                # Infer quantity using KB price
-                if kb_price and kb_price > 0:
-                    # Calculate inferred quantity
-                    inferred_qty_float = total_price / kb_price
+                # Get estimated unit price (adjust instacart_price for markup)
+                estimated_unit_price = None
+                if instacart_price and instacart_price > 0:
+                    # instacart_price is 10-20% higher than in-store price
+                    # Try different markup factors (1.1, 1.15, 1.2) to find best match
+                    markup_factors = [1.1, 1.15, 1.2]  # 10%, 15%, 20% markup
+                    best_price = None
+                    best_error = float('inf')
+                    
+                    for markup in markup_factors:
+                        estimated = instacart_price / markup
+                        # Test what QTY this would give: QTY = line_total / estimated_unit_price
+                        test_qty = int(round(line_total / estimated))
+                        if test_qty < 1:
+                            test_qty = 1
+                        # Calculate error: expected_line_total = QTY * estimated_unit_price
+                        expected_line_total = test_qty * estimated
+                        error = abs(line_total - expected_line_total)
+                        if error < best_error:
+                            best_error = error
+                            best_price = estimated
+                    
+                    estimated_unit_price = best_price
+                    logger.debug(f"Costco: {product_name} ({item_number}) - instacart_price=${instacart_price:.2f}, estimated unit_price=${estimated_unit_price:.2f} (markup: {instacart_price/estimated_unit_price:.2f}x)")
+
+                # Infer quantity using estimated unit price
+                if estimated_unit_price and estimated_unit_price > 0:
+                    # Calculate QTY: QTY = line_total / estimated_unit_price (must be INT)
+                    # line_total = QTY * unit_price, so QTY = line_total / unit_price
+                    inferred_qty_float = line_total / estimated_unit_price
                     inferred_qty = int(round(inferred_qty_float))
                     
                     # Validate inferred quantity (must be at least 1, reasonable max)
@@ -1759,52 +1855,57 @@ class UnifiedPDFProcessor:
                         inferred_qty = 1
                     elif inferred_qty > 100:
                         # If inferred qty is too high, might be wrong KB price
-                        logger.warning(f"Costco: {product_name} ({item_number}) - inferred qty={inferred_qty} seems too high (total=${total_price:.2f}, KB_price=${kb_price:.2f})")
+                        logger.warning(f"Costco: {product_name} ({item_number}) - inferred qty={inferred_qty} seems too high (line_total=${line_total:.2f}, estimated_unit_price=${estimated_unit_price:.2f})")
                         # Try to use existing quantity if it seems reasonable
                         if quantity and 1 <= float(quantity) <= 100:
                             inferred_qty = int(float(quantity))
                         else:
                             inferred_qty = 1
                     
-                    # Calculate actual unit price from receipt
-                    actual_unit_price = round(total_price / inferred_qty, 2)
+                    # Calculate actual unit price: unit_price = line_total / QTY
+                    actual_unit_price = round(line_total / inferred_qty, 2)
                     
                     # Check if the inference makes sense (within reasonable error)
-                    expected_total = inferred_qty * kb_price
-                    error = abs(total_price - expected_total)
-                    error_percent = (error / total_price * 100) if total_price > 0 else 0
+                    expected_line_total = inferred_qty * estimated_unit_price
+                    error = abs(line_total - expected_line_total)
+                    error_percent = (error / line_total * 100) if line_total > 0 else 0
                     
                     # If error is small (< 5% or < $0.50), use inferred quantity
                     if error_percent < 5.0 or error < 0.50:
-                        item['quantity'] = int(inferred_qty)
+                        item['quantity'] = int(inferred_qty)  # Ensure INT
                         item['unit_price'] = actual_unit_price
-                        item['kb_estimated_unit_price'] = float(kb_price)
+                        item['instacart_price'] = float(instacart_price)
+                        item['estimated_unit_price'] = float(estimated_unit_price)
+                        item['qty_inference_method'] = 'instacart_price_adjusted'
                         item['qty_inferred'] = True
-                        item['qty_inference_method'] = 'kb_unit_price'
-                        logger.info(f"Costco: {product_name} ({item_number}) - inferred qty={inferred_qty} from total=${total_price:.2f} / KB_price=${kb_price:.2f} = unit_price=${actual_unit_price:.2f} (error: ${error:.2f}, {error_percent:.1f}%)")
+                        item['kb_unit_price_updated'] = True  # Flag to update KB
+                        logger.info(f"Costco: {product_name} ({item_number}) - inferred qty={inferred_qty} from line_total=${line_total:.2f} / estimated_unit_price=${estimated_unit_price:.2f} = unit_price=${actual_unit_price:.2f} (error: ${error:.2f}, {error_percent:.1f}%)")
                     else:
                         # Error too large - might be wrong KB price or multiple items
                         logger.warning(f"Costco: {product_name} ({item_number}) - inference error too large: ${error:.2f} ({error_percent:.1f}%), keeping existing qty={quantity}")
                         # Keep existing quantity if available, otherwise use inferred
                         if not quantity or float(quantity) == 1.0:
-                            item['quantity'] = int(inferred_qty)
+                            item['quantity'] = int(inferred_qty)  # Ensure INT
                             item['unit_price'] = actual_unit_price
-                            item['kb_estimated_unit_price'] = float(kb_price)
+                            item['instacart_price'] = float(instacart_price)
+                            item['estimated_unit_price'] = float(estimated_unit_price)
+                            item['qty_inference_method'] = 'instacart_price_adjusted_with_warning'
                             item['qty_inferred'] = True
-                            item['qty_inference_method'] = 'kb_unit_price_with_warning'
+                            item['kb_unit_price_updated'] = True  # Flag to update KB
                         else:
-                            item['quantity'] = int(float(quantity))
-                            item['unit_price'] = round(total_price / float(quantity), 2)
-                            item['kb_estimated_unit_price'] = float(kb_price)
-                elif total_price > 0:
+                            item['quantity'] = int(float(quantity))  # Ensure INT
+                            item['unit_price'] = round(line_total / float(quantity), 2)
+                            item['instacart_price'] = float(instacart_price)
+                            item['estimated_unit_price'] = float(estimated_unit_price)
+                elif line_total > 0:
                     # No KB price available - use existing quantity or default to 1
                     if quantity and float(quantity) > 0:
-                        item['quantity'] = int(float(quantity))
-                        item['unit_price'] = round(total_price / float(quantity), 2)
+                        item['quantity'] = int(float(quantity))  # Ensure INT
+                        item['unit_price'] = round(line_total / float(quantity), 2)
                     else:
                         # No quantity available - default to 1
-                        item['quantity'] = 1
-                        item['unit_price'] = round(total_price, 2)
+                        item['quantity'] = 1  # Ensure INT
+                        item['unit_price'] = round(line_total, 2)
                         item['qty_inferred'] = True
                         item['qty_inference_method'] = 'default_to_one'
                         logger.warning(f"Costco: {product_name} ({item_number}) - no KB price, defaulting qty=1, unit_price=${item['unit_price']:.2f}")
@@ -1816,8 +1917,13 @@ class UnifiedPDFProcessor:
         return updated
 
     def _enrich_costco_size_and_uom(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Set size/spec (raw_uom_text) and purchase_uom for Costco items from KB size text."""
+        """
+        Set size/spec (raw_uom_text), purchase_uom, unit_size, and unit_uom for Costco items.
+        Extracts from KB size text or product name.
+        """
         kb = self._load_knowledge_base()
+        import re as _re
+        
         def _derive_uom(size_text: str) -> Optional[str]:
             if not size_text:
                 return None
@@ -1831,36 +1937,285 @@ class UnifiedPDFProcessor:
             if 'ct' in st or 'count' in st or 'unit' in st:
                 return 'ct'
             return None
+        
+        def _extract_size_and_uom(size_text: str) -> Tuple[Optional[float], Optional[str]]:
+            """Extract unit_size (number) and unit_uom (unit) from size text."""
+            if not size_text:
+                return None, None
+            
+            # Pattern: "3 lbs", "64 fl oz", "1 gal", "12 ct"
+            pattern = r'(\d+(?:\.\d+)?)\s*(lb|lbs|fl\s*oz|floz|oz|ct|count|gallon|gal|qt|qts)\b'
+            match = _re.search(pattern, size_text, _re.I)
+            if match:
+                size_num = float(match.group(1))
+                uom_text = match.group(2).lower()
+                
+                # Normalize UoM
+                uom_map = {
+                    'lb': 'lb', 'lbs': 'lb', 'pound': 'lb',
+                    'oz': 'oz', 'fl oz': 'oz', 'floz': 'oz',
+                    'gal': 'gal', 'gallon': 'gal',
+                    'qt': 'qt', 'qts': 'qt',
+                    'ct': 'ct', 'count': 'ct',
+                }
+                uom = uom_map.get(uom_text, uom_text)
+                return size_num, uom
+            
+            return None, None
+        
         for item in items:
             try:
                 item_number = str(item.get('item_number') or '').strip()
                 kb_entry = kb.get(item_number) if item_number else None
                 size_text = None
-                if isinstance(kb_entry, list) and len(kb_entry) >= 3:
+                
+                # Try to get size from KB
+                if isinstance(kb_entry, dict):
+                    size_text = kb_entry.get('size') or kb_entry.get('size_spec') or ''
+                elif isinstance(kb_entry, list) and len(kb_entry) >= 3:
                     size_text = kb_entry[2]
-                # If KB has size/spec, set raw_uom_text
+                
+                # If KB has size/spec, extract unit_size and unit_uom
                 if size_text:
                     item['raw_uom_text'] = size_text
                     u = _derive_uom(size_text)
                     if u:
                         item['purchase_uom'] = u
+                    
+                    # Extract unit_size and unit_uom
+                    unit_size, unit_uom = _extract_size_and_uom(size_text)
+                    if unit_size is not None:
+                        item['unit_size'] = unit_size
+                    if unit_uom:
+                        item['unit_uom'] = unit_uom
                 else:
                     # Try derive size from product_name as fallback
                     pn = (item.get('product_name') or '')
                     # Simple extraction like "3 LB", "2-lbs", "64-fl oz", "3000CT"
-                    import re as _re
                     m = _re.search(r'(\d+(?:\.\d+)?)\s*(lb|lbs|fl\s*oz|oz|ct|gallon|gal)\b', pn, _re.I)
                     if m:
-                        item['raw_uom_text'] = f"{m.group(1)} {m.group(2)}"
-                        u = _derive_uom(item['raw_uom_text'])
+                        size_text = f"{m.group(1)} {m.group(2)}"
+                        item['raw_uom_text'] = size_text
+                        u = _derive_uom(size_text)
                         if u:
                             item['purchase_uom'] = u
+                        
+                        # Extract unit_size and unit_uom
+                        unit_size, unit_uom = _extract_size_and_uom(size_text)
+                        if unit_size is not None:
+                            item['unit_size'] = unit_size
+                        if unit_uom:
+                            item['unit_uom'] = unit_uom
+                
+                # Ensure qty is set (should already be set from quantity inference)
+                if 'quantity' not in item or not item.get('quantity'):
+                    item['quantity'] = 1
             except Exception:
                 pass
         return items
 
+    def _ensure_unit_size_uom_qty(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Ensure all items have unit_size, unit_uom, and qty (quantity).
+        Extracts from knowledge base, product name, size_spec, raw_uom_text, or purchase_uom.
+        """
+        import re
+        
+        # Load knowledge base for size lookup
+        kb = self._load_knowledge_base()
+        
+        def _extract_size_and_uom_from_text(text: str) -> Tuple[Optional[float], Optional[str]]:
+            """Extract unit_size (number) and unit_uom (unit) from text."""
+            if not text:
+                return None, None
+            
+            text_str = str(text).strip()
+            
+            # Handle pack sizes: "6/5 lb" -> extract "5 lb" (the unit size, not pack count)
+            # Pattern: "6/5 lb", "12/8.4 OZ", etc.
+            pack_pattern = r'(\d+)\s*/\s*(\d+(?:\.\d+)?)\s*(lb|lbs|fl\s*oz|floz|oz|ct|count|gallon|gal|qt|qts)\b'
+            pack_match = re.search(pack_pattern, text_str, re.I)
+            if pack_match:
+                # Extract the unit size (second number), not pack count
+                size_num = float(pack_match.group(2))
+                uom_text = pack_match.group(3).lower()
+                
+                # Normalize UoM
+                uom_map = {
+                    'lb': 'lb', 'lbs': 'lb', 'pound': 'lb',
+                    'oz': 'oz', 'fl oz': 'oz', 'floz': 'oz',
+                    'gal': 'gal', 'gallon': 'gal',
+                    'qt': 'qt', 'qts': 'qt',
+                    'ct': 'ct', 'count': 'ct',
+                }
+                uom = uom_map.get(uom_text, uom_text)
+                return size_num, uom
+            
+            # Pattern: "3 lbs", "64 fl oz", "1 gal", "12 ct", "32 oz", "10LB", "20 lb"
+            # Also handle: "10LB", "20 lb", "6.98OZ", "5.29OZ", "32-fl" (Odoo format: "32-fl" means "32 fl oz")
+            # First try pattern with "fl" prefix: "32-fl" -> "32 fl oz"
+            fl_pattern = r'(\d+(?:\.\d+)?)\s*[-]?\s*(fl)\b'
+            fl_match = re.search(fl_pattern, text_str, re.I)
+            if fl_match:
+                size_num = float(fl_match.group(1))
+                return size_num, 'fl oz'  # "32-fl" means "32 fl oz"
+            
+            pattern = r'(\d+(?:\.\d+)?)\s*[-]?\s*(fl\s*oz|floz|oz|lb|lbs|ct|count|gallon|gal|qt|qts|each|ea|unit|units)\b'
+            match = re.search(pattern, text_str, re.I)
+            if match:
+                size_num = float(match.group(1))
+                uom_text = match.group(2).lower()
+                
+                # Normalize UoM
+                uom_map = {
+                    'lb': 'lb', 'lbs': 'lb', 'pound': 'lb',
+                    'oz': 'oz', 'fl oz': 'oz', 'floz': 'oz',
+                    'gal': 'gal', 'gallon': 'gal',
+                    'qt': 'qt', 'qts': 'qt',
+                    'ct': 'ct', 'count': 'ct',
+                    'each': 'each', 'ea': 'each',
+                    'unit': 'each', 'units': 'each',
+                }
+                uom = uom_map.get(uom_text, uom_text)
+                return size_num, uom
+            
+            # Try pattern without word boundary for cases like "10LB", "6.98OZ"
+            pattern_no_boundary = r'(\d+(?:\.\d+)?)\s*(LB|LBS|OZ|CT|GAL|QT)\b'
+            match_no_boundary = re.search(pattern_no_boundary, text_str, re.I)
+            if match_no_boundary:
+                size_num = float(match_no_boundary.group(1))
+                uom_text = match_no_boundary.group(2).lower()
+                
+                # Normalize UoM
+                uom_map = {
+                    'lb': 'lb', 'lbs': 'lb',
+                    'oz': 'oz',
+                    'gal': 'gal',
+                    'qt': 'qt',
+                    'ct': 'ct',
+                }
+                uom = uom_map.get(uom_text, uom_text)
+                return size_num, uom
+            
+            return None, None
+        
+        for item in items:
+            # Ensure qty (quantity) is set
+            if 'quantity' not in item or not item.get('quantity'):
+                item['quantity'] = 1
+            
+            # Try to extract unit_size and unit_uom if not already set
+            if not item.get('unit_size') or not item.get('unit_uom'):
+                # First, try KB if item_number is available
+                kb_size_text = None
+                item_number = str(item.get('item_number') or '').strip()
+                if item_number and kb:
+                    kb_entry = kb.get(item_number)
+                    if isinstance(kb_entry, dict):
+                        kb_size_text = kb_entry.get('size') or kb_entry.get('size_spec') or ''
+                    elif isinstance(kb_entry, list) and len(kb_entry) >= 3:
+                        kb_size_text = kb_entry[2] if len(kb_entry) > 2 else ''
+                
+                # For Odoo items, prioritize raw_size_text and raw_uom_text
+                vendor_code = item.get('vendor', '').upper()
+                source_type = str(item.get('source_type', '')).upper()
+                is_odoo = (vendor_code == 'ODOO' or 'ODOO' in vendor_code or 
+                          'ODOO' in source_type or 
+                          'ODOO SYSTEM' in vendor_code or
+                          item.get('odoo_original', False))
+                
+                if is_odoo:
+                    # For Odoo: unit_size and unit_uom from raw_size_text (e.g., "32-fl" -> unit_size=32, unit_uom="fl oz")
+                    # raw_uom_text is used for unit_uom if raw_size_text doesn't have UoM
+                    raw_size_text = str(item.get('raw_size_text', '')).strip()
+                    raw_uom_text = str(item.get('raw_uom_text', '')).strip()
+                    
+                    # Skip if raw_size_text is "None" or empty
+                    if raw_size_text and raw_size_text.lower() != 'none':
+                        unit_size, unit_uom = _extract_size_and_uom_from_text(raw_size_text)
+                        if unit_size is not None:
+                            item['unit_size'] = unit_size
+                        if unit_uom:
+                            item['unit_uom'] = unit_uom
+                    
+                    # Use raw_uom_text for unit_uom if not already set from raw_size_text
+                    if not item.get('unit_uom') and raw_uom_text and raw_uom_text.lower() != 'none':
+                        # Clean raw_uom_text (e.g., "oz(US)" -> "oz")
+                        cleaned_uom = raw_uom_text.replace('(US)', '').replace('(', '').replace(')', '').strip()
+                        # Normalize common UoM values
+                        uom_map = {
+                            'lb': 'lb', 'lbs': 'lb', 'pound': 'lb',
+                            'oz': 'oz', 'fl oz': 'fl oz', 'floz': 'fl oz',
+                            'gal': 'gal', 'gallon': 'gal',
+                            'qt': 'qt', 'qts': 'qt',
+                            'ct': 'ct', 'count': 'ct',
+                            'each': 'each', 'ea': 'each',
+                            'unit': 'each', 'units': 'each',
+                        }
+                        unit_uom = uom_map.get(cleaned_uom.lower(), cleaned_uom.lower())
+                        if unit_uom:
+                            item['unit_uom'] = unit_uom
+                    
+                    # Set unit_size to 1.0 if not set but unit_uom is set
+                    if item.get('unit_uom') and not item.get('unit_size'):
+                        item['unit_size'] = 1.0
+                    
+                    # If we got both, we're done
+                    if item.get('unit_size') and item.get('unit_uom'):
+                        continue
+                
+                # Try multiple sources in priority order (for non-Odoo or fallback)
+                sources = [
+                    kb_size_text,  # KB size (highest priority)
+                    item.get('size_spec'),
+                    item.get('raw_size_text'),
+                    item.get('raw_uom_text'),
+                    item.get('size'),  # CSV size field
+                    item.get('product_name'),
+                ]
+                
+                for source in sources:
+                    if not source:
+                        continue
+                    
+                    unit_size, unit_uom = _extract_size_and_uom_from_text(str(source))
+                    if unit_size is not None and unit_uom:
+                        if not item.get('unit_size'):
+                            item['unit_size'] = unit_size
+                        if not item.get('unit_uom'):
+                            item['unit_uom'] = unit_uom
+                        # If we got both, we're done
+                        if item.get('unit_size') and item.get('unit_uom'):
+                            break
+                
+                # Fallback: use purchase_uom if available (set unit_size to 1)
+                if not item.get('unit_uom') and item.get('purchase_uom'):
+                    item['unit_uom'] = item['purchase_uom']
+                    if not item.get('unit_size'):
+                        item['unit_size'] = 1.0
+                
+                # Final fallback: default to "each"
+                if not item.get('unit_uom'):
+                    item['unit_uom'] = 'each'
+                    if not item.get('unit_size'):
+                        item['unit_size'] = 1.0
+        
+        return items
+
     def _update_knowledge_base_costco(self, items: List[Dict[str, Any]]) -> None:
-        """Update Costco items in KB with actual unit price from receipts (total/qty)."""
+        """
+        Update Costco items in KB with calculated unit_price from quantity inference.
+        
+        Steps:
+        1. Load knowledge base
+        2. For each item with qty_inferred=True and kb_unit_price_updated=True:
+           - Get item_number and calculated unit_price
+           - Find KB entry by item_number
+           - Update KB entry['unit_price'] = calculated unit_price (for dict format)
+           - Update KB entry[3] = calculated unit_price (for array format)
+           - Log the update (old_price → new_price)
+        3. Save updated knowledge base to file
+        """
         try:
             kb_path = None
             try:
@@ -1869,45 +2224,72 @@ class UnifiedPDFProcessor:
                 kb_path = None
             if not kb_path:
                 kb_path = Path('data/step1_input/knowledge_base.json')
-            kb = self._load_knowledge_base()
-            modified = False
+            
+            if not kb_path.exists():
+                logger.debug(f"Knowledge base not found at {kb_path}, skipping update")
+                return
+            
+            # Load knowledge base
+            import json
+            with open(kb_path, 'r', encoding='utf-8') as f:
+                kb = json.load(f)
+            
+            updated_count = 0
+            
+            # Update KB with calculated unit_price for items that were inferred
             for item in items:
-                try:
-                    item_number = str(item.get('item_number') or '').strip()
-                    if not item_number:
-                        continue
-                    # Use actual unit price from receipt (total/qty), not KB price
-                    unit_price = float(item.get('unit_price') or 0)
-                    if unit_price <= 0:
-                        continue
-                    product_name = (item.get('product_name') or '').strip()
-                    size_text = (item.get('raw_uom_text') or '').strip()
-                    
-                    if item_number in kb:
-                        # Update existing entry with new price
-                        existing_entry = kb[item_number]
-                        if isinstance(existing_entry, list) and len(existing_entry) >= 4:
-                            old_price = existing_entry[3]
-                            if abs(float(old_price) - unit_price) > 0.01:  # Price changed
-                                kb[item_number] = [product_name or existing_entry[0], 'Costco', size_text or existing_entry[2], unit_price]
-                                modified = True
-                                logger.debug(f"Costco KB: Updated {item_number} price: ${old_price:.2f} -> ${unit_price:.2f}")
-                    else:
-                        # Add new entry
-                        entry = [product_name or item_number, 'Costco', size_text, unit_price]
-                        kb[item_number] = entry
-                        modified = True
-                        logger.debug(f"Costco KB: Added new entry for {item_number}: {product_name} @ ${unit_price:.2f}")
-                except Exception as e:
-                    logger.debug(f"Error updating KB for item {item.get('item_number')}: {e}")
+                item_number = str(item.get('item_number') or '').strip()
+                unit_price = item.get('unit_price')
+                qty_inferred = item.get('qty_inferred', False)
+                kb_unit_price_updated = item.get('kb_unit_price_updated', False)
+                
+                # Only update if quantity was inferred and flag is set
+                if not item_number or not unit_price or not qty_inferred or not kb_unit_price_updated:
                     continue
-            if modified:
-                import json as _json
-                with open(kb_path, 'w') as f:
-                    _json.dump(kb, f, indent=2)
+                
+                # Get KB entry
+                kb_entry = kb.get(item_number)
+                if not kb_entry:
+                    logger.debug(f"Costco KB update: Item {item_number} not found in KB, skipping")
+                    continue
+                
+                # Update unit_price in KB entry
+                if isinstance(kb_entry, dict):
+                    # New dict format: update unit_price
+                    old_unit_price = kb_entry.get('unit_price', 0.0)
+                    try:
+                        old_unit_price = float(old_unit_price) if old_unit_price else 0.0
+                    except (ValueError, TypeError):
+                        old_unit_price = 0.0
+                    
+                    # Only update if price changed significantly (> $0.01)
+                    if abs(old_unit_price - float(unit_price)) > 0.01:
+                        kb_entry['unit_price'] = float(unit_price)
+                        updated_count += 1
+                        logger.info(f"Costco KB update: Item {item_number} - unit_price updated: ${old_unit_price:.2f} → ${unit_price:.2f}")
+                    else:
+                        logger.debug(f"Costco KB update: Item {item_number} - unit_price unchanged: ${unit_price:.2f}")
+                elif isinstance(kb_entry, list) and len(kb_entry) >= 4:
+                    # Old array format: [name, store, size, unit_price]
+                    old_unit_price = float(kb_entry[3]) if len(kb_entry) >= 4 else 0.0
+                    
+                    # Only update if price changed significantly (> $0.01)
+                    if abs(old_unit_price - float(unit_price)) > 0.01:
+                        kb_entry[3] = float(unit_price)
+                        updated_count += 1
+                        logger.info(f"Costco KB update: Item {item_number} - unit_price updated: ${old_unit_price:.2f} → ${unit_price:.2f}")
+                    else:
+                        logger.debug(f"Costco KB update: Item {item_number} - unit_price unchanged: ${unit_price:.2f}")
+            
+            # Save updated knowledge base
+            if updated_count > 0:
+                with open(kb_path, 'w', encoding='utf-8') as f:
+                    json.dump(kb, f, indent=2, ensure_ascii=False)
                 # Update cache
                 UnifiedPDFProcessor._kb_cache = kb
-                logger.info(f"Updated knowledge base with {len([i for i in items if str(i.get('item_number', '')).strip()])} Costco items")
+                logger.info(f"Costco KB update: Updated {updated_count} items with calculated unit_price")
+            else:
+                logger.debug("Costco KB update: No items to update")
         except Exception as e:
             logger.debug(f"Knowledge base update skipped: {e}")
     

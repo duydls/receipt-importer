@@ -41,7 +41,7 @@ def _load_category_options(rules_dir: Path) -> Tuple[List[str], List[str]]:
             logger.warning(f"Rules directory not found: {rules_dir}")
             return l1_options, l2_options
         
-        rule_loader = RuleLoader(rules_dir)
+        rule_loader = RuleLoader(rules_dir, enable_hot_reload=True)
         
         # Load L1 categories
         l1_rules = rule_loader.load_rule_file_by_name('55_categories_l1.yaml')
@@ -216,12 +216,29 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
     raw_description = product_name
     
     # Extract pack_count, unit_size, unit_uom
-    raw_uom_text = item.get('raw_uom_text', '') or item.get('raw_size_text', '')
-    pack_count, unit_size, unit_uom = parse_pack_size_uom(raw_uom_text)
+    # First, use the fields we've already set (from ensure_unit_size_uom_qty)
+    unit_size = item.get('unit_size')
+    unit_uom = item.get('unit_uom')
+    pack_count = item.get('pack_count')
     
-    # If not found in raw_uom_text, try parsing from product_name
-    if pack_count is None and unit_size is None and not unit_uom:
-        pack_count, unit_size, unit_uom = parse_pack_size_uom(product_name)
+    # If not already set, try parsing from raw_uom_text or product_name
+    if unit_size is None and not unit_uom:
+        raw_uom_text = item.get('raw_uom_text', '') or item.get('raw_size_text', '')
+        parsed_pack_count, parsed_unit_size, parsed_unit_uom = parse_pack_size_uom(raw_uom_text)
+        
+        # Use parsed values if we got them
+        if parsed_unit_size is not None or parsed_unit_uom:
+            pack_count = parsed_pack_count if pack_count is None else pack_count
+            unit_size = parsed_unit_size if unit_size is None else unit_size
+            unit_uom = parsed_unit_uom if not unit_uom else unit_uom
+        
+        # If still not found, try parsing from product_name
+        if unit_size is None and not unit_uom:
+            parsed_pack_count, parsed_unit_size, parsed_unit_uom = parse_pack_size_uom(product_name)
+            if parsed_unit_size is not None or parsed_unit_uom:
+                pack_count = parsed_pack_count if pack_count is None else pack_count
+                unit_size = parsed_unit_size if unit_size is None else unit_size
+                unit_uom = parsed_unit_uom if not unit_uom else unit_uom
     
     # Clean canonical_name
     item_number = str(item.get('item_number', '')).strip() or None

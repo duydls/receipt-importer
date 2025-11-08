@@ -138,8 +138,8 @@ def process_files(
     log_dir = output_base_dir / 'logs'
     setup_logger(log_level='INFO', log_dir=log_dir)
     
-    # Initialize rule loader
-    rule_loader = RuleLoader(rules_dir)
+    # Initialize rule loader with hot-reload enabled to rescan rules on every run
+    rule_loader = RuleLoader(rules_dir, enable_hot_reload=True)
     
     # Initialize vendor detector (load vendor detection rule first)
     from .vendor_detector import VendorDetector
@@ -291,6 +291,11 @@ def process_files(
                         receipt_data = apply_date_hierarchy(receipt_data)
                     except Exception as e:
                         logger.debug(f"Date normalization skipped: {e}")
+
+                    # Ensure all items have unit_size, unit_uom, and qty
+                    if receipt_data.get('items'):
+                        from .utils.item_size_extractor import ensure_unit_size_uom_qty
+                        receipt_data['items'] = ensure_unit_size_uom_qty(receipt_data['items'])
 
                     item_count = len(receipt_data.get('items', []))
                     if item_count > 0:
@@ -961,6 +966,9 @@ def process_files(
                 if items:
                     # Apply name hygiene: extract UPC/Item# and create clean_name
                     receipt_data['items'] = apply_name_hygiene_batch(items)
+                    # Ensure all items have unit_size, unit_uom, and qty
+                    from .utils.item_size_extractor import ensure_unit_size_uom_qty
+                    receipt_data['items'] = ensure_unit_size_uom_qty(receipt_data['items'])
             except Exception as e:
                 logger.warning(f"Error applying name hygiene to {receipt_id}: {e}", exc_info=True)
     
@@ -1250,6 +1258,7 @@ def process_files(
     all_receipts.update(amazon_based_data)
     all_receipts.update(webstaurantstore_based_data)
     all_receipts.update(wismettac_based_data)
+    all_receipts.update(odoo_based_data)
     
     if all_receipts:
         # Generate standardized output FIRST (timestamped folder with CSV files)

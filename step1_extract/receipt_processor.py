@@ -80,7 +80,7 @@ class ReceiptProcessor:
         # Load rules from step1_rules folder first (needed for VendorMatcher)
         if RULE_LOADER_AVAILABLE:
             rules_dir = Path(__file__).parent.parent / 'step1_rules'
-            self.rule_loader = RuleLoader(rules_dir)
+            self.rule_loader = RuleLoader(rules_dir, enable_hot_reload=True)
             self.rules = self.rule_loader.load_all_rules()
         else:
             self.rule_loader = None
@@ -292,6 +292,17 @@ class ReceiptProcessor:
                         upc_str = re.sub(r'\[cite[^\]]*\]', '', upc_str).strip()
                         if upc_str and upc_str.lower() not in ['nan', 'none', '']:
                             upc = upc_str
+                
+                # Extract Size from Size column if available (BBI-specific)
+                size = None
+                if has_size_col:
+                    size_raw = row.get('Size', '')
+                    if pd.notna(size_raw):
+                        size_str = str(size_raw).strip()
+                        # Clean citation markers
+                        size_str = re.sub(r'\[cite[^\]]*\]', '', size_str).strip()
+                        if size_str and size_str.lower() not in ['nan', 'none', '']:
+                            size = size_str
                 
                 item_desc = str(row.get('Item Description', '')).strip() if pd.notna(row.get('Item Description')) else ''
                 amount = row.get('Extended Amount (USD)', 0)
@@ -578,40 +589,66 @@ class ReceiptProcessor:
                             except (ValueError, TypeError):
                                 quantity = 1.0
                     
-                    # Extract size/UoM from product name (e.g., "10 LB" is size, not quantity)
+                    # Extract size/UoM from Size column if available (BBI-specific), otherwise from product name
                     uom = 'each'
                     size_info = None
                     
-                    # Try to extract size and UoM from description (this is size/weight, not quantity)
+                    # First, try Size column if available (BBI-specific)
+                    if size:
+                        size_info = size
+                        # Try to extract UoM from Size column
+                        qty_uom_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:FL\s+)?(LB|OZ|GAL|QT|PT|CT|L|ML|KG|G|COUNT|EACH|EA|BAG|CAN|BUCKET|PACK)\.?', size, re.IGNORECASE)
+                        if qty_uom_match:
+                            uom_raw = qty_uom_match.group(2).upper()
+                            uom_map = {
+                                'LB': 'lb', 'POUND': 'lb', 'LBS': 'lb',
+                                'OZ': 'oz', 'OUNCE': 'oz',
+                                'GAL': 'gal', 'GALLON': 'gal',
+                                'QT': 'qt', 'QUART': 'qt',
+                                'PT': 'pt', 'PINT': 'pt',
+                                'CT': 'ct', 'COUNT': 'ct',
+                                'EA': 'each', 'EACH': 'each',
+                                'L': 'l', 'LITER': 'l',
+                                'ML': 'ml', 'MILLILITER': 'ml',
+                                'KG': 'kg', 'KILOGRAM': 'kg',
+                                'G': 'g', 'GRAM': 'g',
+                                'BAG': 'bag', 'CAN': 'can', 'BUCKET': 'bucket', 'PACK': 'pack',
+                            }
+                            uom = uom_map.get(uom_raw, uom_raw.lower())
+                            if 'FL' in size.upper() and uom == 'oz':
+                                uom = 'fl_oz'
+                    
+                    # If Size column not available, try to extract size and UoM from description (this is size/weight, not quantity)
                     # Pattern: "10 LB", "10LB", "32 OZ", etc. in product name
-                    qty_uom_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:FL\s+)?(LB|OZ|GAL|QT|PT|CT|L|ML|KG|G|COUNT|EACH|EA)\.?', item_desc, re.IGNORECASE)
-                    if qty_uom_match:
-                        # This is size/weight, NOT quantity - extract as size_info
-                        size_qty = float(qty_uom_match.group(1))
-                        uom_raw = qty_uom_match.group(2).upper()
-                        uom_map = {
-                            'LB': 'lb', 'POUND': 'lb', 'LBS': 'lb',
-                            'OZ': 'oz', 'OUNCE': 'oz',
-                            'GAL': 'gal', 'GALLON': 'gal',
-                            'QT': 'qt', 'QUART': 'qt',
-                            'PT': 'pt', 'PINT': 'pt',
-                            'CT': 'ct', 'COUNT': 'ct',
-                            'EA': 'each',
-                            'L': 'l', 'LITER': 'l',
-                            'ML': 'ml', 'MILLILITER': 'ml',
-                            'KG': 'kg', 'KILOGRAM': 'kg',
-                            'G': 'g', 'GRAM': 'g',
-                        }
-                        uom_for_size = uom_map.get(uom_raw, uom_raw.lower())
-                        if 'FL' in item_desc.upper() and uom_for_size == 'oz':
-                            uom_for_size = 'fl_oz'
-                        
-                        # Store as size (not quantity)
-                        size_info = f"{size_qty} {uom_for_size}"
-                        uom = uom_for_size  # Also set UoM for the item
-                        
-                        # Clean product name - remove size/weight pattern
-                        item_desc = re.sub(r'\d+(?:\.\d+)?\s*(?:FL\s+)?(?:LB|OZ|GAL|QT|PT|CT|L|ML|KG|G|COUNT|EACH|EA)\.?', '', item_desc, flags=re.IGNORECASE).strip()
+                    if not size_info:
+                        qty_uom_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:FL\s+)?(LB|OZ|GAL|QT|PT|CT|L|ML|KG|G|COUNT|EACH|EA)\.?', item_desc, re.IGNORECASE)
+                        if qty_uom_match:
+                            # This is size/weight, NOT quantity - extract as size_info
+                            size_qty = float(qty_uom_match.group(1))
+                            uom_raw = qty_uom_match.group(2).upper()
+                            uom_map = {
+                                'LB': 'lb', 'POUND': 'lb', 'LBS': 'lb',
+                                'OZ': 'oz', 'OUNCE': 'oz',
+                                'GAL': 'gal', 'GALLON': 'gal',
+                                'QT': 'qt', 'QUART': 'qt',
+                                'PT': 'pt', 'PINT': 'pt',
+                                'CT': 'ct', 'COUNT': 'ct',
+                                'EA': 'each',
+                                'L': 'l', 'LITER': 'l',
+                                'ML': 'ml', 'MILLILITER': 'ml',
+                                'KG': 'kg', 'KILOGRAM': 'kg',
+                                'G': 'g', 'GRAM': 'g',
+                            }
+                            uom_for_size = uom_map.get(uom_raw, uom_raw.lower())
+                            if 'FL' in item_desc.upper() and uom_for_size == 'oz':
+                                uom_for_size = 'fl_oz'
+                            
+                            # Store as size (not quantity)
+                            size_info = f"{size_qty} {uom_for_size}"
+                            uom = uom_for_size  # Also set UoM for the item
+                            
+                            # Clean product name - remove size/weight pattern
+                            item_desc = re.sub(r'\d+(?:\.\d+)?\s*(?:FL\s+)?(?:LB|OZ|GAL|QT|PT|CT|L|ML|KG|G|COUNT|EACH|EA)\.?', '', item_desc, flags=re.IGNORECASE).strip()
                     
                     # Extract item number from product name if not already extracted from Item Number column
                     # (Item number and UPC were already extracted at the start of the loop)
@@ -637,8 +674,11 @@ class ReceiptProcessor:
                         'line_text': f"{product_name} {quantity} {uom} ${amount_float:.2f}",
                     }
                     
+                    # Add size if extracted (from Size column or description)
                     if size_info:
                         item['size'] = size_info
+                    elif size:  # If Size column exists but wasn't parsed as size_info, store it directly
+                        item['size'] = size
                     
                     # Add item_number and UPC if available (already extracted at start of loop)
                     # Convert to INT type for Group 1 receipts

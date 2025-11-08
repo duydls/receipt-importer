@@ -134,10 +134,10 @@ category_keywords:
       priority: 85
       hints: ['Dairy & Milk - dairy milk']
     
-    - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half|heavy whip|whipping cream)\b'
+    - include_regex: '(?i)\b(cream|creamer|half-and-half|half & half|heavy whip|heavy whi|whipping cream|whi pp)\b'
       map_to_l2: C04
       priority: 85
-      hints: ['Dairy & Milk - Including heavy cream/whipping cream (Aldi "Heavy Whip")']
+      hints: ['Dairy & Milk - Including heavy cream/whipping cream (Aldi "Heavy Whi pp", "Heavy Whip")']
 
     - include_regex: '(?i)\b(yogurt|greek yogurt)\b'
       map_to_l2: C04
@@ -208,11 +208,18 @@ category_keywords:
       priority: 95
       hints: ['Frozen Vegetables - French fries and potato products (RD)']
     
-    # Oils (RD-specific)
-    - include_regex: '(?i)(^OIL\b|SHRT.*CRM|SHORTENING|VEGETABLE OIL)'
+    # Cooking Oils (excluding shortening/cream liquid)
+    - include_regex: '(?i)\b(vegetable|canola|soybean|sunflower|corn|olive|peanut|avocado|coconut|cooking|frying)\s+oil\b'
+      map_to_l2: C17
+      priority: 85
+      hints: ['Cooking Oils & Fats - pure cooking oils']
+      exclude_regex: '(?i)(SHRT|SHORTENING|CRM|CREAM\s+LIQUID)'
+    
+    # Shortening and cream liquid (RD-specific) - keep in C15
+    - include_regex: '(?i)(^OIL\b.*SHRT|SHRT.*CRM|SHORTENING|CREAM\s+LIQUID)'
       map_to_l2: C15
       priority: 90
-      hints: ['Other Ingredients - Oils and shortening (RD)']
+      hints: ['Other Ingredients - Shortening and cream liquid (RD)']
     
     # Fresh Vegetables (Parktoshop and others)
     - include_regex: '(?i)\b(green onion|scallion|onion|basil|cilantro|parsley|herb|lettuce|spinach|kale)\b'

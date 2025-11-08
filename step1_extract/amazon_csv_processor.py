@@ -315,6 +315,10 @@ class AmazonCSVProcessor:
         if family:
             item['unspsc_family'] = family
         
+        unspsc_class = row.get('Class', '').strip()
+        if unspsc_class:
+            item['unspsc_class'] = unspsc_class
+        
         commodity = row.get('Commodity', '').strip()
         if commodity:
             item['unspsc_commodity'] = commodity

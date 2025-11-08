@@ -24,6 +24,13 @@ category_maps_amazon:
     
     - match:
         unspsc_family: 'Prepared and preserved foods'
+        unspsc_class: 'Snack foods'
+      map_to_l2: C33  # Retail Snacks & Beverages
+      priority: 110
+      notes: Snack foods like nuts, dried fruits, chips - map to retail snacks
+    
+    - match:
+        unspsc_family: 'Prepared and preserved foods'
       map_to_l2: C01  # Tea & Coffee (or C33 depending on product)
       priority: 95
       notes: Prepared foods like nuts, dried fruits - check title for specifics
@@ -96,9 +103,27 @@ category_maps_amazon:
     
     # ===== CLEANING ===== (handled by global keywords)
     
-    # ===== SMALLWARES & EQUIPMENT ===== (handled by global keywords/overrides)
-
+    # ===== SMALLWARES & EQUIPMENT =====
     
+    - match:
+        unspsc_segment: 'Furniture and Furnishings'
+        unspsc_family: 'Commercial and industrial furniture'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 120
+      notes: Commercial/industrial furniture like shelving units, racks, storage
+    
+    - match:
+        unspsc_family: 'Commercial and industrial furniture'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 110
+      notes: Commercial furniture equipment
+    
+    - match:
+        category: 'Furniture'
+        item_title_regex: '(?i)\b(shelving|shelf|rack|storage|commercial|industrial)\b'
+      map_to_l2: C40  # Smallwares & Equipment
+      priority: 100
+      notes: Furniture items like shelving, racks, storage units
     
     # ===== OFFICE =====
     # POS supplies: thermal receipt paper, register tape, POS paper

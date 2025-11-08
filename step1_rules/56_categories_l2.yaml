@@ -288,6 +288,42 @@ categories_l2:
     - department: Produce
     - exclude:
       - frozen
+  - id: C17
+    name: Cooking Oils & Fats
+    description: Cooking oils and fats for food preparation (not shortening/cream liquid)
+    examples:
+    - Vegetable oil, canola oil, soybean oil
+    - Olive oil, sunflower oil, corn oil
+    - Peanut oil, sesame oil (for cooking)
+    - Avocado oil, coconut oil
+    synonyms:
+    - cooking oil
+    - vegetable oil
+    - canola oil
+    - olive oil
+    - soybean oil
+    - sunflower oil
+    - corn oil
+    - peanut oil
+    - avocado oil
+    - coconut oil
+    vendor_hints:
+    - title_contains:
+      - vegetable oil
+      - canola oil
+      - olive oil
+      - soybean oil
+      - sunflower oil
+      - corn oil
+      - peanut oil
+      - avocado oil
+      - coconut oil
+      - cooking oil
+      - frying oil
+    - exclude:
+      - shortening
+      - cream liquid
+      - SHRT CRM
   - id: C13
     name: Frozen Vegetables
     description: Frozen vegetables

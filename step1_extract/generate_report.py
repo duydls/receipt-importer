@@ -18,7 +18,7 @@ def _load_picked_weight_rules() -> Dict:
     try:
         from step1_extract.rule_loader import RuleLoader
         rules_dir = Path(__file__).parent.parent / 'step1_rules'
-        loader = RuleLoader(rules_dir)
+        loader = RuleLoader(rules_dir, enable_hot_reload=True)
         instacart_rules = loader.get_instacart_csv_match_rules()
         return instacart_rules.get('instacart_csv_match', {}).get('use_picked_weight_for_weight_items', {})
     except Exception as e:

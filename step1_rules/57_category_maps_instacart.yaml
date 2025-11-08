@@ -187,6 +187,25 @@ category_maps_instacart:
     # ===== CANNED / PROCESSED =====
     
     - match:
+        product_category_name: 'canned coconut milk and cream'
+      map_to_l2: C04  # Dairy & Milk
+      priority: 150
+      notes: Direct mapping from Instacart Product Category "Canned Coconut Milk and Cream" - coconut milk is a milk alternative
+    
+    - match:
+        l3_category_name: 'baking and cooking'
+        text_contains: ['coconut milk', 'coconut cream']
+      map_to_l2: C04  # Dairy & Milk
+      priority: 140
+      notes: Coconut milk/cream from Baking and Cooking category - milk alternative
+    
+    - match:
+        text_contains: ['coconut milk', 'coconut cream']
+      map_to_l2: C04  # Dairy & Milk
+      priority: 90
+      notes: Coconut milk/cream products - milk alternatives
+    
+    - match:
         text_contains: ['canned', 'jarred']
         and_contains: ['fruit', 'peach', 'pear', 'pineapple', 'cocktail']
       map_to_l2: C11  # Canned/Processed Fruit
@@ -224,47 +243,54 @@ category_maps_instacart:
     # ===== PAPER PRODUCTS =====
     
     - match:
+        l3_category_name: 'paper towels'
+      map_to_l2: C30  # Napkins & Paper Products
+      priority: 150
+      notes: Direct mapping from Instacart L3 category "Paper Towels"
+    
+    - match:
         text_contains: ['paper towel', 'napkin', 'tissue']
       map_to_l2: C30  # Napkins & Paper Products
       priority: 85
       notes: Paper products
     
     # ===== FEES (Instacart-specific) =====
+    # Fee rules have highest priority (200) to ensure they match before other rules
     
     - match:
         is_fee: true
         text_contains: ['tip', 'gratuity', 'shopper tip']
       map_to_l2: C85  # Tips/Gratuities
-      priority: 100
-      notes: Shopper tip
+      priority: 200
+      notes: Shopper tip - must match before other rules
     
     - match:
         is_fee: true
         text_contains: ['service fee', 'instacart fee']
       map_to_l2: C80  # Shipping/Delivery
-      priority: 100
-      notes: Instacart service fee (treat as delivery)
+      priority: 200
+      notes: Instacart service fee (treat as delivery) - must match before other rules
     
     - match:
         is_fee: true
         text_contains: ['tax', 'sales tax']
       map_to_l2: C70  # Taxes & Fees
-      priority: 100
-      notes: Tax fees
+      priority: 200
+      notes: Tax fees - must match before other rules
     
     - match:
         is_fee: true
         text_contains: ['delivery', 'shipping']
       map_to_l2: C80  # Shipping/Delivery
-      priority: 100
-      notes: Delivery fee
+      priority: 200
+      notes: Delivery fee - must match before other rules
     
     - match:
         is_fee: true
         text_contains: ['bag fee', 'checkout bag', 'carrier bag']
       map_to_l2: C80  # Shipping/Delivery
-      priority: 100
-      notes: Bag fees (charged by retailer for checkout bags)
+      priority: 200
+      notes: Bag fees (charged by retailer for checkout bags) - must match before other rules
     
     # ===== DEFAULT FALLBACK =====
     

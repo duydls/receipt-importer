@@ -125,6 +125,7 @@ class RDCSVProcessor:
             unit_qty_idx = None
             case_qty_idx = None
             price_idx = None
+            size_spec_idx = None  # Size/Spec column
             
             for i, col in enumerate(header_row):
                 col_upper = col.upper().strip()
@@ -138,6 +139,8 @@ class RDCSVProcessor:
                     case_qty_idx = i
                 elif 'PRICE' in col_upper:
                     price_idx = i
+                elif 'SIZE/SPEC' in col_upper or 'SIZE SPEC' in col_upper or ('SIZE' in col_upper and 'SPEC' in col_upper):
+                    size_spec_idx = i
             
             if upc_idx is None or desc_idx is None or price_idx is None:
                 logger.warning(f"Could not find required columns in {file_path.name}")
@@ -154,6 +157,7 @@ class RDCSVProcessor:
                 upc = str(row[upc_idx]).strip() if upc_idx is not None else ''
                 description = str(row[desc_idx]).strip() if desc_idx is not None else ''
                 price_str = str(row[price_idx]).strip() if price_idx is not None else ''
+                size_spec = str(row[size_spec_idx]).strip() if size_spec_idx is not None and size_spec_idx < len(row) else ''
                 
                 # Skip header rows or empty rows
                 if not description or not price_str:
@@ -249,23 +253,39 @@ class RDCSVProcessor:
                     'upc': upc,
                     'item_number': item_number,
                     'vendor_item_no': item_number,
-                    'purchase_uom': 'each',  # Default, will be extracted from description if available
+                    'purchase_uom': 'each',  # Default, will be extracted from Size/Spec or description if available
                 }
                 
-                # Extract UoM from description if present (e.g., "10LB", "6/5LB")
-                uom_match = re.search(r'(\d+(?:/\d+)?)\s*(LB|LBS|OZ|CT|EACH|EA)', description, re.IGNORECASE)
-                if uom_match:
-                    size = uom_match.group(1)
-                    unit = uom_match.group(2).lower()
-                    if unit in ['lb', 'lbs']:
-                        item['purchase_uom'] = 'lb'
-                        item['size_spec'] = f"{size} lb"
-                    elif unit in ['oz', 'ozs']:
-                        item['purchase_uom'] = 'oz'
-                        item['size_spec'] = f"{size} oz"
-                    elif unit in ['ct', 'each', 'ea']:
-                        item['purchase_uom'] = 'ct'
-                        item['size_spec'] = f"{size} ct"
+                # First, try to extract from Size/Spec column if available
+                if size_spec:
+                    item['size_spec'] = size_spec
+                    # Try to extract UoM from Size/Spec
+                    uom_match = re.search(r'(\d+(?:/\d+)?)\s*(LB|LBS|OZ|CT|EACH|EA)', size_spec, re.IGNORECASE)
+                    if uom_match:
+                        size = uom_match.group(1)
+                        unit = uom_match.group(2).lower()
+                        if unit in ['lb', 'lbs']:
+                            item['purchase_uom'] = 'lb'
+                        elif unit in ['oz', 'ozs']:
+                            item['purchase_uom'] = 'oz'
+                        elif unit in ['ct', 'each', 'ea']:
+                            item['purchase_uom'] = 'ct'
+                
+                # If Size/Spec not available, extract UoM from description if present (e.g., "10LB", "6/5LB")
+                if not item.get('size_spec'):
+                    uom_match = re.search(r'(\d+(?:/\d+)?)\s*(LB|LBS|OZ|CT|EACH|EA)', description, re.IGNORECASE)
+                    if uom_match:
+                        size = uom_match.group(1)
+                        unit = uom_match.group(2).lower()
+                        if unit in ['lb', 'lbs']:
+                            item['purchase_uom'] = 'lb'
+                            item['size_spec'] = f"{size} lb"
+                        elif unit in ['oz', 'ozs']:
+                            item['purchase_uom'] = 'oz'
+                            item['size_spec'] = f"{size} oz"
+                        elif unit in ['ct', 'each', 'ea']:
+                            item['purchase_uom'] = 'ct'
+                            item['size_spec'] = f"{size} ct"
                 
                 receipt_data['items'].append(item)
                 receipt_data['subtotal'] += total_price
