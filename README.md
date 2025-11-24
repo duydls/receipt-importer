@@ -41,14 +41,17 @@ open data/step1_output/classification_report.pdf
 
 ## 🎯 Overview
 
-This system processes receipts from **4 distinct source types**:
+This system processes receipts from **multiple source types**:
 
 | Source Type | Format | Vendors | Processing Method |
 |------------|--------|---------|-------------------|
-| **Local Grocery** | Excel (.xlsx) | Costco, Jewel-Osco, Aldi, Mariano's, Restaurant Depot, ParkToShop | Layout-based extraction |
+| **Local Grocery** | PDF | Costco, Jewel-Osco, Aldi, Mariano's, ParkToShop | PDF text extraction with vendor-specific rules |
+| **Restaurant Depot** | CSV | Restaurant Depot | CSV parsing (CSV-only format) |
 | **Instacart** | PDF + CSV baseline | Instacart | PDF text extraction + CSV enrichment |
-| **BBI** | Excel (.xlsx) | BBI Wholesale | Layout-based extraction |
-| **Amazon** | CSV + PDF validation | Amazon Business | CSV-first processing |
+| **BBI** | Excel (.xlsx) / PDF | BBI Wholesale | Layout-based extraction (Excel) or PDF processing |
+| **Amazon** | CSV + PDF validation | Amazon Business | CSV-first processing with PDF validation |
+| **WebstaurantStore** | PDF | WebstaurantStore | PDF invoice processing |
+| **Wismettac** | PDF | Wismettac Asian Foods | PDF invoice processing |
 
 ### Key Principles
 
@@ -249,8 +252,11 @@ The `data/` directory is gitignored but required for processing. Create it with:
 # Create main data directories
 mkdir -p data/{step1_input,step1_output,step2_output,step3_output}
 
-# Create vendor-specific input folders
+# Create vendor-specific input folders (flat structure)
 mkdir -p data/step1_input/{COSTCO,RD,JEWEL,ALDI,MARIANOS,PARKTOSHOP,INSTACART,BBI,AMAZON}
+
+# Or use nested month-based structure
+mkdir -p data/step1_input/Receipts/{Oct,Nov,Dec}/{Amazon,costco,RD,instacart,others}
 
 # Create output subdirectories (auto-created by script, but you can pre-create)
 mkdir -p data/step1_output/{localgrocery_based,instacart_based,bbi_based,amazon_based}
@@ -261,19 +267,26 @@ mkdir -p data/step1_output/{localgrocery_based,instacart_based,bbi_based,amazon_
 ```
 data/                              # ← GITIGNORED (sensitive receipts & outputs)
 ├── step1_input/                   # Input receipts
-│   ├── COSTCO/                   # Costco Excel files (.xlsx)
-│   ├── RD/                       # Restaurant Depot Excel files
-│   ├── JEWEL/                    # Jewel-Osco Excel files
-│   ├── ALDI/                     # Aldi Excel files
-│   ├── MARIANOS/                 # Mariano's Excel files
-│   ├── PARKTOSHOP/               # ParkToShop Excel files
+│   ├── COSTCO/                   # Costco PDF files
+│   ├── RD/                       # Restaurant Depot CSV files (CSV-only format)
+│   ├── JEWEL/                    # Jewel-Osco PDF files
+│   ├── ALDI/                     # Aldi PDF files
+│   ├── MARIANOS/                 # Mariano's PDF files
+│   ├── PARKTOSHOP/               # ParkToShop PDF files
 │   ├── INSTACART/                # Instacart PDFs + CSV baseline
 │   │   ├── *.pdf                # Individual receipt PDFs
 │   │   └── order_summary_report.csv  # CSV baseline (optional)
-│   ├── BBI/                      # BBI Wholesale Excel files
-│   └── AMAZON/                   # Amazon Business orders
-│       ├── orders_from_*.csv    # Monthly order CSV (authoritative)
-│       └── *.pdf                # Individual order PDFs (validation)
+│   ├── BBI/                      # BBI Wholesale Excel/PDF files
+│   ├── AMAZON/                   # Amazon Business orders
+│   │   ├── orders_from_*.csv    # Monthly order CSV (authoritative)
+│   │   └── *.pdf                # Individual order PDFs (validation)
+│   └── Receipts/                 # Alternative nested structure (month-based)
+│       └── Oct/                  # Month folder (e.g., Oct, Nov, Dec)
+│           ├── Amazon/           # Amazon orders (nested)
+│           ├── costco/           # Costco receipts (case-insensitive)
+│           ├── RD/               # Restaurant Depot CSV files
+│           ├── instacart/        # Instacart receipts
+│           └── others/           # Unknown/miscellaneous vendors
 │
 ├── step1_output/                  # Generated outputs (JSON + HTML + PDF)
 │   ├── report.html               # Combined report (all sources)
@@ -379,31 +392,60 @@ python -m step1_extract.main data/step1_input data/step1_output
 
 ### Input Directory Structure
 
+The system supports both flat and nested folder structures:
+
+**Flat Structure (Traditional):**
 ```
 data/step1_input/
-├── COSTCO/               # Local grocery - Costco Excel files
-│   ├── Costco_0907.xlsx
-│   └── Costco_0916.xlsx
-├── RD/                   # Local grocery - Restaurant Depot
-│   ├── RD_0902.xlsx
-│   └── RD_0922.xlsx
-├── JEWEL/                # Local grocery - Jewel-Osco
-│   └── Jewel-Osco_0903.xlsx
-├── ALDI/                 # Local grocery - Aldi
-│   └── aldi_0905.xlsx
-├── MARIANOS/             # Local grocery - Mariano's
-│   └── 0915_marianos.xlsx
-├── PARKTOSHOP/           # Local grocery - ParkToShop
-│   └── parktoshop_0908.xlsx
+├── COSTCO/               # Costco PDF files
+│   ├── Costco_0907.pdf
+│   └── Costco_0916.pdf
+├── RD/                   # Restaurant Depot CSV files (CSV-only format)
+│   ├── receipt-18851.csv
+│   └── receipt-22431.csv
+├── JEWEL/                # Jewel-Osco PDF files
+│   └── Jewel-Osco_0903.pdf
+├── ALDI/                 # Aldi PDF files
+│   └── aldi_0905.pdf
+├── MARIANOS/             # Mariano's PDF files
+│   └── 0915_marianos.pdf
+├── PARKTOSHOP/           # ParkToShop PDF files
+│   └── parktoshop_0908.pdf
 ├── INSTACART/            # Instacart PDFs + CSV baseline
 │   ├── *.pdf
 │   └── order_summary_report.csv
-├── BBI/                  # BBI Wholesale Excel files
+├── BBI/                  # BBI Wholesale Excel/PDF files
 │   └── BBI_Purchase_*.xlsx
 └── AMAZON/               # Amazon CSV + PDF validation
     ├── orders_from_*.csv
     └── *.pdf
 ```
+
+**Nested Structure (Month-based):**
+```
+data/step1_input/
+└── Receipts/             # Month-based organization
+    └── Oct/              # Month folder (Oct, Nov, Dec, etc.)
+        ├── Amazon/       # Amazon orders
+        │   ├── orders_from_*.csv
+        │   └── *.pdf
+        ├── costco/       # Costco (case-insensitive)
+        │   └── *.pdf
+        ├── RD/           # Restaurant Depot CSV files
+        │   └── receipt-*.csv
+        ├── instacart/    # Instacart receipts
+        │   ├── *.csv
+        │   └── receipt_management_*/  # Nested folders supported
+        │       └── *.pdf
+        └── others/       # Unknown/miscellaneous vendors
+            └── *.pdf
+```
+
+**Notes:**
+- **RD Format**: Restaurant Depot now uses CSV-only format (no PDFs needed)
+- **Case Sensitivity**: Folder names are case-insensitive (Amazon, amazon, AMAZON all work)
+- **Nested Folders**: System recursively searches for files, so nested structures are supported
+- **Unknown Vendors**: Files in `others/` folder will be processed but may need vendor detection rules
 
 ### Environment Variables (Optional)
 
@@ -679,6 +721,15 @@ keyword_rules:
 **Problem**: PDF generation fails  
 **Solution**: Install playwright: `pip install playwright && playwright install chromium`
 
+**Problem**: Unknown vendor not detected  
+**Solution**: 
+- Add vendor detection pattern to `step1_rules/10_vendor_detection.yaml`
+- Add vendor-specific parsing rules if needed
+- See `docs/UNKNOWN_VENDORS_TEST_RESULTS.md` for examples
+
+**Problem**: Files in nested folders not found  
+**Solution**: System supports nested folders (e.g., `Receipts/Oct/Amazon/`). Ensure files are in vendor-named folders or use `others/` for unknown vendors.
+
 ### Debug Commands
 
 ```bash
@@ -713,6 +764,8 @@ grep -r "category_l1" step1_rules/
 - `docs/AMAZON_IMPLEMENTATION_PLAN.md` - Amazon CSV-first processing
 - `docs/RD_ABBREVIATIONS_STRATEGY.md` - Restaurant Depot abbreviation handling
 - `docs/AMAZON_BBI_REPORTS.md` - Amazon & BBI reporting strategy
+- `docs/RECEIPTS_OCT_STRUCTURE_REVIEW.md` - Nested folder structure review
+- `docs/UNKNOWN_VENDORS_TEST_RESULTS.md` - Unknown vendor testing and handling guide
 
 ### Session Logs
 - `docs/CATEGORY_IMPROVEMENTS_SESSION.md` - Category system development log
