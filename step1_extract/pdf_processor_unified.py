@@ -235,6 +235,22 @@ class UnifiedPDFProcessor:
                 if date and 'transaction_date' not in receipt_data:
                     receipt_data['transaction_date'] = date
             
+            # Fallback: Extract vendor and date from filename if not found in content
+            if not receipt_data.get('vendor') or receipt_data.get('vendor') == 'UNKNOWN':
+                vendor_from_filename = self._extract_vendor_from_filename(file_path.name)
+                if vendor_from_filename:
+                    receipt_data['vendor'] = vendor_from_filename
+                    receipt_data['vendor_name'] = vendor_from_filename
+                    logger.info(f"Extracted vendor from filename: {vendor_from_filename}")
+            
+            # Fallback: Extract purchase date from filename if not found in content
+            if not receipt_data.get('transaction_date') and not receipt_data.get('purchase_date'):
+                date_from_filename = self._extract_date_from_filename(file_path.name)
+                if date_from_filename:
+                    receipt_data['transaction_date'] = date_from_filename
+                    receipt_data['purchase_date'] = date_from_filename
+                    logger.info(f"Extracted purchase date from filename: {date_from_filename}")
+            
             # Apply date hierarchy to normalize transaction_date from all available date fields
             # This ensures all receipts have a consistent transaction_date field
             try:
@@ -308,6 +324,10 @@ class UnifiedPDFProcessor:
             'WISMETTAC': '31_wismettac_pdf.yaml',
             'ODOO': '32_odoo_pdf.yaml',
             'BBI': '33_bbi_pdf.yaml',
+            'DUVERGER': '34_duverger_pdf.yaml',
+            'FOODSERVICEDIRECT': '35_foodservicedirect_pdf.yaml',
+            'PIKE_GLOBAL_FOODS': '36_pike_global_foods_pdf.yaml',
+            '88': '37_88_pdf.yaml',
         }
         
         yaml_file = vendor_file_map.get(vendor_code.upper())
@@ -845,6 +865,9 @@ class UnifiedPDFProcessor:
         items = []
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         
+        # Clean zero-width spaces and other invisible characters (common in PDFs)
+        lines = [line.replace('\u200b', '').replace('\u200c', '').replace('\u200d', '').replace('\ufeff', '') for line in lines]
+        
         # Pre-process OCR text for Wismettac (clean OCR errors)
         vendor_name = rules.get('vendor_name', '').upper()
         if 'WISMETTAC' in vendor_name:
@@ -1020,6 +1043,135 @@ class UnifiedPDFProcessor:
                                 item['raw_line'] = line
                         
                         if item:
+                            # Handle product name from previous lines (before item line)
+                            if pattern_def.get('multiline_product_name') and pattern_def.get('product_name_lines_before'):
+                                # Extract product name from lines before current line
+                                max_lines_back = pattern_def.get('product_name_lines_before', 3)
+                                product_lines = []
+                                skip_keywords = [
+                                    r'^(Products|SKU|Price|Qty|Tax|Subtotal)',
+                                    r'^(Sold to|Ship to|Payment|Shipping Method)',
+                                    r'^(Invoice|Order|Additional Information)',
+                                    r'^\d{10,}',  # Long numbers (addresses, phone numbers)
+                                    r'^[A-Z\s]{30,}$',  # All caps long lines (addresses)
+                                    r'^\(.*\)$',  # Lines in parentheses
+                                    r'^Credit Card',
+                                    r'^Multiple Shipping',
+                                ]
+                                
+                                # Search backward from current line, but stop at first product name match
+                                # (don't collect multiple product names - use the closest one)
+                                start_idx = max(0, line_idx - max_lines_back)
+                                for i in range(line_idx - 1, start_idx - 1, -1):
+                                    if i < 0:
+                                        break
+                                    prev_line = lines[i].strip()
+                                    
+                                    if not prev_line:
+                                        continue
+                                    
+                                    # Check if line should be skipped
+                                    should_skip = False
+                                    for skip_pat in skip_keywords:
+                                        if re.match(skip_pat, prev_line, re.IGNORECASE):
+                                            should_skip = True
+                                            break
+                                    
+                                    # Also skip if it looks like a price/SKU line
+                                    if re.match(r'^\d{8,}\s+\$', prev_line) or re.match(r'^\$\d+\.\d{2}', prev_line):
+                                        should_skip = True
+                                    
+                                    # Skip Chinese characters (for 88 vendor)
+                                    if re.match(r'^[\u4e00-\u9fff]+', prev_line):
+                                        should_skip = True
+                                    
+                                    # Skip lines that are just numbers or phone numbers
+                                    if re.match(r'^\d{10,}$', prev_line):
+                                        should_skip = True
+                                    
+                                    # Skip quantity @ price lines (we're looking for product names)
+                                    if re.match(r'^\d+\s*@\s*\$', prev_line):
+                                        should_skip = True
+                                    
+                                    # Skip total price lines (F $XX.XX)
+                                    if re.match(r'^\*?F\s+\$', prev_line):
+                                        should_skip = True
+                                    
+                                    if not should_skip:
+                                        # Check if this looks like a product name (all caps, contains product keywords)
+                                        if re.match(r'^[A-Z][A-Z\s\-]+(?:LB|OZ|EA|POTATO|PANCAK|ONION|BASIL|POWDER|STABILIZER)', prev_line):
+                                            # Found a product name - use this one and stop
+                                            product_lines.insert(0, prev_line)
+                                            logger.debug(f"Found product name line {i+1}: '{prev_line}'")
+                                            break
+                                        # Also add other text lines that might be product names
+                                        elif len(prev_line) > 3 and not re.match(r'^\d', prev_line) and not re.match(r'^\$', prev_line):
+                                            product_lines.insert(0, prev_line)
+                                            logger.debug(f"Found potential product name line {i+1}: '{prev_line}'")
+                                            # Stop after finding first non-skipped line (closest product name)
+                                            break
+                                
+                                if product_lines:
+                                    product_name = ' '.join(product_lines).strip()
+                                    item['product_name'] = product_name
+                                    logger.debug(f"Extracted product name from previous lines: '{product_name}'")
+                            
+                            # Extract total price from following lines if specified
+                            if pattern_def.get('total_price_from_next_lines') and not item.get('total_price'):
+                                next_lines_regex = pattern_def.get('next_lines_regex', '')
+                                next_lines_max = pattern_def.get('next_lines_max', 5)
+                                if next_lines_regex:
+                                    # Calculate expected total from quantity * unit_price if available
+                                    expected_total = None
+                                    if 'quantity' in item and 'unit_price' in item and item.get('quantity') and item.get('unit_price'):
+                                        expected_total = float(item['quantity']) * float(item['unit_price'])
+                                    
+                                    # Look for total price, prefer one that matches expected total
+                                    best_match = None
+                                    best_match_idx = None
+                                    total_price_line_consumed = 0
+                                    for j in range(line_idx + 1, min(line_idx + 1 + next_lines_max, len(lines), summary_start)):
+                                        next_line = lines[j].strip()
+                                        total_match = re.match(next_lines_regex, next_line)
+                                        if total_match:
+                                            total_price = float(total_match.group(1))
+                                            
+                                            # If we have expected total, prefer exact match or closest
+                                            if expected_total:
+                                                # Allow 15% tolerance for discounts
+                                                if abs(total_price - expected_total) < max(0.10, expected_total * 0.15):
+                                                    item['total_price'] = total_price
+                                                    total_price_line_consumed = j - line_idx  # Only consume up to the matched line
+                                                    logger.debug(f"Extracted total price from line {j+1}: ${total_price:.2f} (matches expected ${expected_total:.2f})")
+                                                    break
+                                                elif best_match is None or abs(total_price - expected_total) < abs(best_match - expected_total):
+                                                    best_match = total_price
+                                                    best_match_idx = j
+                                            else:
+                                                # No expected total, use first match but don't consume too many lines
+                                                item['total_price'] = total_price
+                                                total_price_line_consumed = min(j - line_idx, 3)  # Limit consumption
+                                                logger.debug(f"Extracted total price from line {j+1}: ${total_price:.2f}")
+                                                break
+                                    
+                                    # If no exact match but we found a best match, use it
+                                    if not item.get('total_price') and best_match is not None:
+                                        item['total_price'] = best_match
+                                        total_price_line_consumed = min(best_match_idx - line_idx, 3)  # Limit consumption
+                                        logger.debug(f"Extracted total price from line {best_match_idx+1}: ${best_match:.2f} (closest to expected ${expected_total:.2f})")
+                                    
+                                    # If still no total price but we have qty and unit_price, calculate it
+                                    if not item.get('total_price') and 'quantity' in item and 'unit_price' in item:
+                                        if item.get('quantity') and item.get('unit_price'):
+                                            calculated_total = float(item['quantity']) * float(item['unit_price'])
+                                            item['total_price'] = calculated_total
+                                            logger.debug(f"Calculated total price: {item['quantity']} * ${item['unit_price']:.2f} = ${calculated_total:.2f}")
+                                    
+                                    # Update consumed_lines to limit how many lines we skip
+                                    # Don't consume more than 3 lines ahead (to avoid skipping next item)
+                                    if total_price_line_consumed > 0:
+                                        consumed_lines = max(consumed_lines, min(total_price_line_consumed, 3))
+                            
                             # Handle multiline continuation (product name on following lines)
                             if pattern_def.get('multiline_continuation'):
                                 product_name, name_lines_consumed = self._extract_multiline_product_name(
@@ -2353,6 +2505,75 @@ class UnifiedPDFProcessor:
                 continue
         
         return extracted_metadata
+    
+    def _extract_vendor_from_filename(self, filename: str) -> Optional[str]:
+        """Extract vendor name from filename"""
+        from pathlib import Path
+        
+        base = Path(filename).stem
+        
+        # Pattern 1: Vendor_Date or Vendor-Date
+        match = re.match(r'^([A-Za-z][A-Za-z\s\-]+?)[_-]\d', base)
+        if match:
+            vendor = match.group(1).strip()
+            vendor = vendor.replace('_', ' ').replace('-', ' ')
+            words = vendor.split()
+            normalized = []
+            for word in words:
+                if word.isupper() and len(word) <= 5:
+                    normalized.append(word)
+                else:
+                    normalized.append(word.title())
+            return ' '.join(normalized)
+        
+        # Pattern 2: Vendor - Date (with spaces)
+        match = re.match(r'^(.+?)\s+-\s+\d', base)
+        if match:
+            vendor = match.group(1).strip()
+            return vendor
+        
+        return None
+    
+    def _extract_date_from_filename(self, filename: str) -> Optional[str]:
+        """Extract purchase date from filename"""
+        from datetime import datetime
+        from pathlib import Path
+        
+        base = Path(filename).stem
+        
+        # Pattern 1: YYYYMMDD format
+        match = re.search(r'(\d{4})(\d{2})(\d{2})', base)
+        if match:
+            year, month, day = match.groups()
+            try:
+                date_obj = datetime(int(year), int(month), int(day))
+                return date_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        # Pattern 2: MMDD format (assume current year)
+        match = re.search(r'[_-](\d{2})(\d{2})(?!\d)', base)
+        if match:
+            month, day = match.groups()
+            try:
+                year = 2025
+                date_obj = datetime(year, int(month), int(day))
+                return date_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        # Pattern 3: MMDD at end of filename
+        match = re.search(r'(\d{2})(\d{2})$', base)
+        if match:
+            month, day = match.groups()
+            try:
+                year = 2025
+                date_obj = datetime(year, int(month), int(day))
+                return date_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        return None
     
     def _extract_items_sold(self, text: str, rules: Dict[str, Any]) -> Optional[int]:
         """Extract items sold count from text (pattern from YAML)"""

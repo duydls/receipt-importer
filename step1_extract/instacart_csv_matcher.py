@@ -57,10 +57,12 @@ class InstacartCSVMatcher:
             if csv_sources:
                 self.csv_file_names = csv_sources
             else:
-                # Final fallback to hardcoded defaults
+                # Final fallback to hardcoded defaults (include common variations)
                 self.csv_file_names = [
                     'order_item_summary_report.csv',
-                    'order_summary_report 3.csv'
+                    'order_summary_report 3.csv',
+                    'order_summary_report.csv',
+                    'instacart_order_item_summary_report_*.csv',  # Pattern for month-based files
                 ]
         
         # Load column name mappings from 25_instacart_csv.yaml
@@ -176,14 +178,44 @@ class InstacartCSVMatcher:
             return
         
         # Find CSV files using configurable file names from rules
+        # First check in receipt_folder, then search parent folders if not found
         csv_files = []
-        for csv_file_name in self.csv_file_names:
-            csv_path = self.receipt_folder / csv_file_name
-            if csv_path.exists():
-                csv_files.append(csv_path)
+        search_folder = self.receipt_folder
+        
+        # Search current folder and parent folders (up to 3 levels) for CSV files
+        max_depth = 3
+        depth = 0
+        while depth < max_depth and not csv_files:
+            # Check exact file names first
+            for csv_file_name in self.csv_file_names:
+                # Handle glob patterns (e.g., 'instacart_order_item_summary_report_*.csv')
+                if '*' in csv_file_name:
+                    pattern_csvs = list(search_folder.glob(csv_file_name))
+                    if pattern_csvs:
+                        csv_files.extend(pattern_csvs)
+                else:
+                    csv_path = search_folder / csv_file_name
+                    if csv_path.exists():
+                        csv_files.append(csv_path)
+            
+            # Also check for any CSV files matching common patterns (if exact names not found)
+            if not csv_files:
+                pattern_csvs = list(search_folder.glob('*order*summary*.csv')) + list(search_folder.glob('*instacart*.csv'))
+                if pattern_csvs:
+                    csv_files.extend(pattern_csvs)
+            
+            # If found CSV files or reached instacart folder, stop searching
+            if csv_files or 'instacart' in search_folder.name.lower():
+                break
+            
+            # Move to parent folder
+            if search_folder.parent == search_folder:  # Reached root
+                break
+            search_folder = search_folder.parent
+            depth += 1
         
         if not csv_files:
-            logger.warning(f"Instacart CSV files not found in: {self.receipt_folder}. Looking for: {self.csv_file_names}")
+            logger.warning(f"Instacart CSV files not found in: {self.receipt_folder} or parent folders. Looking for: {self.csv_file_names}")
             self.csv_available = False
             self.csv_data_cache = []
             return

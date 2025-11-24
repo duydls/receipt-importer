@@ -74,8 +74,35 @@ class PDFProcessor:
         # Use legacy processor's CSV-first approach (it has all the CSV logic)
         # But mark it as modern if CSV is successfully used
         try:
+            # Find receipt folder - search parent folders for CSV files (handles nested folder structure)
             receipt_folder = file_path.parent
             order_id = self._legacy_processor._extract_order_id_from_filename(file_path.name)
+            
+            # If CSV files are not in immediate folder, search parent folders
+            # Look for instacart folder that contains CSV files
+            current_folder = receipt_folder
+            max_depth = 3  # Limit search depth
+            depth = 0
+            found_csv_folder = None
+            
+            while depth < max_depth and current_folder != self.input_dir and current_folder.parent != current_folder:
+                # Check if this folder contains instacart CSV files
+                csv_files = list(current_folder.glob('*order*summary*.csv')) + list(current_folder.glob('*instacart*.csv'))
+                if csv_files:
+                    found_csv_folder = current_folder
+                    logger.debug(f"Found Instacart CSV files in parent folder: {found_csv_folder}")
+                    break
+                # Check if folder name contains 'instacart' (likely the right folder)
+                if 'instacart' in current_folder.name.lower():
+                    found_csv_folder = current_folder
+                    logger.debug(f"Found instacart folder: {found_csv_folder}")
+                    break
+                current_folder = current_folder.parent
+                depth += 1
+            
+            # Use found folder if available, otherwise use original parent
+            if found_csv_folder:
+                receipt_folder = found_csv_folder
             
             if order_id and self._legacy_processor.csv_processor:
                 # Use legacy processor's CSV logic (which has all the CSV extraction built in)
@@ -139,9 +166,13 @@ class PDFProcessor:
                     uom_extractor = UoMExtractor(self.rule_loader)
                     csv_data['items'] = uom_extractor.extract_uom_from_items(csv_data['items'])
                     
-                    # Add parsed_by to all items
+                    # Add parsed_by and csv_source flag to all items
                     for item in csv_data['items']:
                         item['parsed_by'] = 'instacart_pdf_v1'
+                        # csv_source flag is already set by csv_processor._extract_item_from_csv_row
+                        # but ensure it's set here as well for clarity
+                        if 'csv_source' not in item:
+                            item['csv_source'] = True
                     
                     logger.info(f"Processed {file_path.name} using modern CSV-first approach for {vendor_code}")
                     return csv_data
@@ -231,8 +262,29 @@ class PDFProcessor:
         try:
             from .instacart_csv_matcher import InstacartCSVMatcher
             
+            # Find receipt folder - check current folder and parent folders for CSV files
             receipt_folder = file_path.parent
             order_id = receipt_data.get('order_id')
+            
+            # If CSV files are not in immediate folder, search parent folders
+            # Look for instacart folder that contains CSV files
+            current_folder = receipt_folder
+            max_depth = 3  # Limit search depth
+            depth = 0
+            while depth < max_depth and current_folder != self.input_dir and current_folder.parent != current_folder:
+                # Check if this folder contains instacart CSV files
+                csv_files = list(current_folder.glob('*order*summary*.csv')) + list(current_folder.glob('*instacart*.csv'))
+                if csv_files:
+                    receipt_folder = current_folder
+                    logger.debug(f"Found Instacart CSV files in parent folder: {receipt_folder}")
+                    break
+                # Check if folder name contains 'instacart' (likely the right folder)
+                if 'instacart' in current_folder.name.lower():
+                    receipt_folder = current_folder
+                    logger.debug(f"Found instacart folder: {receipt_folder}")
+                    break
+                current_folder = current_folder.parent
+                depth += 1
             
             # Load Instacart CSV matching rules
             instacart_rules = {}

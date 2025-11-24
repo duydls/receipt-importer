@@ -204,29 +204,48 @@ class RDCSVProcessor:
                 if description.upper() in ['PREVIOUS BALANCE', 'SUBTOTAL', 'TOTAL', 'TAX']:
                     continue
                 
-                # Parse quantity (use Unit Qty if available, otherwise Case Qty)
+                # Parse quantity - handle both Unit Qty and Case Qty
+                # If both are present: quantity = Case Qty × Unit Qty
+                # Example: 1 case × 10 units = 10 units total
+                # If only one is present, use that value
                 # Default to 1.0 if no quantity specified
-                quantity = 1.0
+                unit_qty = 0.0
+                case_qty = 0.0
+                
+                # Extract Unit Qty
                 if unit_qty_idx is not None and unit_qty_idx < len(row):
                     try:
                         qty_str = str(row[unit_qty_idx]).strip()
                         if qty_str and qty_str != '':
-                            qty_val = float(qty_str)
-                            if qty_val > 0:
-                                quantity = qty_val
+                            unit_qty = float(qty_str)
                     except (ValueError, IndexError):
                         pass
                 
-                # If Unit Qty is 0 or missing, try Case Qty
-                if quantity == 1.0 and case_qty_idx is not None and case_qty_idx < len(row):
+                # Extract Case Qty
+                if case_qty_idx is not None and case_qty_idx < len(row):
                     try:
                         qty_str = str(row[case_qty_idx]).strip()
                         if qty_str and qty_str != '':
-                            qty_val = float(qty_str)
-                            if qty_val > 0:
-                                quantity = qty_val
+                            case_qty = float(qty_str)
                     except (ValueError, IndexError):
                         pass
+                
+                # Calculate total quantity
+                # If both are present and > 0: multiply them (e.g., 1 case × 10 units = 10 units)
+                # If only one is present: use that value
+                # If both are 0 or missing: default to 1.0
+                if case_qty > 0 and unit_qty > 0:
+                    # Both present: multiply (e.g., 1 case × 10 boxes = 10 boxes)
+                    quantity = case_qty * unit_qty
+                elif case_qty > 0:
+                    # Only Case Qty present
+                    quantity = case_qty
+                elif unit_qty > 0:
+                    # Only Unit Qty present
+                    quantity = unit_qty
+                else:
+                    # Neither present: default to 1.0
+                    quantity = 1.0
                 
                 # Parse price (remove $ and commas)
                 price_str_clean = price_str.replace('$', '').replace(',', '').strip()
@@ -256,36 +275,69 @@ class RDCSVProcessor:
                     'purchase_uom': 'each',  # Default, will be extracted from Size/Spec or description if available
                 }
                 
+                # Store both Unit Qty and Case Qty for reference and UoM calculation
+                if unit_qty > 0:
+                    item['unit_qty'] = unit_qty
+                if case_qty > 0:
+                    item['case_qty'] = case_qty
+                if case_qty > 0 and unit_qty > 0:
+                    item['quantity_calculation'] = f"{case_qty} case × {unit_qty} unit = {quantity} units"
+                
+                # Extract UoM and unit size from Size/Spec or description
+                # Priority: Size/Spec column > Description
+                # Pattern: Extract size and unit (e.g., "100CT", "100-ct", "7LB", "1-Gal")
+                unit_size = None
+                unit_uom = None
+                
                 # First, try to extract from Size/Spec column if available
                 if size_spec:
                     item['size_spec'] = size_spec
-                    # Try to extract UoM from Size/Spec
-                    uom_match = re.search(r'(\d+(?:/\d+)?)\s*(LB|LBS|OZ|CT|EACH|EA)', size_spec, re.IGNORECASE)
+                    # Try to extract UoM from Size/Spec (e.g., "100CT", "100-ct", "7LB")
+                    uom_match = re.search(r'(\d+(?:\.\d+)?)\s*[-]?\s*(LB|LBS|OZ|CT|EACH|EA|GAL)', size_spec, re.IGNORECASE)
                     if uom_match:
-                        size = uom_match.group(1)
+                        unit_size = float(uom_match.group(1))
                         unit = uom_match.group(2).lower()
                         if unit in ['lb', 'lbs']:
-                            item['purchase_uom'] = 'lb'
+                            unit_uom = 'lb'
+                            item['purchase_uom'] = f"{int(unit_size)}-lb" if unit_size == int(unit_size) else f"{unit_size}-lb"
                         elif unit in ['oz', 'ozs']:
-                            item['purchase_uom'] = 'oz'
+                            unit_uom = 'oz'
+                            item['purchase_uom'] = f"{int(unit_size)}-oz" if unit_size == int(unit_size) else f"{unit_size}-oz"
                         elif unit in ['ct', 'each', 'ea']:
-                            item['purchase_uom'] = 'ct'
+                            unit_uom = 'ct'
+                            item['purchase_uom'] = f"{int(unit_size)}-pc" if unit_size == int(unit_size) else f"{unit_size}-pc"
+                        elif unit == 'gal':
+                            unit_uom = 'gal'
+                            item['purchase_uom'] = f"{int(unit_size)}-gal" if unit_size == int(unit_size) else f"{unit_size}-gal"
                 
-                # If Size/Spec not available, extract UoM from description if present (e.g., "10LB", "6/5LB")
-                if not item.get('size_spec'):
-                    uom_match = re.search(r'(\d+(?:/\d+)?)\s*(LB|LBS|OZ|CT|EACH|EA)', description, re.IGNORECASE)
+                # If Size/Spec not available, extract UoM from description if present (e.g., "100CT", "7LB", "1-Gal")
+                if not unit_size and not unit_uom:
+                    uom_match = re.search(r'(\d+(?:\.\d+)?)\s*[-]?\s*(LB|LBS|OZ|CT|EACH|EA|GAL)', description, re.IGNORECASE)
                     if uom_match:
-                        size = uom_match.group(1)
+                        unit_size = float(uom_match.group(1))
                         unit = uom_match.group(2).lower()
                         if unit in ['lb', 'lbs']:
-                            item['purchase_uom'] = 'lb'
-                            item['size_spec'] = f"{size} lb"
+                            unit_uom = 'lb'
+                            item['purchase_uom'] = f"{int(unit_size)}-lb" if unit_size == int(unit_size) else f"{unit_size}-lb"
+                            item['size_spec'] = f"{unit_size} lb"
                         elif unit in ['oz', 'ozs']:
-                            item['purchase_uom'] = 'oz'
-                            item['size_spec'] = f"{size} oz"
+                            unit_uom = 'oz'
+                            item['purchase_uom'] = f"{int(unit_size)}-oz" if unit_size == int(unit_size) else f"{unit_size}-oz"
+                            item['size_spec'] = f"{unit_size} oz"
                         elif unit in ['ct', 'each', 'ea']:
-                            item['purchase_uom'] = 'ct'
-                            item['size_spec'] = f"{size} ct"
+                            unit_uom = 'ct'
+                            item['purchase_uom'] = f"{int(unit_size)}-pc" if unit_size == int(unit_size) else f"{unit_size}-pc"
+                            item['size_spec'] = f"{unit_size} ct"
+                        elif unit == 'gal':
+                            unit_uom = 'gal'
+                            item['purchase_uom'] = f"{int(unit_size)}-gal" if unit_size == int(unit_size) else f"{unit_size}-gal"
+                            item['size_spec'] = f"{unit_size} gal"
+                
+                # Store unit_size and unit_uom for reference
+                if unit_size:
+                    item['unit_size'] = unit_size
+                if unit_uom:
+                    item['unit_uom'] = unit_uom
                 
                 receipt_data['items'].append(item)
                 receipt_data['subtotal'] += total_price
@@ -375,6 +427,41 @@ class RDCSVProcessor:
                     item['kb_size'] = kb_spec
                     item['kb_source'] = 'knowledge_base'
                     logger.debug(f"RD KB: {item.get('product_name', 'Unknown')} ({item_number}): size={kb_spec}")
+                    
+                    # If we have Case Qty but no Unit Qty, try to extract case quantity from KB spec
+                    # Example: "2 × 1-Gal" means 1 case = 2 units
+                    case_qty = item.get('case_qty', 0)
+                    unit_qty = item.get('unit_qty', 0)
+                    
+                    if case_qty > 0 and unit_qty == 0:
+                        # Try to extract case quantity from KB spec (e.g., "2 × 1-Gal", "2x 1-Gal", "2/1-Gal")
+                        case_qty_match = re.search(r'(\d+)\s*[×x/\-]\s*\d+', kb_spec, re.IGNORECASE)
+                        if case_qty_match:
+                            kb_case_qty = int(case_qty_match.group(1))
+                            # Update quantity: case_qty × kb_case_qty
+                            new_quantity = case_qty * kb_case_qty
+                            item['quantity'] = new_quantity
+                            item['unit_qty'] = kb_case_qty  # Store KB case quantity as unit_qty
+                            item['quantity_calculation'] = f"{case_qty} case × {kb_case_qty} unit (from KB) = {new_quantity} units"
+                            # Recalculate unit_price when quantity changes
+                            if new_quantity > 0 and item.get('total_price'):
+                                item['unit_price'] = round(item['total_price'] / new_quantity, 4)
+                                logger.debug(f"RD KB: Recalculated unit_price: ${item['total_price']:.2f} / {new_quantity} = ${item['unit_price']:.4f}")
+                            logger.debug(f"RD KB: Updated quantity from KB: {case_qty} case × {kb_case_qty} = {new_quantity}")
+                            
+                            # Also extract UoM from KB spec if available
+                            uom_match = re.search(r'\d+\s*[×x/\-]\s*(\d+(?:\.\d+)?)\s*[-]?\s*(LB|LBS|OZ|CT|EACH|EA|GAL)', kb_spec, re.IGNORECASE)
+                            if uom_match:
+                                unit_size = float(uom_match.group(1))
+                                unit = uom_match.group(2).lower()
+                                if unit in ['ct', 'each', 'ea']:
+                                    item['purchase_uom'] = f"{int(unit_size)}-pc" if unit_size == int(unit_size) else f"{unit_size}-pc"
+                                    item['unit_size'] = unit_size
+                                    item['unit_uom'] = 'pc'
+                                elif unit == 'gal':
+                                    item['purchase_uom'] = f"{int(unit_size)}-gal" if unit_size == int(unit_size) else f"{unit_size}-gal"
+                                    item['unit_size'] = unit_size
+                                    item['unit_uom'] = 'gal'
                 
                 # Optionally verify the name matches (for QA purposes)
                 if kb_name and kb_name.upper() != item.get('product_name', '').upper():

@@ -155,22 +155,45 @@ class CSVProcessor:
     
     def find_csv_files(self, receipt_folder: Path) -> Dict[str, Path]:
         """
-        Find CSV files in receipt folder
+        Find CSV files in receipt folder (searches parent folders for nested structures)
         
         Returns:
             Dictionary mapping CSV types to file paths
         """
         csv_files = {}
         
-        # Look for order_item_summary_report.csv
-        item_csv = receipt_folder / 'order_item_summary_report.csv'
-        if item_csv.exists():
-            csv_files['items'] = item_csv
+        # Search current folder and parent folders (up to 3 levels) for CSV files
+        # This handles nested folder structures like Receipts/Oct/instacart/receipt_management_.../
+        search_folder = receipt_folder
+        max_depth = 3
+        depth = 0
         
-        # Look for order_summary_report*.csv
-        summary_csv = list(receipt_folder.glob('order_summary_report*.csv'))
-        if summary_csv:
-            csv_files['summary'] = summary_csv[0]
+        while depth < max_depth and not csv_files:
+            # Look for order_item_summary_report.csv or instacart_order_item_summary_report*.csv
+            item_csv = search_folder / 'order_item_summary_report.csv'
+            if item_csv.exists():
+                csv_files['items'] = item_csv
+            
+            # Also check for instacart_order_item_summary_report_*.csv pattern
+            if 'items' not in csv_files:
+                instacart_item_csvs = list(search_folder.glob('instacart_order_item_summary_report*.csv'))
+                if instacart_item_csvs:
+                    csv_files['items'] = instacart_item_csvs[0]
+            
+            # Look for order_summary_report*.csv
+            summary_csv = list(search_folder.glob('order_summary_report*.csv'))
+            if summary_csv:
+                csv_files['summary'] = summary_csv[0]
+            
+            # If found CSV files or reached instacart folder, stop searching
+            if csv_files or 'instacart' in search_folder.name.lower():
+                break
+            
+            # Move to parent folder
+            if search_folder.parent == search_folder:  # Reached root
+                break
+            search_folder = search_folder.parent
+            depth += 1
         
         return csv_files
     
@@ -491,6 +514,8 @@ class CSVProcessor:
                 row.get('L2 Category Name', '').strip(),
                 row.get('Product Category Name', '').strip(),
             ])).lower(),
+            # Flag to indicate this item came directly from CSV (not matched from PDF)
+            'csv_source': True,
         }
         
         # Merge any extra fields from size parsing (like count_per_package)

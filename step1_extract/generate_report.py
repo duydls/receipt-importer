@@ -37,6 +37,194 @@ def _normalize_uom(uom: str) -> str:
     return uom_lower
 
 
+def _normalize_uom_to_odoo(extracted_uom: str, odoo_uoms: List[str] = None, unit_size: float = None) -> tuple:
+    """
+    Normalize extracted UoM to match Odoo database UoM, considering both size and UoM.
+    Returns (normalized_uom, display_uom) tuple.
+    If odoo_uoms is provided, ensures the normalized UoM exists in Odoo database.
+    
+    Args:
+        extracted_uom: The extracted UoM string (e.g., "pc", "lb", "50-pc", "2.5-lb")
+        odoo_uoms: List of available Odoo UoM names
+        unit_size: Optional size value (e.g., 50, 2.5) to help match size-specific UoMs
+    """
+    if not extracted_uom:
+        return None, None
+    
+    # Load Odoo UoMs if not provided
+    if odoo_uoms is None:
+        try:
+            import json
+            from pathlib import Path
+            uoms_file = Path('data/odoo_uoms_flat.json')
+            if uoms_file.exists():
+                with open(uoms_file, 'r', encoding='utf-8') as f:
+                    uoms_data = json.load(f)
+                    odoo_uoms = [uom.get('uom_name', '') for uom in uoms_data if uom.get('uom_name')]
+            else:
+                odoo_uoms = []
+        except Exception:
+            odoo_uoms = []
+    
+    extracted_lower = extracted_uom.lower().strip()
+    
+    # Handle "dozen" -> "Dozens"
+    if extracted_lower == 'dozen' or extracted_lower == 'dozens':
+        for uom_name in odoo_uoms:
+            if uom_name.lower() == 'dozens':
+                return uom_name, uom_name
+        # Fallback to "13-pc" (common dozen equivalent)
+        for uom_name in odoo_uoms:
+            if uom_name.lower() == '13-pc':
+                return uom_name, uom_name
+        return 'Dozens', 'Dozens'
+    
+    # Handle patterns like "X-pc", "X-lb", "X-pounds"
+    import re
+    match = re.match(r'(\d+(?:\.\d+)?)\s*-\s*(pc|lb|pound|pounds)', extracted_lower)
+    if match:
+        number = match.group(1)
+        unit = match.group(2)
+        
+        # Normalize unit
+        if unit in ['pound', 'pounds']:
+            unit = 'lb'
+        
+        # Format as "X-pc" or "X-lb"
+        formatted = f"{number}-{unit}"
+        
+        # Check if exact match exists
+        for uom_name in odoo_uoms:
+            if uom_name.lower() == formatted.lower():
+                return uom_name, uom_name
+        
+        # If not exact match, find closest
+        if unit == 'pc':
+            # Try exact number
+            for uom_name in odoo_uoms:
+                if uom_name.lower().startswith(f"{number}-pc"):
+                    return uom_name, uom_name
+            # Try without decimal
+            try:
+                num_int = int(float(number))
+                for uom_name in odoo_uoms:
+                    if uom_name.lower().startswith(f"{num_int}-pc"):
+                        return uom_name, uom_name
+            except ValueError:
+                pass
+            # Fallback to "Units"
+            for uom_name in odoo_uoms:
+                if uom_name.lower() == 'units':
+                    return uom_name, uom_name
+            return 'Units', 'Units'
+        
+        if unit == 'lb':
+            # Try exact number
+            for uom_name in odoo_uoms:
+                if uom_name.lower().startswith(f"{number}-lb"):
+                    return uom_name, uom_name
+            # Try without decimal
+            try:
+                num_int = int(float(number))
+                for uom_name in odoo_uoms:
+                    if uom_name.lower().startswith(f"{num_int}-lb"):
+                        return uom_name, uom_name
+            except ValueError:
+                pass
+            # Fallback to "lb"
+            for uom_name in odoo_uoms:
+                if uom_name.lower() == 'lb':
+                    return uom_name, uom_name
+            return 'lb', 'lb'
+    
+    # If we have unit_size, try to match size-specific UoMs
+    # This handles cases where UoM is "pc" or "lb" but size is available (e.g., size=50, uom=pc → "50-pc")
+    if unit_size is not None:
+        # Extract base unit from extracted_uom
+        base_unit = None
+        if 'pc' in extracted_lower or 'piece' in extracted_lower or 'each' in extracted_lower or 'unit' in extracted_lower:
+            base_unit = 'pc'
+        elif 'lb' in extracted_lower or 'pound' in extracted_lower:
+            base_unit = 'lb'
+        elif 'kg' in extracted_lower or 'kilogram' in extracted_lower:
+            base_unit = 'kg'
+        elif 'g' in extracted_lower or 'gram' in extracted_lower:
+            base_unit = 'g'
+        elif 'oz' in extracted_lower or 'ounce' in extracted_lower:
+            base_unit = 'oz'
+        elif 'gal' in extracted_lower or 'gallon' in extracted_lower:
+            base_unit = 'gal'
+        elif 'qt' in extracted_lower or 'quart' in extracted_lower:
+            base_unit = 'qt'
+        
+        if base_unit:
+            # Format as "X-unit" using unit_size
+            # Check if unit_size is an integer (handle both int and float)
+            if isinstance(unit_size, float) and unit_size.is_integer():
+                size_formatted = f"{int(unit_size)}-{base_unit}"
+            elif isinstance(unit_size, int):
+                size_formatted = f"{unit_size}-{base_unit}"
+            else:
+                size_formatted = f"{unit_size}-{base_unit}"
+            
+            # Check if exact match exists
+            for uom_name in odoo_uoms:
+                if uom_name.lower() == size_formatted.lower():
+                    return uom_name, uom_name
+            
+            # Try to find closest match by size
+            try:
+                size_float = float(unit_size)
+                size_int = int(size_float)
+                
+                # Find closest size match
+                best_match = None
+                best_diff = float('inf')
+                
+                for uom_name in odoo_uoms:
+                    uom_lower = uom_name.lower()
+                    # Extract size from UoM name (e.g., "50-pc" → 50)
+                    size_match = re.match(r'(\d+(?:\.\d+)?)\s*-\s*' + re.escape(base_unit), uom_lower)
+                    if size_match:
+                        uom_size = float(size_match.group(1))
+                        diff = abs(uom_size - size_float)
+                        if diff < best_diff:
+                            best_diff = diff
+                            best_match = uom_name
+                
+                # If we found a close match (within 10% difference), use it
+                if best_match and best_diff <= size_float * 0.1:
+                    return best_match, best_match
+                
+                # Otherwise, try integer match
+                for uom_name in odoo_uoms:
+                    if uom_name.lower().startswith(f"{size_int}-{base_unit}"):
+                        return uom_name, uom_name
+            except (ValueError, TypeError):
+                pass
+    
+    # Handle simple units
+    if extracted_lower in ['each', 'ea', 'pc', 'piece', 'pieces']:
+        for uom_name in odoo_uoms:
+            if uom_name.lower() == 'units':
+                return uom_name, uom_name
+        return 'Units', 'Units'
+    
+    if extracted_lower in ['lb', 'pound', 'pounds', 'lbs']:
+        for uom_name in odoo_uoms:
+            if uom_name.lower() == 'lb':
+                return uom_name, uom_name
+        return 'lb', 'lb'
+    
+    # Try direct match
+    for uom_name in odoo_uoms:
+        if uom_name.lower() == extracted_lower:
+            return uom_name, uom_name
+    
+    # Return original if no match found
+    return extracted_uom, extracted_uom
+
+
 def _num(v):
     """Convert value to number (int if integer, float otherwise)"""
     try:
@@ -62,10 +250,44 @@ def derive_display_fields(it: dict) -> dict:
             qty = int(round(q)) if abs(q - round(q)) < 1e-6 else q
     
     if pricing == "Pack":
-        size = (it.get("baseline_pack_size")
-                or (it.get("baseline_match") or {}).get("pack_size")
-                or (it.get("raw_uom_text") or "").strip()
-                or None)
+        # Prioritize purchase_uom if it comes from product_name (more accurate)
+        uom_source = it.get("uom_source", "")
+        purchase_uom = it.get("purchase_uom", "")
+        
+        # If purchase_uom is from product_name and is more specific than baseline, use it
+        if uom_source == "product_name" and purchase_uom:
+            # Extract numeric value from purchase_uom (e.g., "1000-pc" -> 1000)
+            import re
+            purchase_uom_match = re.search(r'(\d+(?:\.\d+)?)', purchase_uom)
+            baseline_pack_size = it.get("baseline_pack_size") or (it.get("baseline_match") or {}).get("pack_size") or ""
+            baseline_match = re.search(r'(\d+(?:\.\d+)?)', baseline_pack_size) if baseline_pack_size else None
+            
+            # Use purchase_uom if it's different from baseline (product name is more accurate)
+            if purchase_uom_match:
+                purchase_uom_num = float(purchase_uom_match.group(1))
+                baseline_num = float(baseline_match.group(1)) if baseline_match else 0
+                
+                # Use purchase_uom if it's different from baseline
+                if purchase_uom_num != baseline_num:
+                    size = purchase_uom
+                else:
+                    size = (baseline_pack_size
+                            or (it.get("baseline_match") or {}).get("pack_size")
+                            or purchase_uom
+                            or (it.get("raw_uom_text") or "").strip()
+                            or None)
+            else:
+                size = (baseline_pack_size
+                        or (it.get("baseline_match") or {}).get("pack_size")
+                        or purchase_uom
+                        or (it.get("raw_uom_text") or "").strip()
+                        or None)
+        else:
+            size = (it.get("baseline_pack_size")
+                    or (it.get("baseline_match") or {}).get("pack_size")
+                    or purchase_uom
+                    or (it.get("raw_uom_text") or "").strip()
+                    or None)
         uom = "pack"
     else:
         size = ((it.get("baseline_match") or {}).get("uom_raw")
@@ -224,7 +446,6 @@ def _get_category_badge_html(item: Dict) -> str:
     l2_name = item.get('l2_category_name')
     l1_cat = item.get('l1_category')
     l1_name = item.get('l1_category_name')
-    confidence = item.get('category_confidence', 0)
     needs_review = item.get('needs_category_review', False)
     
     if not l2_cat:
@@ -251,8 +472,6 @@ def _get_category_badge_html(item: Dict) -> str:
     if needs_review:
         review_badge = '<span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 5px;">⚠️ Review</span>'
     
-    confidence_display = f"{confidence:.0%}" if confidence else "N/A"
-    
     return f'''
         <div style="font-size: 0.85em; margin-top: 5px;">
             <span style="background: {l1_color}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 500; margin-right: 5px;">
@@ -260,9 +479,6 @@ def _get_category_badge_html(item: Dict) -> str:
             </span>
             <span style="background: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 4px; font-size: 0.9em;">
                 L2: {l2_cat} - {l2_name}
-            </span>
-            <span style="color: #6c757d; font-size: 0.85em; margin-left: 8px;">
-                Confidence: {confidence_display}
             </span>
             {review_badge}
         </div>
@@ -468,15 +684,6 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             border-radius: 3px;
             font-size: 0.8em;
             margin-right: 5px;
-        }}
-        .confidence-high {{
-            color: #27ae60;
-        }}
-        .confidence-medium {{
-            color: #f39c12;
-        }}
-        .confidence-low {{
-            color: #e74c3c;
         }}
         .receipt-total {{
             margin-top: 15px;
@@ -689,9 +896,16 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             
             # Use display_name or canonical_name or product_name for display (avoid blank rows)
             product_name = item.get('display_name') or item.get('canonical_name') or item.get('product_name') or '(unnamed)'
+            # Get standard_name (Odoo product name) if available
+            standard_name = item.get('standard_name', '')
             quantity = item.get('quantity', 0)
             # Use purchase_uom if available, otherwise fallback to raw_uom_text from Excel
-            purchase_uom = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
+            purchase_uom_raw = item.get('purchase_uom') or item.get('raw_uom_text') or 'unknown'
+            # Get unit_size to help match size-specific UoMs
+            unit_size = item.get('unit_size')
+            # Normalize UoM to Odoo database format, considering both size and UoM
+            purchase_uom_normalized, purchase_uom_display = _normalize_uom_to_odoo(purchase_uom_raw, unit_size=unit_size)
+            purchase_uom = purchase_uom_normalized or purchase_uom_raw
             unit_price = item.get('unit_price', 0)
             total_price = item.get('total_price', 0)
             
@@ -780,10 +994,6 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             if count_per_package:
                 unit_info_parts.append(f'<strong>Count:</strong> {count_per_package} per package')
             
-            if unit_confidence is not None:
-                confidence_pct = int(unit_confidence * 100)
-                confidence_class = 'confidence-high' if unit_confidence >= 0.8 else 'confidence-medium' if unit_confidence >= 0.5 else 'confidence-low'
-                unit_info_parts.append(f'<strong>Confidence:</strong> <span class="{confidence_class}">{confidence_pct}%</span>')
             
             if csv_linked:
                 unit_info_parts.append('<strong>Source:</strong> CSV')
@@ -815,7 +1025,11 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             # Format display values for template
             quantity_str = str(display_quantity) if display_quantity is not None else str(qty_float)
             size_str = str(display_size) if display_size else '—'
-            uom_str = str(display_uom) if display_uom else '—'
+            # Use normalized Odoo UoM if available, otherwise use display_uom
+            if purchase_uom_normalized and purchase_uom_normalized != purchase_uom_raw and purchase_uom_normalized != 'unknown':
+                uom_str = f"{purchase_uom_display} (from {purchase_uom_raw})"
+            else:
+                uom_str = str(display_uom) if display_uom else (purchase_uom_display or purchase_uom_raw or '—')
             
             # Get vendor-specific flags (vendor_code and upper_vendor already set above for BBI check)
             is_webstaurantstore = 'WEBSTAURANTSTORE' in upper_vendor
@@ -868,10 +1082,16 @@ def generate_html_report(extracted_data: Dict, output_path: Path) -> Path:
             if is_group1 and not item.get('has_codes', False):
                 missing_codes_badge = '<span style="background: #ffeeba; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; margin-left: 6px;">No UPC/Item#</span>'
 
+            # Add standard_name display if available
+            standard_name_display = ''
+            if standard_name and standard_name != product_name:
+                standard_name_display = f'<div style="color: #0066cc; font-size: 0.9em; margin-top: 4px; font-style: italic;">📋 Standard Name: {standard_name}</div>'
+
             html_content += f"""
                 <div class="item-row" style="{price_style if not price_match else ''}">
                     <div style="flex: 2;">
                         <div class="item-name">{product_name}{missing_codes_badge}{no_charge_badge}</div>
+                        {standard_name_display}
                         {unit_info_html}
                     </div>
                     <div class="item-details">
