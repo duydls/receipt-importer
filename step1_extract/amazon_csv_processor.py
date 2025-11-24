@@ -36,21 +36,69 @@ class AmazonCSVProcessor:
         """
         candidate_dirs = [
             input_dir / 'Receipts' / 'AMAZON',
+            input_dir / 'Receipts' / 'Amazon',  # Case-insensitive
+            input_dir / 'Receipts' / 'amazon',
             input_dir / 'AMAZON',
+            input_dir / 'Amazon',
+            input_dir / 'amazon',
         ]
         for amazon_dir in candidate_dirs:
             if not amazon_dir.exists():
                 continue
-            # Look for orders_from_*.csv pattern
+            # Look for orders_from_*.csv pattern (handle trailing spaces)
             csv_files = list(amazon_dir.glob('orders_from_*.csv'))
+            if not csv_files:
+                # Also check for files with trailing spaces
+                csv_files = [f for f in amazon_dir.glob('orders_from_*') if f.name.strip().endswith('.csv')]
             if csv_files:
                 logger.info(f"Found Amazon CSV: {csv_files[0]}")
                 return csv_files[0]
-            # Fallback: any CSV in AMAZON folder
+            # Fallback: any CSV in AMAZON folder (handle trailing spaces)
             csv_files = list(amazon_dir.glob('*.csv'))
+            if not csv_files:
+                csv_files = [f for f in amazon_dir.glob('*') if f.name.strip().endswith('.csv')]
             if csv_files:
                 logger.info(f"Found Amazon CSV (fallback): {csv_files[0]}")
                 return csv_files[0]
+        
+        # If not found, search recursively in month-based folders (e.g., Oct/Amazon, Nov/Amazon)
+        for month_dir in input_dir.iterdir():
+            if month_dir.is_dir():
+                amazon_month_dir = month_dir / 'Amazon'
+                if amazon_month_dir.exists():
+                    # Look for orders_from_*.csv pattern (handle trailing spaces)
+                    csv_files = list(amazon_month_dir.glob('orders_from_*.csv'))
+                    if not csv_files:
+                        csv_files = [f for f in amazon_month_dir.glob('orders_from_*') if f.name.strip().endswith('.csv')]
+                    if csv_files:
+                        logger.info(f"Found Amazon CSV in {month_dir.name}: {csv_files[0]}")
+                        return csv_files[0]
+                    # Fallback: any CSV (handle trailing spaces)
+                    csv_files = list(amazon_month_dir.glob('*.csv'))
+                    if not csv_files:
+                        csv_files = [f for f in amazon_month_dir.glob('*') if f.name.strip().endswith('.csv')]
+                    if csv_files:
+                        logger.info(f"Found Amazon CSV in {month_dir.name} (fallback): {csv_files[0]}")
+                        return csv_files[0]
+        
+        # If not found, search recursively in Receipts/*/Amazon folders (for month-based organization)
+        receipts_dir = input_dir / 'Receipts'
+        if receipts_dir.exists():
+            for month_dir in receipts_dir.iterdir():
+                if not month_dir.is_dir():
+                    continue
+                for amazon_dir_name in ['Amazon', 'AMAZON', 'amazon']:
+                    amazon_dir = month_dir / amazon_dir_name
+                    if amazon_dir.exists():
+                        csv_files = list(amazon_dir.glob('orders_from_*.csv'))
+                        if csv_files:
+                            logger.info(f"Found Amazon CSV in nested folder: {csv_files[0]}")
+                            return csv_files[0]
+                        csv_files = list(amazon_dir.glob('*.csv'))
+                        if csv_files:
+                            logger.info(f"Found Amazon CSV in nested folder (fallback): {csv_files[0]}")
+                            return csv_files[0]
+        
         return None
     
     def load_and_parse_csv(self, csv_path: Path) -> Dict[str, List[Dict[str, Any]]]:
@@ -93,7 +141,7 @@ class AmazonCSVProcessor:
     
     def extract_order_id_from_pdf(self, pdf_path: Path) -> Optional[str]:
         """
-        Extract Order ID from PDF filename or path.
+        Extract Order ID from PDF filename, path, or PDF content.
         Pattern: ###-#######-#######
         
         Args:
@@ -111,6 +159,24 @@ class AmazonCSVProcessor:
         match = re.search(r'(\d{3}-\d{7}-\d{7})', str(pdf_path.parent.name))
         if match:
             return match.group(1)
+        
+        # Try extracting from PDF content (fallback)
+        try:
+            import PyPDF2
+            with open(pdf_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                text = ''
+                for page in reader.pages:
+                    text += page.extract_text()
+            
+            # Look for Order ID in PDF text
+            # Pattern: "Order #114-6115578-3889833" or "Order 114-6115578-3889833"
+            match = re.search(r'Order\s*#?\s*(\d{3}-\d{7}-\d{7})', text, re.IGNORECASE)
+            if match:
+                logger.debug(f"Extracted Order ID from PDF content: {match.group(1)}")
+                return match.group(1)
+        except Exception as e:
+            logger.debug(f"Could not extract Order ID from PDF content {pdf_path.name}: {e}")
         
         return None
     

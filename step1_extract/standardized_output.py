@@ -17,15 +17,15 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def _load_category_options(rules_dir: Path) -> Tuple[List[str], List[str]]:
+def _load_category_names(rules_dir: Path) -> Tuple[Dict[str, str], Dict[str, str]]:
     """
-    Load L1 and L2 category options with descriptions for Excel dropdowns.
+    Load L1 and L2 category names as dictionaries (code -> name).
     
     Returns:
-        Tuple of (l1_options_list, l2_options_list) where each option is "CODE - Description"
+        Tuple of (l1_names_dict, l2_names_dict) where keys are category codes and values are names
     """
-    l1_options = []
-    l2_options = []
+    l1_names = {}
+    l2_names = {}
     
     try:
         from step1_extract.rule_loader import RuleLoader
@@ -39,7 +39,7 @@ def _load_category_options(rules_dir: Path) -> Tuple[List[str], List[str]]:
         
         if not rules_dir.exists():
             logger.warning(f"Rules directory not found: {rules_dir}")
-            return l1_options, l2_options
+            return l1_names, l2_names
         
         rule_loader = RuleLoader(rules_dir, enable_hot_reload=True)
         
@@ -51,7 +51,7 @@ def _load_category_options(rules_dir: Path) -> Tuple[List[str], List[str]]:
                 cat_id = cat.get('id', '')
                 cat_name = cat.get('name', '')
                 if cat_id and cat_name:
-                    l1_options.append(f"{cat_id} - {cat_name}")
+                    l1_names[cat_id] = cat_name
         
         # Load L2 categories
         l2_rules = rule_loader.load_rule_file_by_name('56_categories_l2.yaml')
@@ -61,18 +61,36 @@ def _load_category_options(rules_dir: Path) -> Tuple[List[str], List[str]]:
                 cat_id = cat.get('id', '')
                 cat_name = cat.get('name', '')
                 if cat_id and cat_name:
-                    l2_options.append(f"{cat_id} - {cat_name}")
+                    l2_names[cat_id] = cat_name
         
-        # Sort by category ID
-        l1_options.sort()
-        l2_options.sort()
-        
-        logger.debug(f"Loaded {len(l1_options)} L1 categories and {len(l2_options)} L2 categories")
+        logger.debug(f"Loaded {len(l1_names)} L1 categories and {len(l2_names)} L2 categories")
         
     except Exception as e:
-        logger.warning(f"Could not load category options: {e}", exc_info=True)
-        # Fallback: return empty lists
+        logger.warning(f"Could not load category names: {e}", exc_info=True)
+        # Fallback: return empty dicts
         pass
+    
+    return l1_names, l2_names
+
+
+def _load_category_options(rules_dir: Path) -> Tuple[List[str], List[str]]:
+    """
+    Load L1 and L2 category options with descriptions for Excel dropdowns.
+    
+    Returns:
+        Tuple of (l1_options_list, l2_options_list) where each option is "CODE - Description"
+    """
+    l1_options = []
+    l2_options = []
+    
+    l1_names, l2_names = _load_category_names(rules_dir)
+    
+    # Convert to dropdown format
+    for cat_id, cat_name in sorted(l1_names.items()):
+        l1_options.append(f"{cat_id} - {cat_name}")
+    
+    for cat_id, cat_name in sorted(l2_names.items()):
+        l2_options.append(f"{cat_id} - {cat_name}")
     
     return l1_options, l2_options
 
@@ -204,12 +222,28 @@ def clean_canonical_name(product_name: str, item_number: Optional[str] = None,
 
 
 def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any], 
-                          item: Dict[str, Any], line_index: int) -> Dict[str, Any]:
+                          item: Dict[str, Any], line_index: int,
+                          l1_names: Optional[Dict[str, str]] = None,
+                          l2_names: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """
     Transform an item to match the CSV schema
+    
+    Args:
+        receipt_id: Receipt identifier
+        receipt_data: Receipt metadata
+        item: Item data
+        line_index: Line index within receipt
+        l1_names: Dictionary mapping L1 codes to names (optional)
+        l2_names: Dictionary mapping L2 codes to names (optional)
     """
     # Generate line_id
     line_id = f"{receipt_id}_{line_index:04d}"
+    
+    # Initialize category name dictionaries if not provided
+    if l1_names is None:
+        l1_names = {}
+    if l2_names is None:
+        l2_names = {}
     
     # Extract fields
     product_name = item.get('product_name', '') or item.get('display_name', '') or item.get('clean_name', '')
@@ -248,8 +282,7 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
     # Extract transaction date
     txn_date = receipt_data.get('transaction_date') or receipt_data.get('order_date') or receipt_data.get('receipt_date', '')
     
-    # Extract confidence and match reason
-    confidence = item.get('category_confidence', 0.0)
+    # Extract match reason
     match_reason = item.get('category_source', '') or 'unknown'
     
     # Extract needs_review_reason
@@ -257,7 +290,7 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
     if item.get('needs_review', False):
         needs_review_reasons.extend(item.get('review_reasons', []))
     if item.get('needs_category_review', False):
-        needs_review_reasons.append('low_confidence' if confidence < 0.60 else 'category_review')
+        needs_review_reasons.append('category_review')
     if item.get('needs_quantity_review', False):
         needs_review_reasons.append('inferred_quantity')
     needs_review_reason = '; '.join(needs_review_reasons) if needs_review_reasons else ''
@@ -283,6 +316,37 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
     upc_status = 'present' if upc else 'missing'
     upc_source = 'receipt' if upc else ''
     
+    # Get standard_name (Odoo product name) if available
+    standard_name = item.get('standard_name', '')
+    
+    # Use Odoo categories if available (from product matching), otherwise fall back to classified categories
+    # Format: "C90" -> "C90", "90" -> "C90", "" -> fallback to l2_category
+    odoo_l2 = item.get('odoo_l2_category', '')
+    if odoo_l2:
+        # Ensure it starts with "C" if it's just a number
+        if odoo_l2.isdigit():
+            l2_category = f"C{odoo_l2}"
+        elif odoo_l2.startswith('C'):
+            l2_category = odoo_l2
+        else:
+            l2_category = f"C{odoo_l2}"
+        
+        # Derive L1 from L2 using standard mappings
+        # C80 (Taxes) -> A08, C82 (Tips) -> A08, C90 (Shipping/Delivery) -> A09
+        l2_to_l1_map = {
+            'C80': 'A08',  # Taxes & Fees
+            'C82': 'A08',  # Tips/Gratuities -> Taxes & Fees
+            'C90': 'A09',  # Shipping/Delivery
+        }
+        l1_category = l2_to_l1_map.get(l2_category, item.get('l1_category', ''))
+    else:
+        l2_category = item.get('l2_category', '')
+        l1_category = item.get('l1_category', '')
+    
+    # Get category names from dictionaries
+    l1_name = l1_names.get(l1_category, '') if l1_category else ''
+    l2_name = l2_names.get(l2_category, '') if l2_category else ''
+    
     # Build line
     line = {
         'line_id': line_id,
@@ -291,9 +355,9 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
         'txn_date': txn_date,
         'raw_description': raw_description,
         'match_reason': match_reason,
-        'confidence': confidence,
         'needs_review_reason': needs_review_reason,
         'canonical_name': canonical_name,
+        'standard_name': standard_name,  # Odoo product name
         'brand': item.get('brand', ''),
         'item_number': item_number or '',
         'upc': upc or '',
@@ -303,8 +367,10 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
         'qty': item.get('quantity', 0.0),
         'unit_price': item.get('unit_price', 0.0),
         'extended_amount': item.get('total_price', 0.0) or item.get('extended_amount', 0.0),
-        'L1': item.get('l1_category', ''),
-        'L2': item.get('l2_category', ''),
+        'L1': l1_category,
+        'L1_name': l1_name,
+        'L2': l2_category,
+        'L2_name': l2_name,
         'fee_type': fee_type,
         'cogs_include': not item.get('is_fee', False) and not item.get('is_summary', False),
         'upc_status': upc_status,
@@ -314,11 +380,24 @@ def transform_item_to_line(receipt_id: str, receipt_data: Dict[str, Any],
     return line
 
 
-def transform_all_receipts(receipts_data: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+def transform_all_receipts(receipts_data: Dict[str, Dict[str, Any]], 
+                           rules_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
     """
     Transform all receipts to line-level data
+    
+    Args:
+        receipts_data: Dictionary of receipt data
+        rules_dir: Path to rules directory for loading category names
     """
     all_lines = []
+    
+    # Load category names
+    if rules_dir is None:
+        current_file = Path(__file__)
+        project_root = current_file.parent.parent.parent
+        rules_dir = project_root / 'step1_rules'
+    
+    l1_names, l2_names = _load_category_names(rules_dir)
     
     for receipt_id, receipt_data in receipts_data.items():
         items = receipt_data.get('items', [])
@@ -329,7 +408,7 @@ def transform_all_receipts(receipts_data: Dict[str, Dict[str, Any]]) -> List[Dic
                 continue
             
             try:
-                line = transform_item_to_line(receipt_id, receipt_data, item, idx)
+                line = transform_item_to_line(receipt_id, receipt_data, item, idx, l1_names, l2_names)
                 all_lines.append(line)
             except Exception as e:
                 logger.warning(f"Error transforming item {idx} in receipt {receipt_id}: {e}")
@@ -340,7 +419,6 @@ def transform_all_receipts(receipts_data: Dict[str, Dict[str, Any]]) -> List[Dic
 
 def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]], 
                               output_base_dir: Path,
-                              low_confidence_threshold: float = 0.60,
                               input_dir: Optional[Path] = None) -> Path:
     """
     Create standardized output in timestamped folder
@@ -364,8 +442,17 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
     
     logger.info(f"Creating standardized output in: {output_dir}")
     
+    # Determine rules directory
+    if input_dir:
+        # Try to find step1_rules relative to input_dir
+        rules_dir = input_dir.parent.parent / 'step1_rules'
+        if not rules_dir.exists():
+            rules_dir = None
+    else:
+        rules_dir = None
+    
     # Transform all receipts to lines
-    all_lines = transform_all_receipts(receipts_data)
+    all_lines = transform_all_receipts(receipts_data, rules_dir)
     
     if not all_lines:
         logger.warning("No lines found to output")
@@ -377,11 +464,11 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
     # Ensure all required columns exist (fill with empty if missing)
     required_columns = [
         'line_id', 'source_file', 'vendor', 'txn_date',
-        'raw_description', 'match_reason', 'confidence', 'needs_review_reason',
-        'canonical_name', 'brand', 'item_number', 'upc',
+        'raw_description', 'match_reason', 'needs_review_reason',
+        'canonical_name', 'standard_name', 'brand', 'item_number', 'upc',
         'pack_count', 'unit_size', 'unit_uom',
         'qty', 'unit_price', 'extended_amount',
-        'L1', 'L2', 'fee_type', 'cogs_include',
+        'L1', 'L1_name', 'L2', 'L2_name', 'fee_type', 'cogs_include',
         'upc_status', 'upc_source'
     ]
     
@@ -404,12 +491,6 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
         unmapped.to_csv(unmapped_file, index=False)
         logger.info(f"Created {unmapped_file} with {len(unmapped)} unmapped lines")
     
-    # Create low_confidence_step1.csv (confidence < threshold)
-    low_confidence = df[df['confidence'] < low_confidence_threshold]
-    if len(low_confidence) > 0:
-        low_confidence_file = tables_dir / 'low_confidence_step1.csv'
-        low_confidence.to_csv(low_confidence_file, index=False)
-        logger.info(f"Created {low_confidence_file} with {len(low_confidence)} low confidence lines")
     
     # Create upc_backfill_queue.csv (rows needing UPC)
     upc_missing = df[(df['upc_status'] == 'missing') & (df['fee_type'] == '')]
@@ -428,9 +509,9 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
             'Transaction date',
             'Raw product description from receipt',
             'Category match reason/source',
-            'Category confidence score (0.0-1.0)',
             'Reason(s) why line needs review',
             'Clean product name (no UPC/Item#/specs)',
+            'Standard name (Odoo product name)',
             'Product brand',
             'Item number from receipt',
             'UPC code',
@@ -441,7 +522,9 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
             'Unit price',
             'Extended amount (total price)',
             'L1 category code',
+            'L1 category name',
             'L2 category code',
+            'L2 category name',
             'Fee type (tax, tip, bag_fee, service_fee, discount, other_fee)',
             'Whether to include in COGS (True/False)',
             'UPC status (present/missing)',
@@ -470,20 +553,15 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
     total_lines = len(df)
     classified = len(df[df['L2'] != ''].dropna(subset=['L2']))
     unmapped_count = len(unmapped) if len(unmapped) > 0 else 0
-    low_confidence_count = len(low_confidence) if len(low_confidence) > 0 else 0
     
     manifest = {
         'pipeline_version': pipeline_version,
         'commit_sha': commit_sha,
         'created_at': datetime.now().isoformat(),
-        'thresholds': {
-            'low_confidence': low_confidence_threshold
-        },
         'counters': {
             'total_lines': total_lines,
             'classified': classified,
-            'unmapped': unmapped_count,
-            'low_confidence': low_confidence_count
+            'unmapped': unmapped_count
         }
     }
     
@@ -502,7 +580,7 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
     
     # Generate Excel export for human review
     try:
-        excel_file = _create_excel_export(df, unmapped, low_confidence, upc_missing, tables_dir, input_dir)
+        excel_file = _create_excel_export(df, unmapped, upc_missing, tables_dir, input_dir)
         logger.info(f"Created Excel export: {excel_file}")
     except Exception as e:
         logger.warning(f"Could not create Excel export: {e}", exc_info=True)
@@ -513,7 +591,7 @@ def create_standardized_output(receipts_data: Dict[str, Dict[str, Any]],
 
 
 def _create_excel_export(df: pd.DataFrame, unmapped: pd.DataFrame, 
-                         low_confidence: pd.DataFrame, upc_missing: pd.DataFrame,
+                         upc_missing: pd.DataFrame,
                          tables_dir: Path, input_dir: Optional[Path] = None) -> Optional[Path]:
     """Create Excel export with multiple sheets for comprehensive review"""
     try:
@@ -536,13 +614,7 @@ def _create_excel_export(df: pd.DataFrame, unmapped: pd.DataFrame,
                 # Create empty sheet with same columns
                 pd.DataFrame(columns=df.columns).to_excel(writer, sheet_name='Unmapped', index=False)
             
-            # Sheet 3: Low Confidence Lines
-            if len(low_confidence) > 0:
-                low_confidence.to_excel(writer, sheet_name='Low Confidence', index=False)
-            else:
-                pd.DataFrame(columns=df.columns).to_excel(writer, sheet_name='Low Confidence', index=False)
-            
-            # Sheet 4: UPC Backfill Queue
+            # Sheet 3: UPC Backfill Queue
             if len(upc_missing) > 0:
                 upc_missing.to_excel(writer, sheet_name='UPC Needed', index=False)
             else:
@@ -554,7 +626,6 @@ def _create_excel_export(df: pd.DataFrame, unmapped: pd.DataFrame,
                     'Total Lines',
                     'Classified Lines',
                     'Unmapped Lines',
-                    'Low Confidence Lines',
                     'Lines Needing UPC',
                     'Total Receipts',
                     'Unique Vendors',
@@ -564,7 +635,6 @@ def _create_excel_export(df: pd.DataFrame, unmapped: pd.DataFrame,
                     len(df),
                     len(df[df['L2'] != ''].dropna(subset=['L2'])),
                     len(unmapped),
-                    len(low_confidence),
                     len(upc_missing),
                     df['source_file'].nunique() if 'source_file' in df.columns else 0,
                     df['vendor'].nunique() if 'vendor' in df.columns else 0,
@@ -744,7 +814,6 @@ def load_data_from_artifacts(artifacts_dir: Path) -> Dict[str, Any]:
         Dictionary with:
         - 'lines': DataFrame with all lines
         - 'unmapped': DataFrame with unmapped lines
-        - 'low_confidence': DataFrame with low confidence lines
         - 'upc_missing': DataFrame with lines needing UPC
         - 'manifest': Dict with manifest data
         - 'receipts_data': Dict format compatible with generate_html_report
@@ -755,7 +824,6 @@ def load_data_from_artifacts(artifacts_dir: Path) -> Dict[str, Any]:
     data = {
         'lines': pd.DataFrame(),
         'unmapped': pd.DataFrame(),
-        'low_confidence': pd.DataFrame(),
         'upc_missing': pd.DataFrame(),
         'manifest': {},
         'receipts_data': {}
@@ -771,11 +839,6 @@ def load_data_from_artifacts(artifacts_dir: Path) -> Dict[str, Any]:
     if unmapped_file.exists():
         data['unmapped'] = pd.read_csv(unmapped_file)
         logger.info(f"Loaded {len(data['unmapped'])} unmapped lines")
-    
-    low_confidence_file = tables_dir / 'low_confidence_step1.csv'
-    if low_confidence_file.exists():
-        data['low_confidence'] = pd.read_csv(low_confidence_file)
-        logger.info(f"Loaded {len(data['low_confidence'])} low confidence lines")
     
     upc_missing_file = tables_dir / 'upc_backfill_queue.csv'
     if upc_missing_file.exists():

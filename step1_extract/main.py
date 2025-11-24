@@ -85,8 +85,8 @@ def detect_group(file_path: Path, input_dir: Path) -> str:
         if 'amazon' in folder_name or 'orders_from_' in filename_lower:
             return 'amazon_based'
         
-        # Instacart-based = Instacart folder
-        if 'instacart' in folder_name or 'instarcart' in folder_name:
+        # Instacart-based = Instacart folder (check all path parts for nested folders)
+        if 'instacart' in path_parts or 'instarcart' in path_parts or 'instacart' in folder_name or 'instarcart' in folder_name:
             return 'instacart_based'
         
         # Local grocery-based = Costco, Jewel-Osco, RD, Aldi, Parktoshop, etc.
@@ -434,6 +434,190 @@ def process_files(
     if bbi_based_files:
         logger.info("Processing BBI-based receipts...")
         
+        def extract_uom_from_bbi_filename(filename: str, product_name: str) -> Optional[Dict[str, Any]]:
+            """
+            Extract UoM information from BBI filename patterns like "Uni Straws 3000pcs"
+            
+            Args:
+                filename: BBI filename (e.g., "Uni Straws 3000pcs.pdf")
+                product_name: Product name from receipt item
+            
+            Returns:
+                Dict with 'purchase_uom', 'unit_size', 'unit_uom' if found, None otherwise
+            """
+            import re
+            
+            # Remove file extension
+            filename_base = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            
+            # Pattern: number + unit (e.g., "3000pcs", "500pc", "2lb", "1kg")
+            # Match patterns like: 3000pcs, 500-pc, 2-lb, 1.5kg, etc.
+            uom_patterns = [
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(pcs?|pieces?|pc|piece)',  # 3000pcs, 500-pc
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(lb|lbs?|pound|pounds)',  # 2lb, 3-lb
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(kg|g|gram|grams)',  # 1kg, 500g
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(oz|ounce|ounces)',  # 16oz
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(fl\s*oz|floz)',  # 64fl oz
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(gal|gallon|gallons)',  # 1gal
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(ml|l|liter|liters)',  # 500ml, 1l
+                r'(\d+(?:\.\d+)?)\s*[-]?\s*(ct|count|counts)',  # 100ct
+            ]
+            
+            for pattern in uom_patterns:
+                match = re.search(pattern, filename_base, re.IGNORECASE)
+                if match:
+                    size = float(match.group(1))
+                    unit = match.group(2).lower()
+                    
+                    # Normalize unit
+                    if unit in ['pcs', 'pieces', 'piece']:
+                        unit = 'pc'
+                    elif unit in ['lbs', 'pound', 'pounds']:
+                        unit = 'lb'
+                    elif unit in ['g', 'gram', 'grams']:
+                        unit = 'g'
+                    elif unit in ['oz', 'ounce', 'ounces']:
+                        unit = 'oz'
+                    elif unit in ['fl oz', 'floz']:
+                        unit = 'fl_oz'
+                    elif unit in ['gal', 'gallon', 'gallons']:
+                        unit = 'gal'
+                    elif unit in ['ml', 'l', 'liter', 'liters']:
+                        unit = unit if unit in ['ml', 'l'] else ('ml' if unit.startswith('ml') else 'l')
+                    elif unit in ['ct', 'count', 'counts']:
+                        unit = 'pc'  # Treat count as pieces
+                    
+                    # Format as compound UoM (e.g., "3000-pc")
+                    purchase_uom = f"{int(size)}-{unit}" if size == int(size) else f"{size}-{unit}"
+                    
+                    return {
+                        'purchase_uom': purchase_uom,
+                        'unit_size': size,
+                        'unit_uom': unit,
+                        'source': 'filename'
+                    }
+            
+            return None
+        
+        def enrich_bbi_items_from_filename(filename: str, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            """
+            Enrich BBI items with UoM information extracted from filename or product name.
+            Filename UoM takes priority over baseline UoM when product name matches filename.
+            If filename doesn't contain UoM, extract from product names that contain UoM patterns.
+            
+            Args:
+                filename: BBI filename (e.g., "Uni Straws 3000pcs.pdf" or "UNI_IL_UT_1025.pdf")
+                items: List of extracted items
+            
+            Returns:
+                Enriched items list
+            """
+            enriched_count = 0
+            
+            # Extract UoM from filename first
+            filename_uom = extract_uom_from_bbi_filename(filename, '')
+            filename_base = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            filename_lower = filename_base.lower()
+            
+            # Extract key words from filename (excluding numbers and UoM units)
+            import re
+            filename_words = [w for w in re.split(r'[\s\-_]+', filename_lower) 
+                            if w and not w.isdigit() and w not in ['pcs', 'pc', 'pieces', 'piece', 'lb', 'lbs', 'kg', 'g', 'oz', 'gal', 'ml', 'l', 'ct', 'count']]
+            
+            for item in items:
+                product_name = item.get('product_name', '') or item.get('display_name', '') or item.get('canonical_name', '')
+                if not product_name:
+                    continue
+                
+                product_name_lower = product_name.lower()
+                
+                # Try to extract UoM from product name if filename doesn't have one
+                product_uom = None
+                if not filename_uom:
+                    product_uom = extract_uom_from_bbi_filename(product_name, '')
+                    if product_uom:
+                        product_uom['source'] = 'product_name'
+                
+                # Determine which UoM to use
+                uom_to_use = filename_uom if filename_uom else product_uom
+                if not uom_to_use:
+                    continue  # No UoM found in filename or product name
+                
+                # Check if we should apply this UoM to this item
+                should_enrich = False
+                
+                if filename_uom:
+                    # Filename has UoM - check if product name matches filename
+                    product_words = [w for w in re.split(r'[\s\-_]+', product_name_lower) if len(w) > 2]
+                    
+                    if filename_words and product_words:
+                        # Check if significant words match
+                        matching_words = [w for w in product_words if any(fw in w or w in fw for fw in filename_words)]
+                        if len(matching_words) >= min(2, len(product_words) // 2):
+                            should_enrich = True
+                    elif any(word in filename_lower for word in product_words if len(word) > 3):
+                        # Product word appears in filename
+                        should_enrich = True
+                    elif any(word in product_name_lower for word in filename_words if len(word) > 3):
+                        # Filename word appears in product name
+                        should_enrich = True
+                elif product_uom:
+                    # Product name has UoM - always apply it
+                    should_enrich = True
+                
+                if should_enrich:
+                    # Check if current UoM is less specific than the extracted one
+                    current_purchase_uom = item.get('purchase_uom', '')
+                    current_is_generic = current_purchase_uom.lower() in ['pack', 'each', 'unit', 'units', 'pc', '']
+                    
+                    # Check if extracted UoM matches current UoM (already correct)
+                    extracted_uom = uom_to_use['purchase_uom']
+                    uom_matches = current_purchase_uom.lower() == extracted_uom.lower()
+                    
+                    # Check if product name explicitly contains a UoM pattern (e.g., "1000pcs" in "Uni Lids Yellow 1000pcs")
+                    # In this case, prioritize product name UoM over baseline
+                    product_name_has_explicit_uom = product_uom is not None and product_uom['source'] == 'product_name'
+                    
+                    # Extract numeric value from current and extracted UoM for comparison
+                    def extract_uom_number(uom_str: str) -> float:
+                        """Extract numeric value from UoM string (e.g., '1000-pc' -> 1000.0)"""
+                        if not uom_str:
+                            return 0.0
+                        match = re.search(r'(\d+(?:\.\d+)?)', uom_str)
+                        return float(match.group(1)) if match else 0.0
+                    
+                    current_uom_num = extract_uom_number(current_purchase_uom)
+                    extracted_uom_num = extract_uom_number(extracted_uom)
+                    
+                    # Apply UoM if:
+                    # 1. Current is generic or empty, OR
+                    # 2. Extracted UoM matches current (to mark source), OR
+                    # 3. Product name has explicit UoM and it's different from current (prioritize product name)
+                    should_apply = (
+                        current_is_generic or 
+                        not current_purchase_uom or 
+                        uom_matches or
+                        (product_name_has_explicit_uom and extracted_uom_num != current_uom_num)
+                    )
+                    
+                    if should_apply:
+                        item['purchase_uom'] = uom_to_use['purchase_uom']
+                        item['unit_size'] = uom_to_use['unit_size']
+                        item['unit_uom'] = uom_to_use['unit_uom']
+                        item['uom_source'] = uom_to_use['source']
+                        enriched_count += 1
+                        if uom_matches:
+                            logger.debug(f"  Marked '{product_name[:50]}' UoM source as {uom_to_use['source']}: {uom_to_use['purchase_uom']}")
+                        elif product_name_has_explicit_uom:
+                            logger.debug(f"  Overrode baseline UoM '{current_purchase_uom}' with product name UoM '{uom_to_use['purchase_uom']}' for '{product_name[:50]}'")
+                        else:
+                            logger.debug(f"  Enriched '{product_name[:50]}' with UoM from {uom_to_use['source']}: {uom_to_use['purchase_uom']}")
+            
+            if enriched_count > 0:
+                logger.info(f"  ✓ Enriched {enriched_count} items with UoM from filename/product name")
+            
+            return items
+        
         def process_bbi_file(file_path: Path) -> Tuple[str, Optional[Dict[str, Any]]]:
             """Process a single BBI file and return (receipt_id, receipt_data)"""
             try:
@@ -468,8 +652,29 @@ def process_files(
                     
                     # Apply UoM/Pack determination for BBI items (if baseline is available)
                     items = receipt_data.get('items', [])
+                    
+                    # Filter out items with zero amount for BBI orders
                     if items:
-                        receipt_data['items'] = items  # Store for later processing
+                        filtered_items = []
+                        removed_items = []
+                        for item in items:
+                            total_price = float(item.get('total_price', 0.0))
+                            # Keep discounts even if total_price is 0 or negative
+                            if total_price < 0:
+                                filtered_items.append(item)
+                            # Filter if total_price is 0 (unless it's a discount)
+                            elif total_price == 0.0:
+                                removed_items.append(item)
+                            else:
+                                filtered_items.append(item)
+                        
+                        if removed_items:
+                            logger.info(f"  Filtered out {len(removed_items)} item(s) with zero amount")
+                            for item in removed_items:
+                                logger.debug(f"    - Removed: {item.get('product_name', 'Unknown')} (${item.get('total_price', 0):.2f})")
+                        
+                        receipt_data['items'] = filtered_items
+                        items = filtered_items
                     
                     item_count = len(items)
                     if item_count > 0:
@@ -590,13 +795,35 @@ def process_files(
                                     
                                     # D) Fix pack/EACH inconsistency - set purchase_uom based on pricing_unit
                                     if pricing_unit == 'Pack':
-                                        # Pack items: set purchase_uom to "pack" (not "EACH")
-                                        item['purchase_uom'] = 'pack'
-                                        
-                                        # Store pack size info
+                                        # Pack items: use compound UoM from pack_size if available (e.g., "10-pc", "20*1-kg")
+                                        # Otherwise fall back to "pack"
                                         pack_size = baseline_item.get('pack_size', '').strip()
                                         if pack_size:
                                             item['baseline_pack_size'] = pack_size
+                                            
+                                            # Check if pack_size is a compound UoM format (e.g., "10-pc", "2-lb", "20*1-kg")
+                                            # Pattern: number(s) followed by unit (with optional multiplier like "20*1-kg")
+                                            import re
+                                            # Match patterns like "10-pc", "2-lb", "20*1-kg", "3.5-lb"
+                                            compound_uom_match = re.match(r'^(\d+(?:\.\d+)?)\s*[-]?\s*(pc|lb|pound|pounds|kg|g|oz|fl\s*oz|gal|qt|pt|ml|l|each|ea|unit|units|roll|bag|ct|count)$', pack_size.lower())
+                                            if compound_uom_match:
+                                                # Use the compound UoM directly (e.g., "10-pc")
+                                                item['purchase_uom'] = pack_size.lower().replace(' ', '-')  # Normalize spaces to hyphens
+                                                logger.debug(f"  Set Pack pricing for '{product_name}': purchase_uom={item['purchase_uom']} (from pack_size)")
+                                            else:
+                                                # Check for multiplier format like "20*1-kg" -> use "20-kg" or "1-kg" depending on what makes sense
+                                                multiplier_match = re.match(r'^(\d+)\s*\*\s*(\d+(?:\.\d+)?)\s*[-]?\s*(pc|lb|kg|g|oz|fl\s*oz|gal|qt|pt|ml|l|each|ea|unit|units|roll|bag|ct|count)$', pack_size.lower())
+                                                if multiplier_match:
+                                                    # Use the per-unit size (e.g., "20*1-kg" -> "1-kg")
+                                                    unit_size = multiplier_match.group(2)
+                                                    unit = multiplier_match.group(3)
+                                                    item['purchase_uom'] = f"{unit_size}-{unit}"
+                                                    logger.debug(f"  Set Pack pricing for '{product_name}': purchase_uom={item['purchase_uom']} (from pack_size multiplier format)")
+                                                else:
+                                                    # Not a compound format, use "pack"
+                                                    item['purchase_uom'] = 'pack'
+                                                    logger.debug(f"  Set Pack pricing for '{product_name}': purchase_uom=pack (pack_size not in compound format)")
+                                            
                                             # Extract UoM from pack size for reference (e.g., "20*1-kg" -> "kg")
                                             baseline_uom = bbi_baseline._extract_uom_unit(pack_size)
                                             if baseline_uom:
@@ -608,10 +835,11 @@ def process_files(
                                             if baseline_uom:
                                                 item['baseline_uom'] = baseline_uom
                                                 item['raw_uom_text'] = baseline_uom
+                                            # Default to "pack" if no pack_size
+                                            item['purchase_uom'] = 'pack'
                                         
                                         item['baseline_pack_count'] = baseline_item.get('pack_count', 1)
                                         uom_set_count += 1
-                                        logger.debug(f"  Set Pack pricing for '{product_name}': purchase_uom=pack")
                                     else:  # pricing_unit == 'UoM'
                                         # UoM items: use UoM from baseline
                                         baseline_uom = baseline_item.get('uom', '').strip()
@@ -637,6 +865,9 @@ def process_files(
                         logger.info(f"  ✓ Set UoM from baseline for {uom_set_count}/{len(items)} items")
                     if determined_count > 0:
                         logger.info(f"  ✓ Determined pricing unit for {determined_count}/{len(items)} items")
+                    
+                    # Enrich items with UoM from filename (as fallback or supplement to baseline)
+                    items = enrich_bbi_items_from_filename(file_path.name, items)
                 
                 # Vendor-scoped UNI_Mousse: clean description and stitch tails
                 vendor_name = (receipt_data.get('vendor_name') or '').strip()
@@ -1097,6 +1328,30 @@ def process_files(
     except Exception as e:
         logger.warning("Wismettac enrichment failed: %s", e, exc_info=True)
 
+    ### Match receipts to Odoo purchase orders and update with standard names
+    logger.info("Matching receipts to Odoo purchase orders...")
+    try:
+        from .odoo_matcher import match_receipts_to_odoo
+        
+        # Combine all receipts for matching
+        all_receipts = {}
+        for receipts_data in [
+            localgrocery_based_data,
+            instacart_based_data,
+            bbi_based_data,
+            amazon_based_data,
+            webstaurantstore_based_data,
+            wismettac_based_data,
+            odoo_based_data,
+        ]:
+            all_receipts.update(receipts_data)
+        
+        if all_receipts:
+            stats = match_receipts_to_odoo(all_receipts)
+            logger.info(f"Odoo matching complete: {stats['matched_receipts']}/{stats['total_receipts']} receipts, {stats['matched_items']}/{stats['total_items']} items")
+    except Exception as e:
+        logger.warning(f"Odoo matching failed: {e}", exc_info=True)
+
     ### Apply Category Classification (Feature 14)
     logger.info("Applying category classification to all items...")
     from .category_classifier import CategoryClassifier
@@ -1135,6 +1390,79 @@ def process_files(
                 logger.warning(f"Failed to classify items in {receipt_id}: {e}")
     
     logger.info("Category classification complete")
+    
+    # Calculate totals for all receipts (if missing)
+    logger.info("Calculating receipt totals...")
+    all_receipts_list = [
+        localgrocery_based_data,
+        instacart_based_data,
+        bbi_based_data,
+        amazon_based_data,
+        webstaurantstore_based_data,
+        wismettac_based_data,
+        odoo_based_data,
+    ]
+    
+    for receipts_data in all_receipts_list:
+        for receipt_id, receipt_data in receipts_data.items():
+            # If total is missing or 0, calculate from items
+            current_total = receipt_data.get('total', 0) or 0
+            if current_total == 0:
+                items = receipt_data.get('items', [])
+                if items:
+                    # Sum all items (including fees)
+                    items_total = sum(float(item.get('total_price', 0) or item.get('extended_amount', 0) or 0) for item in items)
+                    # Add tax if present (but don't double-count if already in items)
+                    tax = float(receipt_data.get('tax', 0) or 0)
+                    shipping = float(receipt_data.get('shipping', 0) or 0)
+                    other_charges = float(receipt_data.get('other_charges', 0) or 0)
+                    
+                    # Calculate total: items (which may include fees) + tax + shipping + other_charges
+                    # Note: If shipping/other_charges are already in items as fees, they're already counted
+                    calculated_total = items_total + tax + shipping + other_charges
+                    
+                    # Only set if we have a meaningful total
+                    if calculated_total > 0:
+                        receipt_data['total'] = calculated_total
+                        logger.info(f"Calculated total for {receipt_id}: ${calculated_total:.2f} (items: ${items_total:.2f}, tax: ${tax:.2f}, shipping: ${shipping:.2f}, other: ${other_charges:.2f})")
+    
+    logger.info("Receipt totals calculated")
+    
+    # Route Odoo orders to their vendor-specific folders BEFORE saving
+    # Odoo orders should be saved to both odoo_based folder AND their vendor's folder
+    if odoo_based_data:
+        # Group Odoo orders by vendor
+        odoo_by_vendor = {}
+        for receipt_id, receipt_data in odoo_based_data.items():
+            vendor = receipt_data.get('vendor', 'UNKNOWN')
+            # Normalize vendor name for folder matching
+            vendor_normalized = vendor.strip().upper()
+            
+            # Map vendor to output folder - check for exact matches first
+            target_folder = None
+            
+            # Check for Costco variations
+            if 'COSTCO' in vendor_normalized:
+                target_folder = 'localgrocery_based'
+            # Check for 88 MarketPlace
+            elif '88' in vendor_normalized or 'MARKETPLACE' in vendor_normalized:
+                target_folder = 'localgrocery_based'
+            # Check for other common local grocery vendors
+            elif any(v in vendor_normalized for v in ['JEWEL', 'ALDI', 'RD', 'RESTAURANT', 'PARK', 'MARIANO', 'DUVERGER', 'FOODSERVICE', 'PIKE']):
+                target_folder = 'localgrocery_based'
+            
+            if target_folder:
+                if target_folder not in odoo_by_vendor:
+                    odoo_by_vendor[target_folder] = {}
+                odoo_by_vendor[target_folder][receipt_id] = receipt_data
+                logger.debug(f"Routing Odoo order {receipt_id} (vendor: {vendor}) to {target_folder}")
+        
+        # Add Odoo orders to their vendor folders BEFORE saving
+        for folder_name, receipts in odoo_by_vendor.items():
+            if folder_name == 'localgrocery_based':
+                localgrocery_based_data.update(receipts)
+                logger.info(f"Added {len(receipts)} Odoo orders to localgrocery_based folder")
+            # Add more folder mappings as needed
     
     ### Save output files and generate reports
     results: Dict[str, Dict[str, Any]] = {
@@ -1250,15 +1578,16 @@ def process_files(
             logger.warning(f"Could not generate Wismettac-based report: {e}")
     
     # Generate combined final report at root output directory
-    # Note: Odoo receipts are routed to their matched vendor groups, so they're already included above
+    # Note: Odoo receipts are routed to their matched vendor groups, so they're already included in localgrocery_based_data
+    # We exclude odoo_based_data from the combined report to avoid duplicates
     all_receipts: Dict[str, Any] = {}
-    all_receipts.update(localgrocery_based_data)
+    all_receipts.update(localgrocery_based_data)  # Already includes Odoo orders
     all_receipts.update(instacart_based_data)
     all_receipts.update(bbi_based_data)
     all_receipts.update(amazon_based_data)
     all_receipts.update(webstaurantstore_based_data)
     all_receipts.update(wismettac_based_data)
-    all_receipts.update(odoo_based_data)
+    # Note: odoo_based_data is NOT included here since those orders are already in localgrocery_based_data
     
     if all_receipts:
         # Generate standardized output FIRST (timestamped folder with CSV files)
@@ -1273,6 +1602,16 @@ def process_files(
         # Reports are now generated in Step 2
         logger.info("✅ Standardized output created. Reports will be generated in Step 2.")
     
+    # Generate combined HTML report (excluding odoo_based since those are already in localgrocery_based)
+    if all_receipts:
+        try:
+            from .generate_report import generate_html_report
+            combined_report_file = output_base_dir / 'report.html'
+            generate_html_report(all_receipts, combined_report_file)
+            logger.info(f"✅ Generated combined HTML report: {combined_report_file}")
+        except Exception as e:
+            logger.warning(f"Could not generate combined HTML report: {e}", exc_info=True)
+    
     # Feature 4: Log column-mapping cache stats
     try:
         cache_stats = excel_processor.layout_applier.get_cache_stats()
@@ -1284,23 +1623,22 @@ def process_files(
     except Exception as e:
         logger.debug(f"Could not retrieve cache stats: {e}")
     
-    # Save Odoo-based output and generate report
+    # Also save to odoo_based folder for reference (Odoo orders already routed to vendor folders above)
     odoo_based_output_dir = output_base_dir / 'odoo_based'
-    if odoo_based_data:
-        odoo_based_output_dir.mkdir(parents=True, exist_ok=True)
-        output_file = odoo_based_output_dir / 'extracted_data.json'
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(odoo_based_data, f, indent=2, ensure_ascii=False, default=str)
-        logger.info(f"Saved Odoo-based data to: {output_file}")
-        
-        # Generate Odoo-based report
-        try:
-            from .generate_report import generate_html_report
-            report_file = odoo_based_output_dir / 'report.html'
-            generate_html_report(odoo_based_data, report_file)
-            logger.info(f"Generated Odoo-based report: {report_file}")
-        except Exception as e:
-            logger.warning(f"Could not generate Odoo-based report: {e}")
+    odoo_based_output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = odoo_based_output_dir / 'extracted_data.json'
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(odoo_based_data, f, indent=2, ensure_ascii=False, default=str)
+    logger.info(f"Saved Odoo-based data to: {output_file}")
+    
+    # Generate Odoo-based report
+    try:
+        from .generate_report import generate_html_report
+        report_file = odoo_based_output_dir / 'report.html'
+        generate_html_report(odoo_based_data, report_file)
+        logger.info(f"Generated Odoo-based report: {report_file}")
+    except Exception as e:
+        logger.warning(f"Could not generate Odoo-based report: {e}")
     
     logger.info(f"\nStep 1 Complete: Extracted {len(localgrocery_based_data)} vendor-based receipts, {len(instacart_based_data)} instacart-based receipts, {len(bbi_based_data)} BBI receipts, {len(amazon_based_data)} Amazon receipts, {len(webstaurantstore_based_data)} WebstaurantStore receipts, {len(wismettac_based_data)} Wismettac receipts, {len(odoo_based_data)} Odoo receipts")
     

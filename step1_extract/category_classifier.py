@@ -76,8 +76,22 @@ class CategoryClassifier:
         for item in items:
             classified_item = item.copy()
             
-            # Run classification pipeline
-            result = self._classify_single_item(item, source_type, vendor_code)
+            # If item already has Odoo categories, preserve them and add names from taxonomy
+            if item.get('odoo_category_matched') and item.get('l1_category') and item.get('l2_category'):
+                # Use existing Odoo categories
+                classified_item['l2_category'] = item.get('l2_category', 'C99')
+                classified_item['l1_category'] = item.get('l1_category', 'A99')
+                classified_item['category_source'] = item.get('category_source', 'odoo')
+                classified_item['category_rule_id'] = 'odoo_direct'
+                classified_item['category_confidence'] = 1.0
+                classified_item['needs_category_review'] = False
+                
+                # Add human-readable names (use Odoo names if available, otherwise from taxonomy)
+                classified_item['l2_category_name'] = item.get('l2_category_name') or self.l2_lookup.get(item.get('l2_category', ''), {}).get('name', 'Unknown')
+                classified_item['l1_category_name'] = item.get('l1_category_name') or self.l1_lookup.get(item.get('l1_category', ''), {}).get('name', 'Unknown')
+            else:
+                # Run classification pipeline
+                result = self._classify_single_item(item, source_type, vendor_code)
             
             # Add category fields
             classified_item['l2_category'] = result['l2_category']
@@ -104,6 +118,17 @@ class CategoryClassifier:
         Returns:
             Dict with l2_category, l1_category, category_source, category_rule_id, category_confidence, needs_category_review
         """
+        # If item already has categories from Odoo, use them directly (don't reclassify)
+        if item.get('odoo_category_matched') and item.get('l1_category') and item.get('l2_category'):
+            return {
+                'l2_category': item.get('l2_category', 'C99'),
+                'l1_category': item.get('l1_category', 'A99'),
+                'category_source': item.get('category_source', 'odoo'),
+                'category_rule_id': 'odoo_direct',
+                'category_confidence': 1.0,
+                'needs_category_review': False
+            }
+        
         # Use clean_name if available (from name hygiene), otherwise fall back to product_name
         product_name = item.get('clean_name') or item.get('canonical_name') or item.get('product_name', '')
         is_fee = item.get('is_fee', False)
