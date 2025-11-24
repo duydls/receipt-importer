@@ -61,7 +61,7 @@ item_patterns:
       - code
     description: "Aldi format: _ ITEM_NUMBER PRODUCT_NAME TOTAL_PRICE CODE (qty x unit_price on next line)"
     quantity_from_next_line: true
-    quantity_pattern: "[^\\d]*(\\d+)\\s*x\\s*(\\d+[.,]\\d{1,2})|(?:[^\\d]*[x@]\\s*(\\d+[.,]\\d{1,2}))"
+    quantity_pattern: "[^\\d]*(\\d+)\\s*x\\s*(\\d+[.,]\\d{1,2})"
     field_mappings:
       item_number: "item_number"
       product_name: "product_name"

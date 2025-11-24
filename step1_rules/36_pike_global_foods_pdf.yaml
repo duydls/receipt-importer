@@ -1,0 +1,103 @@
+# Pike Global Foods PDF Layout Rules
+# Invoice-based PDF parsing rules for Pike Global Foods
+
+vendor_name: "Pike Global Foods"
+parsed_by: "pike_global_foods_pdf_v1"
+extraction_method: "text"  # text-based PDF (invoice format)
+
+# Summary section keywords
+summary_keywords:
+  - "^Subtotal\\s+\\$"      # Must start with "Subtotal $"
+  - "^Taxes & Duties\\s+\\$"  # Must start with "Taxes & Duties $"
+  - "^Grand total\\s+\\$"   # Must start with "Grand total $"
+
+# Exclude these from triggering summary detection (false positives)
+summary_exclude_keywords:
+  - "Shipping Method"  # Don't treat "Shipping Method:" as summary start
+  - "Payment Method"   # Don't treat "Payment Method:" as summary start
+  - "Order Items"      # Don't treat header as summary
+
+# Skip keywords (lines to ignore during item extraction)
+skip_keywords:
+  - "^Bill To"
+  - "^Ship To"
+  - "^Phone:"
+  - "^Email:"
+  - "^Invoice #"
+  - "^Order:"
+  - "^Payment Method:"
+  - "^Shipping Method:"
+  - "^Order Items"
+  - "^Qty Code/SKU"  # Header line
+  - "^Subtotal"
+  - "^Shipping"
+  - "^Taxes & Duties"
+  - "^Grand total"
+  - "^Total"
+  - "^Comments"
+
+# Item patterns
+item_patterns:
+  # Pattern 1: QTY CODE PRODUCT_NAME $PRICE $TOTAL (all on one line in .docx, may include "Subtotal" after)
+  # Example from .docx: "Qty Code/SKU Product Name Price Total 1 CuisCreamPwd AERO Whipped Cream Stabilizer Powder - 1 lbs $21.60 $21.60 Subtotal $21.60"
+  # Need to extract: "1 CuisCreamPwd AERO Whipped Cream Stabilizer Powder - 1 lbs $21.60 $21.60"
+  - type: "invoice_item"
+    regex: "(\\d+)\\s+([A-Za-z0-9]+)\\s+(.+?)\\s+\\$(\\d+\\.\\d{2})\\s+\\$(\\d+\\.\\d{2})(?:\\s+Subtotal|\\s*$)"
+    groups:
+      - quantity
+      - item_code
+      - product_name
+      - unit_price
+      - total_price
+    description: "QTY CODE PRODUCT_NAME $UNIT_PRICE $TOTAL (all on one line in .docx)"
+    field_mappings:
+      item_number: "item_code"
+      product_name: "product_name"
+      quantity: "quantity"
+      unit_price: "unit_price"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      extract_uom: true
+    find_all: true  # Find all matches in the line (header + item on same line)
+  
+  # Pattern 2: QTY CODE PRODUCT_NAME $PRICE $TOTAL (separate line)
+  # Example: "1 CuisCreamPwd AERO Whipped Cream Stabilizer Powder - 1 lbs $21.60     $21.60"
+  - type: "invoice_item"
+    regex: "^(\\d+)\\s+([A-Za-z0-9]+)\\s+(.+?)\\s+\\$(\\d+\\.\\d{2})\\s+\\$(\\d+\\.\\d{2})\\s*$"
+    groups:
+      - quantity
+      - item_code
+      - product_name
+      - unit_price
+      - total_price
+    description: "QTY CODE PRODUCT_NAME $UNIT_PRICE $TOTAL (separate line)"
+    field_mappings:
+      item_number: "item_code"
+      product_name: "product_name"
+      quantity: "quantity"
+      unit_price: "unit_price"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      extract_uom: true
+    conditions:
+      - "len(product_name) > 3"
+      - "total_price > 0"
+      - "not any(kw in line.upper() for kw in ['TOTAL', 'TAX', 'SUB', 'SHIPPING', 'DUTIES', 'GRAND', 'SUBTOTAL', 'QTY CODE'])"
+
+# Total extraction patterns
+total_patterns:
+  subtotal: "Subtotal\\s+\\$?(\\d+\\.\\d{2})"
+  tax: "(?:Tax|Taxes & Duties)\\s+\\$?(\\d+\\.\\d{2})"
+  shipping: "Shipping\\s+\\$?(\\d+\\.\\d{2})"
+  total: "(?:Grand total|Total)\\s+\\$?(\\d+\\.\\d{2})"
+
+# Fee extraction
+fee_keywords:
+  - "Shipping"
+  - "Taxes & Duties"
+
+extract_transaction_date: true
+date_pattern: "(\\d{1,2})(?:st|nd|rd|th)?\\s+(Oct|October|Nov|November|Dec|December)\\s+(\\d{4})"
+

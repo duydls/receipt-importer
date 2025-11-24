@@ -1,0 +1,92 @@
+# Vendor 88 PDF Layout Rules
+# OCR-based PDF parsing rules for vendor 88 receipts (image-based PDFs)
+
+vendor_name: "88"
+parsed_by: "88_pdf_v1"
+extraction_method: "ocr"  # Image-based PDF, requires OCR
+
+# Summary section keywords
+summary_keywords:
+  - "SUBTOTAL"
+  - "TOTAL"
+  - "TAX"
+  - "SHIPPING"
+
+# Skip keywords (lines to ignore during item extraction)
+skip_keywords:
+  - "^88 MarketPlace"
+  - "^2105 S\\. Jefferson"
+  - "^ELITE BOBA"
+  - "^\\d{10}$"  # Phone numbers (10 digits)
+  - "^\\d{1,2}/\\d{1,2}/\\d{4}"  # Dates
+  - "^Item discount"
+  - "^TOTAL"
+  - "^Visa"
+  - "^Reference#"
+  - "^Item count:"
+  - "^Trans:"
+  - "^Terminal:"
+  - "^Transaction Receipt"
+  - "^MERCHANT ID:"
+  - "^TERMINAL ID:"
+  - "^CLERK ID:"
+  - "^SALE"
+  - "^ENTRY METHOD:"
+  - "^DATE:"
+  - "^TIME:"
+  - "^INVOICE:"
+  - "^AUTH CODE:"
+  - "^REFERENCE:"
+  - "^\\$0\\.00$"  # Zero price lines (but keep F $ lines for total price extraction)
+
+# Item patterns (based on Gemini .docx format)
+item_patterns:
+  # Pattern 1: Quantity @ unit price line (product name is 1-2 lines before, total price is on following lines)
+  # Example: "10 @ $9.79ea." 
+  #   Product "TORNADO POTATO" is on line 11
+  #   This line is line 12
+  #   Total "F $97.90" is on line 20 (may be several lines later)
+  - type: "qty_price_line"
+    regex: "^(\\d+)\\s*@\\s*\\$(\\d+\\.\\d{2})\\s*(?:ea\\.|each)?\\s*$"
+    groups:
+      - quantity
+      - unit_price
+    description: "QTY @ $UNIT_PRICE (product name on previous lines, total price on following lines)"
+    field_mappings:
+      quantity: "quantity"
+      unit_price: "unit_price"
+    post_process:
+      clean_product_name: true
+      extract_uom: true
+    multiline_product_name: true
+    product_name_lines_before: 5  # Look further back to skip Chinese characters
+    # Also look for total price on following lines (may be several lines away)
+    total_price_from_next_lines: true
+    next_lines_regex: "^\\*?F\\s+\\$(\\d+\\.\\d{2})\\s*$"
+    next_lines_max: 15  # Look further ahead
+  
+  # Pattern 2: Total price line (F $XX.XX or *F $XX.XX) - use if no qty line found
+  # Example: "*F $2.25" or "F $97.90"
+  # Product name is 1-3 lines before
+  - type: "total_price_line"
+    regex: "^\\*?F\\s+\\$(\\d+\\.\\d{2})\\s*$"
+    groups:
+      - total_price
+    description: "F $TOTAL (product name on previous lines)"
+    field_mappings:
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      extract_uom: true
+    multiline_product_name: true
+    product_name_lines_before: 3
+
+# Total extraction patterns
+total_patterns:
+  subtotal: "(?:Subtotal|Sub total)\\s*:?\\s*\\$?(\\d+\\.\\d{2})"
+  tax: "Tax\\s*:?\\s*\\$?(\\d+\\.\\d{2})"
+  total: "Total\\s*:?\\s*\\$?(\\d+\\.\\d{2})"
+
+extract_transaction_date: true
+date_pattern: "(\\d{1,2})[/-](\\d{1,2})[/-](\\d{2,4})"
+

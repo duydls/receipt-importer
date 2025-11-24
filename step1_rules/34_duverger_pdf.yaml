@@ -1,0 +1,54 @@
+# Duverger PDF Layout Rules
+# Text-based PDF parsing rules for Duverger receipts
+
+vendor_name: "Duverger"
+parsed_by: "duverger_pdf_v1"
+extraction_method: "text"  # text-based PDF
+
+# Summary section keywords
+summary_keywords:
+  - "SUBTOTAL"
+  - "TOTAL"
+  - "SHIPPING"
+
+# Skip keywords (lines to ignore during item extraction)
+skip_keywords:
+  - "^Order #"
+  - "^Thanks for shopping"
+  - "^We have finished"
+  - "^Subtotal:"
+  - "^Shipping:"
+  # Note: "Product Quantity Price" is NOT skipped because items are on the same line
+
+# Item patterns
+item_patterns:
+  # Pattern: PRODUCT_NAME - CODE QTY $PRICE (can appear multiple times in one line)
+  # Example from .docx: "Product Quantity Price Boutique - Hazelnut Brittle - 332-72 1 $97.20 Boutique - Orange Truffle - 333-72 1 $97.20"
+  # Also supports single line format: "Boutique - Hazelnut Brittle  - 332-72 1 $97.20"
+  - type: "product_code_price"
+    regex: "Boutique\\s+-\\s+([^-]+?)\\s+-\\s+(\\d+-\\d+)\\s+(\\d+(?:\\.\\d+)?)\\s+\\$(\\d+\\.\\d{2})"
+    groups:
+      - product_name
+      - item_code
+      - quantity
+      - total_price
+    description: "PRODUCT_NAME - CODE QTY $PRICE (supports multiple items per line)"
+    field_mappings:
+      product_name: "product_name"
+      item_number: "item_code"
+      quantity: "quantity"
+      total_price: "total_price"
+    post_process:
+      clean_product_name: true
+      extract_uom: false
+    find_all: true  # Find all matches in the line, not just the first
+
+# Total extraction patterns
+total_patterns:
+  subtotal: "Subtotal:\\s*\\$?(\\d+\\.\\d{2})"
+  tax: "Tax:\\s*\\$?(\\d+\\.\\d{2})"
+  total: "Subtotal:\\s*\\$?(\\d+\\.\\d{2})"  # Use subtotal as total if no separate total line
+
+extract_transaction_date: true
+date_pattern: "(October|Oct|November|Nov|December|Dec)\\s+(\\d{1,2}),\\s+(\\d{4})"
+

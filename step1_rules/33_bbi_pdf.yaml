@@ -128,7 +128,7 @@ rule_sets:
       - "Extraction only; UoM vs Pack decision happens downstream using the baseline."
   
   mousse:
-    vendor_name: "UNI_Mousse"
+    vendor_name: "BOBA BARON INC"
     parsed_by: "mousse_pdf_v1"
     extraction_method: "regex"
     regex_flags: ["MULTILINE","UNICODE","DOTALL"]

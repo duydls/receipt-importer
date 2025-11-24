@@ -29,6 +29,7 @@ categories_l2:
       - beans
       - leaf
       - oolong
+    odoo_id: 56
   - id: C02
     name: Syrups
     description: Flavoring syrups and liquid sweeteners
@@ -48,8 +49,9 @@ categories_l2:
       - monin
       - flavor
       - flavoring
+    odoo_id: 69
   - id: C03
-    name: Jam/Purée
+    name: Jam & Puree
     description: Fruit jams, purées, and preserves
     examples:
     - Strawberry jam
@@ -67,6 +69,7 @@ categories_l2:
       - purée
       - preserve
       - compote
+    odoo_id: 86
   - id: C04
     name: Dairy & Milk
     description: Milk, cream, half-and-half, and dairy products
@@ -91,8 +94,9 @@ categories_l2:
       - almond milk
       - soy milk
     - department: Dairy
+    odoo_id: 57
   - id: C05
-    name: Sweeteners/Sugar
+    name: Sweeteners & Sugar
     description: Sugar, honey, agave, and other sweeteners
     examples:
     - White sugar, brown sugar
@@ -113,6 +117,7 @@ categories_l2:
       - stevia
       - sweetener
       - splenda
+    odoo_id: 62
   - id: C06
     name: Creamer & Powders
     description: Non-dairy creamers and powdered ingredients
@@ -128,6 +133,7 @@ categories_l2:
       - creamer
       - powdered
       - powder
+    odoo_id: 55
   - id: C07
     name: Grains & Starches
     description: Grains, flour, tapioca starch, and starchy ingredients
@@ -148,6 +154,7 @@ categories_l2:
       - grain
       - rice
       - tapioca starch
+    odoo_id: 88
   - id: C08
     name: Toppings & Jellies
     description: Bubble tea toppings, boba, jellies, and similar ingredients
@@ -178,6 +185,7 @@ categories_l2:
       - coconut jelly
       - grass jelly
       - aloe
+    odoo_id: 54
   - id: C09
     name: Fresh Fruit
     description: Fresh, non-frozen fruit
@@ -208,6 +216,7 @@ categories_l2:
       - canned
       - dried
       - freeze-dried
+    odoo_id: 63
   - id: C10
     name: Frozen Fruit
     description: Frozen fruit for smoothies and beverages
@@ -230,8 +239,90 @@ categories_l2:
       - mango
       - pineapple
       - banana
+    odoo_id: 64
+  - id: C100
+    name: Other Ingredients
+    description: Miscellaneous ingredients for R&D and product development
+    examples:
+    - Specialty ingredients
+    - Uncommon items
+    - R&D materials
+    synonyms:
+    - ingredient
+    - r&d
+    - research
+    vendor_hints:
+      title_contains: []
+    odoo_id: 83
+  - id: C101
+    name: Ramen Ingredients
+    description: Ramen noodles, toppings, and ingredients for ramen dishes
+    examples:
+    - Ramen noodles
+    - Soup bases (tonkotsu, miso, shoyu, shio)
+    - Tare, ma-yu (black garlic oil)
+    - Menma (bamboo shoots)
+    - Narutomaki, kamaboko (fish cake)
+    - Nori (seaweed)
+    - Chashu (pork belly)
+    synonyms:
+    - ramen ingredient
+    - ramen noodle
+    - noodle ramen
+    - shinuchi
+    - tonkotsu
+    - miso
+    - shoyu
+    - shio
+    - soup base
+    - ramen base
+    - tare
+    - ma yu
+    - mayu
+    - black garlic oil
+    - menma
+    - bamboo shoot
+    - seasoned bamboo
+    - marinated bamboo
+    - narutomaki
+    - kamaboko
+    - surimi
+    - fish cake
+    - nori
+    - roasted seaweed
+    - yaki nori
+    - chashu
+    - pork belly
+    vendor_hints:
+      title_contains:
+      - ramen
+      - noodle
+      - shinuchi
+      - tonkotsu
+      - miso
+      - shoyu
+      - shio
+      - tare
+      - ma-yu
+      - black
+      - garlic
+      - oil
+      - soup
+      - base
+      - menma
+      - bamboo
+      - narutomaki
+      - kamaboko
+      - surimi
+      - fish
+      - cake
+      - nori
+      - seaweed
+      - chashu
+      - belly
+    odoo_id: 67
   - id: C11
-    name: Canned/Processed Fruit
+    name: Canned & Processed Food
     description: Canned, jarred, or processed fruit
     examples:
     - Canned peaches
@@ -249,6 +340,7 @@ categories_l2:
       - fruit
       - peach
       - cocktail
+    odoo_id: 85
   - id: C12
     name: Seasonings & Marinades
     description: Seasonings, marinades, and flavoring ingredients
@@ -267,8 +359,59 @@ categories_l2:
       - seasoning
       - spice
       - flavoring
-  - id: C16
+    odoo_id: 70
+  - id: C13
+    name: Frozen Vegetables
+    description: Frozen vegetables
+    examples:
+    - Frozen peas, corn
+    - Frozen mixed vegetables
+    synonyms:
+    - frozen vegetable
+    vendor_hints:
+    - title_contains:
+      - frozen
+    - and_contains:
+      - vegetable
+      - peas
+      - corn
+      - broccoli
+      - mixed veg
+    odoo_id: 71
+  - id: C14
+    name: Meat & Seafood
+    description: Meat, poultry, and seafood (if applicable)
+    examples:
+    - Chicken, beef, pork
+    - Fish, shrimp
+    synonyms:
+    - meat
+    - seafood
+    - protein
+    vendor_hints:
+    - title_contains:
+      - chicken
+      - beef
+      - pork
+      - fish
+      - shrimp
+      - salmon
+      - tuna
+    - department: Meat
+    odoo_id: 58
+  - id: C15
     name: Fresh Vegetables
+    description: Miscellaneous ingredients not covered above
+    examples:
+    - Specialty ingredients
+    - Uncommon items
+    synonyms:
+    - ingredient
+    vendor_hints:
+    - title_contains: []
+    odoo_id: 68
+  - id: C16
+    name: Cooking Oils & Fats
     description: Fresh, non-frozen vegetables
     examples:
     - Fresh lettuce, spinach
@@ -288,9 +431,11 @@ categories_l2:
     - department: Produce
     - exclude:
       - frozen
+    odoo_id: 89
   - id: C17
-    name: Cooking Oils & Fats
-    description: Cooking oils and fats for food preparation (not shortening/cream liquid)
+    name: Retail Snacks & Beverages
+    description: Cooking oils and fats for food preparation (not shortening/cream
+      liquid)
     examples:
     - Vegetable oil, canola oil, soybean oil
     - Olive oil, sunflower oil, corn oil
@@ -324,55 +469,155 @@ categories_l2:
       - shortening
       - cream liquid
       - SHRT CRM
-  - id: C13
-    name: Frozen Vegetables
-    description: Frozen vegetables
+    odoo_id: 61
+  - id: C18
+    name: Dough & Pancake & Noodle
+    description: Dough, pancake mixes, and noodle ingredients
     examples:
-    - Frozen peas, corn
-    - Frozen mixed vegetables
+    - Dough mixes
+    - Pancake mix
+    - Noodle ingredients
+    - Pasta dough
     synonyms:
-    - frozen vegetable
+    - dough
+    - pancake
+    - noodle
+    - pasta
+    vendor_hints:
+      title_contains:
+      - dough
+      - pancake
+      - noodle
+      - pasta
+      - mix
+    odoo_id: 106
+  - id: C20
+    name: Ice Cream
+    description: Finished cakes, mousses, and baked goods
+    examples:
+    - Cakes, cheesecakes
+    - Mousses, mousse cakes
+    - Baked desserts
+    synonyms:
+    - cake
+    - cheesecake
+    - mousse
+    - baked
+    vendor_hints:
+    - title_contains:
+      - cake
+      - cheesecake
+      - mousse
+      - baked
+    odoo_id: 81
+  - id: C21
+    name: Frozen Snacks
+    description: Frozen prepared snacks and appetizers
+    examples:
+    - Frozen corn dogs
+    - Frozen appetizers
+    - Frozen prepared snacks
+    synonyms:
+    - frozen snack
+    - prepared snack
+    - appetizer
     vendor_hints:
     - title_contains:
       - frozen
-    - and_contains:
-      - vegetable
-      - peas
-      - corn
-      - broccoli
-      - mixed veg
-  - id: C14
-    name: Meat & Seafood
-    description: Meat, poultry, and seafood (if applicable)
+      - snack
+      - appetizer
+      - corn dog
+    odoo_id: 60
+  - id: C22
+    name: Cakes & Mousse
+    description: Straws, utensils, napkins (customer-facing), and other packaging
     examples:
-    - Chicken, beef, pork
-    - Fish, shrimp
+    - Straws (plastic, paper, metal)
+    - Spoons, forks, knives
+    - Napkins (for customers)
+    - Stirrers
+    - Cup holders, carriers
     synonyms:
-    - meat
-    - seafood
-    - protein
+    - straw
+    - utensil
+    - spoon
+    - fork
+    - napkin
+    - stirrer
+    - holder
     vendor_hints:
     - title_contains:
-      - chicken
-      - beef
-      - pork
-      - fish
-      - shrimp
-      - salmon
-      - tuna
-    - department: Meat
-  - id: C15
-    name: Other Ingredients
-    description: Miscellaneous ingredients not covered above
+      - straw
+      - utensil
+      - spoon
+      - fork
+      - knife
+      - napkin
+      - stirrer
+      - holder
+    odoo_id: 59
+  - id: C23
+    name: Macaron
+    description: Labels, stickers, and branding materials
     examples:
-    - Specialty ingredients
-    - Uncommon items
+    - Product labels
+    - Stickers
+    - Branding materials
     synonyms:
-    - ingredient
+    - label
+    - sticker
     vendor_hints:
-    - title_contains: []
+    - title_contains:
+      - label
+      - sticker
+      - barcode
+    odoo_id: 87
+  - id: C30
+    name: Utensils & Misc Packaging
+    description: Paper products used in service area
+    examples:
+    - Paper towels (service area)
+    - Napkins (bulk, non-customer)
+    synonyms:
+    - paper towel
+    - towel
+    vendor_hints:
+    - title_contains:
+      - paper towel
+      - towel
+      - tissue
+    odoo_id: 73
+  - id: C31
+    name: Labels & Stickers
+    description: Food service gloves and disposable supplies
+    examples:
+    - Food service gloves
+    - Foil, plastic wrap
+    synonyms:
+    - glove
+    - foil
+    - wrap
+    vendor_hints:
+    - title_contains:
+      - glove
+      - foil
+      - wrap
+      - film
+    odoo_id: 75
+  - id: C32
+    name: Food Containers & Boxes
+    description: Filters and other disposable service items
+    examples:
+    - Coffee filters
+    - Tea filters
+    synonyms:
+    - filter
+    vendor_hints:
+    - title_contains:
+      - filter
+    odoo_id: 84
   - id: C33
-    name: Retail Snacks & Beverages
+    name: Cups & Lids & Film & Straw
     description: Pre-packaged snacks and beverages for resale (not ingredients)
     examples:
     - Cookies, biscuits, candy, chocolate bars
@@ -401,162 +646,9 @@ categories_l2:
     notes:
     - Use this for items purchased for resale, not for ingredient use
     - Examples: Lotus Biscoff cookies, candy bars, packaged snacks
-  - id: C20
-    name: Cakes & Mousse
-    description: Finished cakes, mousses, and baked goods
-    examples:
-    - Cakes, cheesecakes
-    - Mousses, mousse cakes
-    - Baked desserts
-    synonyms:
-    - cake
-    - cheesecake
-    - mousse
-    - baked
-    vendor_hints:
-    - title_contains:
-      - cake
-      - cheesecake
-      - mousse
-      - baked
-  - id: C22
-    name: Utensils & Misc Packaging
-    description: Straws, utensils, napkins (customer-facing), and other packaging
-    examples:
-    - Straws (plastic, paper, metal)
-    - Spoons, forks, knives
-    - Napkins (for customers)
-    - Stirrers
-    - Cup holders, carriers
-    synonyms:
-    - straw
-    - utensil
-    - spoon
-    - fork
-    - napkin
-    - stirrer
-    - holder
-    vendor_hints:
-    - title_contains:
-      - straw
-      - utensil
-      - spoon
-      - fork
-      - knife
-      - napkin
-      - stirrer
-      - holder
-  - id: C23
-    name: Labels & Stickers
-    description: Labels, stickers, and branding materials
-    examples:
-    - Product labels
-    - Stickers
-    - Branding materials
-    synonyms:
-    - label
-    - sticker
-    vendor_hints:
-    - title_contains:
-      - label
-      - sticker
-      - barcode
-  - id: C21
-    name: Frozen Snacks
-    description: Frozen prepared snacks and appetizers
-    examples:
-    - Frozen corn dogs
-    - Frozen appetizers
-    - Frozen prepared snacks
-    synonyms:
-    - frozen snack
-    - prepared snack
-    - appetizer
-    vendor_hints:
-    - title_contains:
-      - frozen
-      - snack
-      - appetizer
-      - corn dog
-  - id: C24
-    name: Bags & Trays
-    description: Bags, trays, boxes, and containers
-    examples:
-    - Plastic bags, paper bags
-    - Food trays
-    - To-go boxes
-    synonyms:
-    - bag
-    - tray
-    - box
-    - container
-    vendor_hints:
-    - title_contains:
-      - bag
-      - tray
-      - box
-      - container
-      - carton
-  - id: C26
-    name: Cups & Lids
-    description: Beverage cups, lids, and sleeves
-    examples:
-    - Plastic cups, paper cups
-    - Dome lids, flat lids
-    - Cup sleeves
-    synonyms:
-    - cup
-    - lid
-    - sleeve
-    vendor_hints:
-    - title_contains:
-      - cup
-      - lid
-      - sleeve
-      - tumbler
-  - id: C30
-    name: Napkins & Paper Products (service)
-    description: Paper products used in service area
-    examples:
-    - Paper towels (service area)
-    - Napkins (bulk, non-customer)
-    synonyms:
-    - paper towel
-    - towel
-    vendor_hints:
-    - title_contains:
-      - paper towel
-      - towel
-      - tissue
-  - id: C31
-    name: Gloves & Food Service Supplies
-    description: Food service gloves and disposable supplies
-    examples:
-    - Food service gloves
-    - Foil, plastic wrap
-    synonyms:
-    - glove
-    - foil
-    - wrap
-    vendor_hints:
-    - title_contains:
-      - glove
-      - foil
-      - wrap
-      - film
-  - id: C32
-    name: Filters & Disposables
-    description: Filters and other disposable service items
-    examples:
-    - Coffee filters
-    - Tea filters
-    synonyms:
-    - filter
-    vendor_hints:
-    - title_contains:
-      - filter
+    odoo_id: 72
   - id: C40
-    name: Smallwares & Equipment
+    name: Gloves & Food Service Supplies
     description: Small equipment, tools, and kitchen supplies
     examples:
     - Kitchen utensils
@@ -584,30 +676,9 @@ categories_l2:
       - tray
       - aluminum tray
       - baking tray
-  - id: C41
-    name: Countertop Organizers & Holders
-    description: Countertop organizers, cup holders, condiment caddies, and similar
-      fixtures
-    examples:
-    - 4-cup holders
-    - Countertop cup/condiment organizers
-    - Dispenser racks and caddies
-    synonyms:
-    - organizer
-    - countertop organizer
-    - cup holder
-    - 4-cup holder
-    - caddy
-    - dispenser rack
-    vendor_hints:
-    - title_contains:
-      - countertop organizer
-      - cup holder
-      - 4-cup holder
-      - caddy
-      - dispenser rack
+    odoo_id: 74
   - id: C50
-    name: Cleaning & Chemicals
+    name: Smallwares & Equipment
     description: Cleaning supplies, detergents, and chemicals
     examples:
     - Detergent, sanitizer
@@ -633,8 +704,9 @@ categories_l2:
       - brush
       - trash bag
       - garbage bag
+    odoo_id: 65
   - id: C60
-    name: Office/Admin/Uniform
+    name: Cleaning & Chemicals
     description: Office supplies, administrative items, and uniforms
     examples:
     - Paper, pens, markers
@@ -668,8 +740,9 @@ categories_l2:
       - apron
       - shirt
       - apparel
+    odoo_id: 77
   - id: C61
-    name: POS Paper & Register Supplies
+    name: Sanitizer &Disinfectant Test Strips
     description: Point-of-sale thermal paper, register tapes, and related POS consumables
     examples:
     - Thermal receipt paper rolls
@@ -691,8 +764,9 @@ categories_l2:
       - pos paper
       - pos roll
       - receipt roll
+    odoo_id: 78
   - id: C70
-    name: Taxes & Fees
+    name: Office & Admin & Uniform
     description: Sales tax and regulatory fees
     examples:
     - Sales tax
@@ -706,42 +780,9 @@ categories_l2:
     - title_contains:
       - tax
       - fee
-  - id: "C71"
-    name: "Ramen Ingredients｜拉面原料"
-    description: "拉面核心与配料：面条、汤底/酱（tare/ma-yu/黑蒜油）、海苔、腌制竹笋、鱼板/鱼糜、叉烧等"
-    synonyms:
-    - ramen ingredient
-    - ramen noodle
-    - noodle ramen
-    - shinuchi
-    - tonkotsu
-    - miso
-    - shoyu
-    - shio
-    - soup base
-    - ramen base
-    - tare
-    - ma yu
-    - mayu
-    - black garlic oil
-    - menma
-    - bamboo shoot
-    - seasoned bamboo
-    - marinated bamboo
-    - narutomaki
-    - kamaboko
-    - surimi
-    - fish cake
-    - nori
-    - roasted seaweed
-    - yaki nori
-    - chashu
-    - pork belly
-    vendor_hints:
-      - title_contains: ["ramen","noodle","shinuchi","tonkotsu","miso","shoyu","shio","tare","ma-yu","black","garlic","oil","soup","base","menma","bamboo","narutomaki","kamaboko","surimi","fish","cake","nori","seaweed","chashu","belly"]
-    notes: "Vendor-specific: Wismettac only. Use classification overrides for vendor restriction."
+    odoo_id: 82
   - id: C80
-    name: Shipping/Delivery
+    name: Taxes
     description: Shipping and delivery charges
     examples:
     - Shipping charges
@@ -759,136 +800,73 @@ categories_l2:
       - freight
       - handling
       - postal
-  - id: C85
-    name: Tips/Gratuities
-    description: Tips for shoppers and drivers
+    odoo_id: 79
+  - id: C81
+    name: Service Fees
+    description: Service fees and processing charges
+    examples:
+    - Instacart service fee
+    - Processing fee
+    - Convenience fee
+    synonyms:
+    - service fee
+    - processing fee
+    - convenience fee
+    vendor_hints:
+      is_fee: true
+      title_contains:
+      - service fee
+      - processing fee
+      - convenience fee
+    odoo_id: 90
+  - id: C82
+    name: Tips
+    description: Tips and gratuities for shoppers and drivers
     examples:
     - Instacart shopper tip
     - Driver tip
+    - Gratuity
     synonyms:
     - tip
     - gratuity
+    - shopper tip
+    - driver tip
     vendor_hints:
-    - is_fee: true
-    - title_contains:
+      is_fee: true
+      title_contains:
       - tip
       - gratuity
+      - shopper tip
+      - driver tip
+    odoo_id: 80
   - id: C90
-    name: Licenses/Services
-    description: Software, licenses, and professional services
+    name: Shipping & Delivery
+    description: Shipping charges and delivery fees
     examples:
-    - Software subscription
-    - Professional services
+    - Shipping charges
+    - Delivery fee
+    - Freight
+    - Handling fees
     synonyms:
-    - license
-    - service
-    - subscription
+    - shipping
+    - delivery
+    - freight
+    - handling
     vendor_hints:
-    - title_contains:
-      - license
-      - subscription
-      - service
-  - id: C91
-    name: Repairs/Maintenance
-    description: Equipment repairs and maintenance
-    examples:
-    - Equipment repair
-    - Maintenance parts
-    synonyms:
-    - repair
-    - maintenance
-    vendor_hints:
-    - title_contains:
-      - repair
-      - maintenance
-      - part
-  - id: C92
-    name: Marketing
-    description: Marketing and promotional materials
-    examples:
-    - Promotional items
-    - Marketing supplies
-    synonyms:
-    - marketing
-    - promotion
-    vendor_hints:
-    - title_contains:
-      - marketing
-      - promo
-      - advertising
-  - id: C95
-    name: Discounts/Promos
-    description: Discounts, promotions, and rebates (typically negative amounts)
-    examples:
-    - Item promotions
-    - Shipping discounts
-    - Coupons
-    synonyms:
-    - discount
-    - promotion
-    - promo
-    - coupon
-    vendor_hints:
-    - is_fee: true
-    - title_contains:
-      - discount
-      - promo
-      - promotion
-      - coupon
-      - rebate
-    - negative_amount: true
-  - id: C99
-    name: Unknown
-    description: Unclassified items requiring manual review
-    examples:
-    - Items that don't match any category
-    synonyms:
-    - unknown
-    - unclassified
-    vendor_hints:
-    - title_contains: []
+      is_fee: true
+      title_contains:
+      - shipping
+      - delivery
+      - freight
+      - handling
+      - postal
+    odoo_id: 76
+  - id: C110
+    name: Events Gifts
+    odoo_id: 108
+    description: Category C110 from Odoo database
 notes:
 - L2 categories are operational and can be extended as needed
 - Each L2 maps to exactly one L1 via 55_categories_l1.yaml
 - vendor_hints provide guidance for automatic classification
 - Synonyms help with fuzzy matching and keyword search
-C20:
-  name: Cups & Lids
-C21:
-  name: Carriers / Trays
-C22:
-  name: Straws & Stirrers
-C23:
-  name: Napkins & Tissue
-C24:
-  name: Food Containers & Lids
-C25:
-  name: Bags
-C26:
-  name: Gloves / Apparel
-C27:
-  name: Labels & Stickers
-C28:
-  name: Film & Foil
-C29:
-  name: Other Disposables
-C30:
-  name: Cakes & Mousse
-C80:
-  name: Bag Tax
-C81:
-  name: Sales/Use Tax
-C89:
-  name: Other Government Fees
-C90:
-  name: Shipping / Delivery Charges
-C91:
-  name: Postage / Courier
-C100:
-  name: Tips / Gratuities
-C110:
-  name: Service Fees
-C111:
-  name: Memberships & Subscriptions
-C99:
-  name: Unknown

@@ -45,15 +45,21 @@ def get_db_password() -> str:
 
 
 def connect_to_database() -> Optional[object]:
-    """Connect to Odoo database"""
+    """
+    Connect to Odoo database using READ-ONLY user.
+    
+    Uses readonly user 'odooreader' by default to ensure read-only access.
+    Connection details can be overridden via environment variables or .env file.
+    """
     if not PSYCOPG2_AVAILABLE:
         print("ERROR: psycopg2 not available. Please install: pip install psycopg2-binary")
         return None
     
     try:
         # Get connection details from environment or .env file
+        # Default to readonly user 'odooreader' for safety
         host = os.environ.get('ODOO_DB_HOST', 'uniuniuptown.shop')
-        user = os.environ.get('ODOO_DB_USER', 'odooreader')
+        user = os.environ.get('ODOO_DB_USER', 'odooreader')  # READ-ONLY user by default
         database = os.environ.get('ODOO_DB_NAME', 'odoo')
         port = int(os.environ.get('ODOO_DB_PORT', '5432'))
         
@@ -82,6 +88,12 @@ def connect_to_database() -> Optional[object]:
                 pass
         
         password = get_db_password()
+        
+        # Log connection details (without password)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Connecting to database as readonly user: {user}@{host}:{port}/{database}")
+        
         conn = psycopg2.connect(
             host=host,
             user=user,
@@ -89,6 +101,13 @@ def connect_to_database() -> Optional[object]:
             database=database,
             port=port
         )
+        
+        # Verify we're using readonly user (log warning if not)
+        if user != 'odooreader' and 'read' not in user.lower() and 'readonly' not in user.lower():
+            logger.warning(f"Using non-readonly user '{user}'. Consider using 'odooreader' for safety.")
+        else:
+            logger.info(f"✓ Connected to database as readonly user: {user}")
+        
         return conn
     except Exception as e:
         print(f"ERROR: Failed to connect to database: {e}")

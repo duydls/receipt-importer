@@ -109,6 +109,39 @@ vendor_detection:
       source_type: "odoo_based"
       confidence: 0.95
   
+    duverger:
+      patterns:
+        - "duverger"
+      vendor_code: "DUVERGER"
+      source_type: "localgrocery_based"
+      confidence: 0.90
+    
+    foodservicedirect:
+      patterns:
+        - "foodservicedirect"
+        - "food service direct"
+        - "foodservicedirect.com"
+      vendor_code: "FOODSERVICEDIRECT"
+      source_type: "localgrocery_based"
+      confidence: 0.90
+    
+    pike_global_foods:
+      patterns:
+        - "pike global foods"
+        - "pikeglobalfoods"
+        - "pike global"
+      vendor_code: "PIKE_GLOBAL_FOODS"
+      source_type: "localgrocery_based"
+      confidence: 0.85
+    
+    vendor_88:
+      patterns:
+        - "88_"
+        - "^88"
+      vendor_code: "88"
+      source_type: "localgrocery_based"
+      confidence: 0.70
+  
   # Vendor identifiers by receipt content keywords
   content_keywords:
     costco:
@@ -197,6 +230,32 @@ vendor_detection:
       vendor_code: "ODOO"
       source_type: "odoo_based"
       confidence: 0.85
+    
+    duverger:
+      keywords:
+        - "duverger"
+        - "thanks for shopping with us"
+      vendor_code: "DUVERGER"
+      source_type: "localgrocery_based"
+      confidence: 0.85
+    
+    foodservicedirect:
+      keywords:
+        - "foodservicedirect"
+        - "food service direct"
+        - "foodservicedirect.com"
+        - "food service direct logistics"
+      vendor_code: "FOODSERVICEDIRECT"
+      source_type: "localgrocery_based"
+      confidence: 0.85
+    
+    pike_global_foods:
+      keywords:
+        - "pike global foods"
+        - "pike global"
+      vendor_code: "PIKE_GLOBAL_FOODS"
+      source_type: "localgrocery_based"
+      confidence: 0.80
   
   # Fallback detection
   fallback:

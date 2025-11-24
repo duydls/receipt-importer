@@ -1,0 +1,113 @@
+# FoodServiceDirect PDF Layout Rules
+# Table-based PDF parsing rules for FoodServiceDirect invoice format
+
+vendor_name: "FoodServiceDirect"
+parsed_by: "foodservicedirect_pdf_v1"
+extraction_method: "text"  # text-based PDF (invoice format)
+
+# Summary section keywords (must be more specific to avoid matching headers)
+# Note: In .docx format, totals are on same line as item data, so be careful
+summary_keywords:
+  - "^Subtotal:\\s*\\$"      # Must start with "Subtotal: $"
+  - "^Tax:\\s*\\$"           # Must start with "Tax: $"
+  - "^Cold Pack Fee:\\s*\\$" # Must start with "Cold Pack Fee: $"
+  - "^Grand Total:\\s*\\$"   # Must start with "Grand Total: $"
+  - "^Shipping & Handling:\\s*\\$"  # Shipping fee line
+
+# Exclude these from triggering summary detection (false positives)
+summary_exclude_keywords:
+  - "Shipping Method"  # Don't treat "Shipping Method:" as summary start
+  - "Payment Method"   # Don't treat "Payment Method:" as summary start
+  - "Products"         # Don't treat header line as summary
+
+# Skip keywords (lines to ignore during item extraction)
+skip_keywords:
+  - "^Order #"
+  - "^Order Date:"
+  - "^Sold to:"
+  - "^Ship to:"
+  - "^Payment Method:"
+  - "^Shipping Method:"
+  - "^Products\\s+SKU"  # Header line
+  - "^Subtotal:"
+  - "^Tax:"
+  - "^Cold Pack Fee:"
+  - "^Shipping & Handling:"
+  - "^Grand Total:"
+  - "Food Service Direct Logistics"
+  - "^Additional Information"
+  - "^Invoice #"
+
+# Item patterns
+item_patterns:
+  # Pattern 1: SKU $UNIT_PRICE QTY $TAX (from .docx format)
+  # Product name is on earlier lines (after header, before payment info)
+  # Example line 14: "21295818 $138.18 4 $5.53"
+  # Example lines 6-8: "Bridor Raw Butter Straight\nCroissant, 2.75 Ounce -- 160 per\ncase"
+  - type: "table_row_item"
+    regex: "^(\\d{8,})\\s+\\$(\\d+\\.\\d{2})\\s+(\\d+)\\s+\\$(\\d+\\.\\d{2})\\s*$"
+    groups:
+      - sku
+      - unit_price
+      - quantity
+      - tax
+    description: "SKU $UNIT_PRICE QTY $TAX (.docx format)"
+    field_mappings:
+      item_number: "sku"
+      quantity: "quantity"
+      unit_price: "unit_price"
+      item_tax: "tax"
+    post_process:
+      clean_product_name: true
+      extract_uom: true
+      uom_patterns:
+        - "per\\s+case"  # Extract "160 per case" -> unit_size=160, purchase_uom=case
+        - "(\\d+)\\s+per\\s+(case|pack|box)"
+    multiline_product_name: true  # Product name appears on earlier lines
+    product_name_lines_before: 10  # Check up to 10 lines before (to find product name after header)
+    product_name_search_backward: true  # Search backward from item line, skipping non-product lines
+  
+  # Pattern 2: PRODUCT_NAME SKU $UNIT_PRICE QTY $TAX $TOTAL (from PDF format)
+  # Product name may continue on next 1-2 lines
+  # Example line 17: "Bridor Raw Butter Straight   21295818        $138.18  4     $5.53   $552.72"
+  - type: "table_row_item"
+    regex: "^(.+?)\\s+(\\d{8,})\\s+\\$(\\d+\\.\\d{2})\\s+(\\d+)\\s+\\$(\\d+\\.\\d{2})\\s+\\$(\\d+\\.\\d{2})\\s*$"
+    groups:
+      - product_name
+      - sku
+      - unit_price
+      - quantity
+      - tax
+      - total_price
+    description: "PRODUCT_NAME SKU $UNIT_PRICE QTY $TAX $TOTAL (PDF format)"
+    field_mappings:
+      product_name: "product_name"
+      item_number: "sku"
+      quantity: "quantity"
+      unit_price: "unit_price"
+      total_price: "total_price"
+      item_tax: "tax"
+    post_process:
+      clean_product_name: true
+      extract_uom: true
+      uom_patterns:
+        - "per\\s+case"
+        - "(\\d+)\\s+per\\s+(case|pack|box)"
+    multiline_product_name: true
+    product_name_lines_after: 2
+
+# Total extraction patterns
+total_patterns:
+  subtotal: "Subtotal:\\s*\\$?(\\d+\\.\\d{2})"
+  tax: "Tax:\\s*\\$?(\\d+\\.\\d{2})"
+  total: "Grand Total:\\s*\\$?(\\d+\\.\\d{2})"
+
+# Fee extraction (separate from items)
+fee_keywords:
+  - "Cold Pack Fee"
+  - "Shipping & Handling"
+  - "Shipping"
+
+extract_transaction_date: true
+date_pattern: "(Oct|October|Nov|November|Dec|December)\\s+(\\d{1,2}),\\s+(\\d{4})"
+

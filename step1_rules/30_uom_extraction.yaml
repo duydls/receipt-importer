@@ -58,14 +58,18 @@ uom_extraction:
         - '(\d+/\d+\s*(?:LB|Lb|lb|KG|Kg|kg))'  # RD: "6/5LB" (6 cases × 5 lb)
         - '(\d+(?:\.\d+)?\s*(?:LB|Lb|lb|OZ|Oz|oz|GAL|Gal|gal|QT|Qt|qt|PC|Pc|pc|PKG|Pkg|pkg|PK|Pk|pk|CT|Ct|ct|EA|Ea|ea|EACH|Each|each|UNIT|Unit|unit|UNITS|Units|units|KG|Kg|kg|G|g))'  # Standard units (case-insensitive, allows decimal)
         - 'Pack\s+of\s+(\d+)'  # Amazon: "Pack of 12"
-        - '(\d+)[\s-]?(?:Count|count|ct|CT)'  # Amazon: "12-Count", "42 Count", "6-ct"
-        - '(\d+)\s+(?:Pack|pk|PK|packs?)'  # Amazon: "3 Pack", "6 pk"
-        - '(\d+)\s+(?:Rolls?|rolls?)'  # Amazon: "24 Rolls"
+        - '(\d+(?:\.\d+)?)[\s-]?(?:Count|count|ct|CT)'  # Amazon: "12-Count", "42 Count", "6-ct", "12 Count"
+        - '(\d+(?:\.\d+)?)\s+(?:Pack|pk|PK|packs?)'  # Amazon: "3 Pack", "6 pk"
+        - '(\d+(?:\.\d+)?)\s+(?:Rolls?|rolls?)'  # Amazon: "24 Rolls"
         - 'Case\s+of\s+(\d+)'  # Amazon: "Case of 6"
-        - '(\d+)\s+(?:Gallon|gallon|Qt|qt|Pt|pt|quart|pint)'  # Amazon: "1 Gallon", "2 Qt"
+        - '(\d+(?:\.\d+)?)\s+(?:Gallon|gallon|Qt|qt|Pt|pt|quart|pint)'  # Amazon: "1 Gallon", "2 Qt"
         - 'Refill\s+(\d+)\s+ct'  # Amazon: "Refill 100 ct"
-        - '(\d+)\s+(?:pairs?|pair)'  # Amazon: "3 pairs", "1 pair"
+        - '(\d+(?:\.\d+)?)\s+(?:pairs?|pair)'  # Amazon: "3 pairs", "1 pair"
         - 'Granulated\s+(\d+\s+Lb)'  # Jewel-Osco: "Sugar Granulated 10 Lb"
+        - '(\d+(?:\.\d+)?)\s+(?:Sheets?|sheets?|sheet)'  # "500 Sheets", "500 sheets"
+        - '(\d+(?:\.\d+)?)\s+(?:Pcs?|pcs?|pieces?|piece)'  # "1500 Pcs", "1500 pcs"
+        - '(\d+(?:\.\d+)?)\s+(?:Pounds?|pounds?|lbs?|lb)\b'  # "2.5 Pounds", "2.5 lbs"
+        - '(\d+)\s+(?:Ream|ream|reams?)\s*,\s*\((\d+)\s*(?:Sheets?|sheets?|sheet)\)'  # "1 Ream, (500 Sheets)"
       field_mapping: "raw_size_text"  # Extract as raw_size_text
     
     # Separate size line (for PDFs)
