@@ -1,0 +1,6194 @@
+{
+  "products": {
+    "1": {
+      "name": "Powder Raw Brown Sugar",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "2": {
+      "name": "Tapioca Brown Sugar",
+      "default_uom_id": 29,
+      "default_uom_name": {
+        "en_US": "3kg-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "3": {
+      "name": "Powder Creamer",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "4": {
+      "name": "Tea Assam Black",
+      "default_uom_id": 33,
+      "default_uom_name": {
+        "en_US": "50g*12-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "5": {
+      "name": "Assam Milk Tea Batch",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "6": {
+      "name": "Brown Sugar Tapioca Batch",
+      "default_uom_id": 42,
+      "default_uom_name": {
+        "en_US": "7L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "7": {
+      "name": "Syrup Brown Sugar",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "9": {
+      "name": "Ancient Brown Sugar Milk Tea with Tapioca (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "10": {
+      "name": "Uni 700 Black Clear 90",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "11": {
+      "name": "Uni 500 Black Clear 90",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "12": {
+      "name": "Uni Lids",
+      "default_uom_id": 88,
+      "default_uom_name": {
+        "en_US": "50-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "13": {
+      "name": "Uni Straws",
+      "default_uom_id": 89,
+      "default_uom_name": {
+        "en_US": "100-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "14": {
+      "name": "Tea A1 Jasmine Green",
+      "default_uom_id": 33,
+      "default_uom_name": {
+        "en_US": "50g*12-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "15": {
+      "name": "Tea Jasmine Green",
+      "default_uom_id": 33,
+      "default_uom_name": {
+        "en_US": "50g*12-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "16": {
+      "name": "Syrup Lychee",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "17": {
+      "name": "Jam Peach",
+      "default_uom_id": 43,
+      "default_uom_name": {
+        "en_US": "4.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "18": {
+      "name": "Jelly Lychee",
+      "default_uom_id": 45,
+      "default_uom_name": {
+        "en_US": "3.8kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "19": {
+      "name": "Jelly Mango Star",
+      "default_uom_id": 45,
+      "default_uom_name": {
+        "en_US": "3.8kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "20": {
+      "name": "Lychee Peach Mixed Syrup",
+      "default_uom_id": 46,
+      "default_uom_name": {
+        "en_US": "1.5kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "21": {
+      "name": "Iced Jasmine Green Tea Batch",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "22": {
+      "name": "Can Lychees",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "23": {
+      "name": "Lime",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "24": {
+      "name": "Lychee Peach Jasmine Green Tea with Lychee & Mango Jelly (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "25": {
+      "name": "Syrup Dragon Fruit",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "26": {
+      "name": "Fructose",
+      "default_uom_id": 47,
+      "default_uom_name": {
+        "en_US": "25kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "27": {
+      "name": "Tea Ceylon Black",
+      "default_uom_id": 48,
+      "default_uom_name": {
+        "en_US": "10g*100-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "28": {
+      "name": "Black Tea Milk Tea Batch",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "29": {
+      "name": "Uni Signature Milk Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "30": {
+      "name": "Uni Signature Milk Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "31": {
+      "name": "FZ Mango Chunks",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "32": {
+      "name": "Jam Mango",
+      "default_uom_id": 43,
+      "default_uom_name": {
+        "en_US": "4.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "33": {
+      "name": "Mango Puree",
+      "default_uom_id": 83,
+      "default_uom_name": {
+        "en_US": "3.68kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "34": {
+      "name": "Mango Smoothie (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "35": {
+      "name": "Jam Strawberry",
+      "default_uom_id": 43,
+      "default_uom_name": {
+        "en_US": "4.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "36": {
+      "name": "FZ Strawberry Chunks",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "37": {
+      "name": "Strawberry Puree",
+      "default_uom_id": 84,
+      "default_uom_name": {
+        "en_US": "2.7kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "38": {
+      "name": "Strawberry",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "39": {
+      "name": "Syrup Orange",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "40": {
+      "name": "Crystal Boba Original (1kg)",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "41": {
+      "name": "Strawberry Orange Jasmine Green Tea with Crystal Boba (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "42": {
+      "name": "Can Taro",
+      "default_uom_id": 44,
+      "default_uom_name": {
+        "en_US": "3.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "43": {
+      "name": "Taro Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "44": {
+      "name": "Taro Paste",
+      "default_uom_id": 49,
+      "default_uom_name": {
+        "en_US": "1.8kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "45": {
+      "name": "Taro Smoothie (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "46": {
+      "name": "Assam Milk Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "47": {
+      "name": "Assam Milk Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "48": {
+      "name": "Jam Pineapple",
+      "default_uom_id": 43,
+      "default_uom_name": {
+        "en_US": "4.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "49": {
+      "name": "Syrup Pineapple",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "50": {
+      "name": "FZ Pineapple Chunks",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "51": {
+      "name": "Pineapple",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "52": {
+      "name": "Pineapple Puree",
+      "default_uom_id": 69,
+      "default_uom_name": {
+        "en_US": "1.55kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "53": {
+      "name": "Pineapple PassionFruit Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "54": {
+      "name": "Powder Coconut",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "55": {
+      "name": "Coconut Taro Latte with Milk Mochi (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "56": {
+      "name": "Whole Milk",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "57": {
+      "name": "Lemon",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "58": {
+      "name": "Orange",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "59": {
+      "name": "Grapefruit",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "60": {
+      "name": "Uni Fruit Combo Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "61": {
+      "name": "Syrup Grapefruit",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "62": {
+      "name": "Jam Passionfruit",
+      "default_uom_id": 43,
+      "default_uom_name": {
+        "en_US": "4.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "64": {
+      "name": "Powder Cheese Float",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "66": {
+      "name": "Heavy Cream",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "67": {
+      "name": "Cheese Foam",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "68": {
+      "name": "Grapefruit Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "69": {
+      "name": "Powder Mochi",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "70": {
+      "name": "Milk Mochi",
+      "default_uom_id": 29,
+      "default_uom_name": {
+        "en_US": "3kg-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "71": {
+      "name": "Matcha Latte with Milk Mochi (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "72": {
+      "name": "Matcha Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "73": {
+      "name": "Navel Orange Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "74": {
+      "name": "Jasmine Green Tea Latte (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "75": {
+      "name": "Jasmine Green Tea Latte (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "77": {
+      "name": "Syrup Yogurt Premium",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "78": {
+      "name": "Oolong Premium",
+      "default_uom_id": 33,
+      "default_uom_name": {
+        "en_US": "50g*12-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "79": {
+      "name": "Premium Yulu Oolong Tea Batch",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "80": {
+      "name": "Yulu Oolong Milk Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "81": {
+      "name": "Yulu Oolong Milk Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "82": {
+      "name": "Tapioca Pearl (white)",
+      "default_uom_id": 52,
+      "default_uom_name": {
+        "en_US": "400g",
+        "zh_CN": "400g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "83": {
+      "name": "Sago batch",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "84": {
+      "name": "Can Coconut Cream",
+      "default_uom_id": 52,
+      "default_uom_name": {
+        "en_US": "400g",
+        "zh_CN": "400g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "85": {
+      "name": "Mango Pomelo Slush with Sago (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "86": {
+      "name": "Red Grapefruit in Syrup",
+      "default_uom_id": 46,
+      "default_uom_name": {
+        "en_US": "1.5kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "87": {
+      "name": "Lemon Sour Mix",
+      "default_uom_id": 10,
+      "default_uom_name": {
+        "en_US": "L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "88": {
+      "name": "Strawberry Lemon Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "89": {
+      "name": "Coconut Taro Slush With Sago (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "90": {
+      "name": "Watermelon",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "91": {
+      "name": "Peach Watermelon Jasmine Green Tea Yakult (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "92": {
+      "name": "Thai Tea Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "93": {
+      "name": "Thai Iced Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "94": {
+      "name": "Thai Iced Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "95": {
+      "name": "Green Grape",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "96": {
+      "name": "Syrup White Grape",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "97": {
+      "name": "Can Aloe",
+      "default_uom_id": 29,
+      "default_uom_name": {
+        "en_US": "3kg-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "98": {
+      "name": "Crystal White Grape with Aloe (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "99": {
+      "name": "White Grape Lemon Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "100": {
+      "name": "Oreo Crumbs",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "101": {
+      "name": "Oreo Smoothie with Oreo Cheese Foam (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "102": {
+      "name": "Fat Milk Coffee",
+      "default_uom_id": 85,
+      "default_uom_name": {
+        "en_US": "5-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "103": {
+      "name": "Lovebirds Tea with Coffee & Tapioca (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "104": {
+      "name": "Lovebirds Tea with Coffee & Tapioca (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "105": {
+      "name": "Banana",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "107": {
+      "name": "Lemon Pineapple Yakult (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "108": {
+      "name": "Vanilla Pudding",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "109": {
+      "name": "Instant Panna Cotta Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "110": {
+      "name": "Vanilla Drink Mixer",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "111": {
+      "name": "Strawberry Fresh Milk with Vanilla Pudding (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "112": {
+      "name": "Sealing film",
+      "default_uom_id": 40,
+      "default_uom_name": {
+        "en_US": "1000-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "113": {
+      "name": "Handcraft Garden Milk Tea with Oreo Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "114": {
+      "name": "Handcraft Garden Milk Tea with Oreo Cheese Foam (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "115": {
+      "name": "Banana Smoothie (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "117": {
+      "name": "Brow Sugar Fresh Milk with Tapioca (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "118": {
+      "name": "Brown Sugar Fresh Milk with Tapioca (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "119": {
+      "name": "Brown Sugar Fresh Milk with Tapioca (Regular) ",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "120": {
+      "name": "Matcha Banana Slush with Sago (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "121": {
+      "name": "Kiwi",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "122": {
+      "name": "Red Grapes",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "123": {
+      "name": "Honeydew",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "125": {
+      "name": "Blueberry",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "126": {
+      "name": "Mint",
+      "default_uom_id": 16,
+      "default_uom_name": {
+        "en_US": "oz",
+        "zh_CN": "oz"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "127": {
+      "name": "Soymilk",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "128": {
+      "name": "Oatmilk",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "129": {
+      "name": "Coconut milk",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "130": {
+      "name": "Almond milk",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "131": {
+      "name": "Lactose-free Milk",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "132": {
+      "name": "Greek Yogurt",
+      "default_uom_id": 54,
+      "default_uom_name": {
+        "en_US": "850g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "133": {
+      "name": "Powder Chicken Marinade",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "134": {
+      "name": "Sweet Potato Starch",
+      "default_uom_id": 55,
+      "default_uom_name": {
+        "en_US": "450g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "135": {
+      "name": "Panko",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "136": {
+      "name": "Marinated Chicken Batch (popcorn)",
+      "default_uom_id": 56,
+      "default_uom_name": {
+        "en_US": "10kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "137": {
+      "name": "Chicken Breast",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "138": {
+      "name": "Basil",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "139": {
+      "name": "Popcorn Chicken (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "140": {
+      "name": "Uni Snack Box (Big)",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "141": {
+      "name": "Napkin",
+      "default_uom_id": 61,
+      "default_uom_name": {
+        "en_US": "150-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "142": {
+      "name": "Bamboo Sticks",
+      "default_uom_id": 40,
+      "default_uom_name": {
+        "en_US": "1000-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "143": {
+      "name": "Uni 4-Cup Plastic Bag",
+      "default_uom_id": 40,
+      "default_uom_name": {
+        "en_US": "1000-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "144": {
+      "name": "Salt & Pepper",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "145": {
+      "name": "Spicy Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "146": {
+      "name": "Marinated Chicken Batch (Katsu)",
+      "default_uom_id": 49,
+      "default_uom_name": {
+        "en_US": "1.8kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "148": {
+      "name": "Marinated Chicken Batch (Half Katsu)",
+      "default_uom_id": 54,
+      "default_uom_name": {
+        "en_US": "850g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "150": {
+      "name": "Takoyaki (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "151": {
+      "name": "Bonito Flakes",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "152": {
+      "name": "Okonomi Sauce",
+      "default_uom_id": 57,
+      "default_uom_name": {
+        "en_US": "2.23kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "153": {
+      "name": "Mayonnaise",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "154": {
+      "name": "Taiyaki 10-PC (red ban filling)",
+      "default_uom_id": 58,
+      "default_uom_name": {
+        "en_US": "10-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "156": {
+      "name": "Roasted Seaweed",
+      "default_uom_id": 60,
+      "default_uom_name": {
+        "en_US": "75g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "157": {
+      "name": "Uni Croffle Box",
+      "default_uom_id": 88,
+      "default_uom_name": {
+        "en_US": "50-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "158": {
+      "name": "Uni Snacks Paper (Small)",
+      "default_uom_id": 39,
+      "default_uom_name": {
+        "en_US": "500-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "159": {
+      "name": "Uni Snacks Paper (Large)",
+      "default_uom_id": 39,
+      "default_uom_name": {
+        "en_US": "500-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "160": {
+      "name": "Tea Peach Black",
+      "default_uom_id": 48,
+      "default_uom_name": {
+        "en_US": "10g*100-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "161": {
+      "name": "Tea White Peach Oolong",
+      "default_uom_id": 48,
+      "default_uom_name": {
+        "en_US": "10g*100-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "162": {
+      "name": "Jin Jun Mei",
+      "default_uom_id": 48,
+      "default_uom_name": {
+        "en_US": "10g*100-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "163": {
+      "name": "Strawberry Heart",
+      "default_uom_id": 45,
+      "default_uom_name": {
+        "en_US": "3.8kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "164": {
+      "name": "Mango Popping Boba",
+      "default_uom_id": 44,
+      "default_uom_name": {
+        "en_US": "3.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "165": {
+      "name": "Strawberry Popping Boba",
+      "default_uom_id": 44,
+      "default_uom_name": {
+        "en_US": "3.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "166": {
+      "name": "Passionfruit Popping Boba",
+      "default_uom_id": 44,
+      "default_uom_name": {
+        "en_US": "3.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "167": {
+      "name": "Yogurt Popping Boba",
+      "default_uom_id": 44,
+      "default_uom_name": {
+        "en_US": "3.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "168": {
+      "name": "Sweet Red Beans",
+      "default_uom_id": 51,
+      "default_uom_name": {
+        "en_US": "3.3kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "169": {
+      "name": "Crystal Boba Original (2kg)",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "170": {
+      "name": "Canned Purple Sticky Rice",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "171": {
+      "name": "Brown Sugar Crystal Boba",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "172": {
+      "name": "Tea Roasted Puer Tea",
+      "default_uom_id": 33,
+      "default_uom_name": {
+        "en_US": "50g*12-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "173": {
+      "name": "Mango Jelly",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "174": {
+      "name": "Can Sliced Peaches",
+      "default_uom_id": 62,
+      "default_uom_name": {
+        "en_US": "680g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "175": {
+      "name": "Dry plum Seasoning",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "176": {
+      "name": "Soy Drink Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "177": {
+      "name": "White Chocolate Chips",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "178": {
+      "name": "Marshmallows",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "179": {
+      "name": "Biscoff",
+      "default_uom_id": 63,
+      "default_uom_name": {
+        "en_US": "250g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "180": {
+      "name": "Graham Crackers",
+      "default_uom_id": 64,
+      "default_uom_name": {
+        "en_US": "9-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "181": {
+      "name": "Oreo Cookies",
+      "default_uom_id": 65,
+      "default_uom_name": {
+        "en_US": "13-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "182": {
+      "name": "Biscoff Crumbs",
+      "default_uom_id": 66,
+      "default_uom_name": {
+        "en_US": "750g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "183": {
+      "name": "Syrup Ginger",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "184": {
+      "name": "Syrup Rose",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "185": {
+      "name": "Syrup Mango",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "186": {
+      "name": "Syrup Osmanthus ",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "187": {
+      "name": "Syrup Green Melon",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "188": {
+      "name": "Syrup Grape",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "189": {
+      "name": "Jam Kiwi",
+      "default_uom_id": 43,
+      "default_uom_name": {
+        "en_US": "4.2kg-can"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "190": {
+      "name": "Jelly Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "191": {
+      "name": "Powder Green Tea",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "192": {
+      "name": "Grass Jelly Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "193": {
+      "name": "Vanilla Float Powder",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "194": {
+      "name": "Ferrero Rocher",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "195": {
+      "name": "Hershey's Syrup",
+      "default_uom_id": 68,
+      "default_uom_name": {
+        "en_US": "7-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "196": {
+      "name": "Dark Choc Syrup",
+      "default_uom_id": 67,
+      "default_uom_name": {
+        "en_US": "64 -fl oz(US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "197": {
+      "name": "Soymilk Foam",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "199": {
+      "name": "Peach Puree",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "200": {
+      "name": "Kiwi Puree",
+      "default_uom_id": 70,
+      "default_uom_name": {
+        "en_US": "500g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "201": {
+      "name": "Grass Jelly",
+      "default_uom_id": 71,
+      "default_uom_name": {
+        "en_US": "1.1kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "202": {
+      "name": "White Peach Oolong Tea Jelly",
+      "default_uom_id": 72,
+      "default_uom_name": {
+        "en_US": "2.3kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "203": {
+      "name": "Honey",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "204": {
+      "name": "Osmanthus Jelly",
+      "default_uom_id": 73,
+      "default_uom_name": {
+        "en_US": "2.47kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "205": {
+      "name": "Soymilk Pudding",
+      "default_uom_id": 74,
+      "default_uom_name": {
+        "en_US": "3.82kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "206": {
+      "name": "Puer Tea Batch",
+      "default_uom_id": 75,
+      "default_uom_name": {
+        "en_US": "2L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "207": {
+      "name": "Chocolate Macaron (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "208": {
+      "name": "Pistachio Macaron (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "209": {
+      "name": "Raspberry Macaron (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "210": {
+      "name": "Birthday Cake Macaron (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "211": {
+      "name": "Macarons (Cookies & Cream)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "212": {
+      "name": "Macarons (Hazelnut Brittle)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "213": {
+      "name": "Macarons (Orange Truffle)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "214": {
+      "name": "Macarons (Red Velvet)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "215": {
+      "name": "Macarons (Salted Caramel)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "216": {
+      "name": "Croissants (croffle dough)",
+      "default_uom_id": 77,
+      "default_uom_name": {
+        "en_US": "30-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "217": {
+      "name": "Tornado Potato",
+      "default_uom_id": 86,
+      "default_uom_name": {
+        "en_US": "5-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "218": {
+      "name": "Mozzarella Sticks 7-LB",
+      "default_uom_id": 68,
+      "default_uom_name": {
+        "en_US": "7-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "219": {
+      "name": "Twister French Fries 20-LB",
+      "default_uom_id": 79,
+      "default_uom_name": {
+        "en_US": "20-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "220": {
+      "name": "Potato Corn Dog 4-PC",
+      "default_uom_id": 78,
+      "default_uom_name": {
+        "en_US": "4-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "222": {
+      "name": "Potato Corn Dog (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "223": {
+      "name": "Taiyaki (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "224": {
+      "name": "Tornado Potato (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "225": {
+      "name": "Potato Fries Waffle ZESTY 4.5-LB",
+      "default_uom_id": 80,
+      "default_uom_name": {
+        "en_US": "4.5lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "226": {
+      "name": "Crinkle Cut Fries 5-LB",
+      "default_uom_id": 85,
+      "default_uom_name": {
+        "en_US": "5-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "227": {
+      "name": "Curly Fries (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "228": {
+      "name": "Waffle Fries (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "229": {
+      "name": "Crinkle Cut Fries (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "230": {
+      "name": "Chicken Nuggets Box (~225 pc)",
+      "default_uom_id": 82,
+      "default_uom_name": {
+        "en_US": "10-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "231": {
+      "name": "Chicken Nuggets (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "233": {
+      "name": "Uni 1000 PP Bucket",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "234": {
+      "name": "Uni 1000 PP Bucket Cap",
+      "default_uom_id": 88,
+      "default_uom_name": {
+        "en_US": "50-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "235": {
+      "name": "Uni 700 Cup (Hot)",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "236": {
+      "name": "Uni 500 Cup (Hot)",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "237": {
+      "name": "Uni Snack Box (Small)",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "238": {
+      "name": "Uni 2-Cup Paper Bag",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "239": {
+      "name": "Uni 4-Cup Insulate Bag",
+      "default_uom_id": 88,
+      "default_uom_name": {
+        "en_US": "50-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "240": {
+      "name": "Uni Sleeves",
+      "default_uom_id": 88,
+      "default_uom_name": {
+        "en_US": "50-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "241": {
+      "name": "Uni 4-Cup Holder",
+      "default_uom_id": 87,
+      "default_uom_name": {
+        "en_US": "25-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "244": {
+      "name": "Ancient Brown Sugar Milk Tea with Tapioca (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "275": {
+      "name": "Whipped Cream Batch",
+      "default_uom_id": 62,
+      "default_uom_name": {
+        "en_US": "680g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "276": {
+      "name": "Sugar",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "277": {
+      "name": "Whipped Cream Stabilizer",
+      "default_uom_id": 84,
+      "default_uom_name": {
+        "en_US": "2.7kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "278": {
+      "name": "MAYONNAISE 450ML QP",
+      "default_uom_id": 93,
+      "default_uom_name": {
+        "en_US": "450ml*20"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "279": {
+      "name": "Tempura Shrimp",
+      "default_uom_id": 90,
+      "default_uom_name": {
+        "en_US": "125-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "281": {
+      "name": "TAKOYAKI SK 2.97LB 45PC F",
+      "default_uom_id": 95,
+      "default_uom_name": {
+        "en_US": "2.97-lb*10"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "282": {
+      "name": "SWEET TAIYAKI",
+      "default_uom_id": 96,
+      "default_uom_name": {
+        "en_US": "10-pc*4"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "283": {
+      "name": "Grass Jelly (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "284": {
+      "name": "Purple Sticky Rice (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "285": {
+      "name": "Crystal Boba (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "286": {
+      "name": "Aloe (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "287": {
+      "name": "Vanilla Pudding (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "288": {
+      "name": "Osmanthus Jelly (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "289": {
+      "name": "Mango Star Jelly (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "290": {
+      "name": "Lychee Jelly (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "291": {
+      "name": "Mango Popping Boba (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "292": {
+      "name": "Yogurt Popping Boba (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "293": {
+      "name": "Milk Mochi (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "294": {
+      "name": "Strawberry Popping Boba (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "295": {
+      "name": "Passionfruit Popping Boba (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "296": {
+      "name": "Brown Sugar Crystal Boba (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "297": {
+      "name": "Brown Sugar Tapioca (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "300": {
+      "name": "Sago (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "301": {
+      "name": "Honey Red Bean (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "302": {
+      "name": "White Peach Oolong Tea Jelly (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "303": {
+      "name": "Strawberry Heart Jelly (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "304": {
+      "name": "Taro Paste (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "305": {
+      "name": "Mango Puree (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "306": {
+      "name": "Strawberry Puree (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "307": {
+      "name": "Peach Puree (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "308": {
+      "name": "Soymilk Pudding (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "309": {
+      "name": "Caramel Cheese Foam (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "310": {
+      "name": "Cheese Foam (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "311": {
+      "name": "Oreo Cheese Foam (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "312": {
+      "name": "Soymilk Foam (100g)",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "342": {
+      "name": "Ancient Brown Sugar Milk Tea Batch (NH Market)",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "343": {
+      "name": "Thai Milk Tea Batch (NH Market)",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "344": {
+      "name": "Hongkong Lemon Tea Batch (NH Market)",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "345": {
+      "name": "Passionfruit Green Tea Batch (NH Market)",
+      "default_uom_id": 35,
+      "default_uom_name": {
+        "en_US": "4L"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "346": {
+      "name": "Mango Crystal Boba",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "693": {
+      "name": "Peach Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "694": {
+      "name": "Miss Rabbit Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "695": {
+      "name": "King Panda Cheese Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "696": {
+      "name": "Chocolate Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "697": {
+      "name": "Lychee Rose Mille Crepes Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "698": {
+      "name": "Matcha Cheese Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "699": {
+      "name": "Basque Cheese Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "700": {
+      "name": "Brownie Raspberry Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "701": {
+      "name": "Lemon Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "702": {
+      "name": "Persimmon Ruyi Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "703": {
+      "name": "Tiramisu Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "705": {
+      "name": "Grocery Tax",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "706": {
+      "name": "Limes",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "707": {
+      "name": "Difference",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "708": {
+      "name": "Green Onion",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "709": {
+      "name": "Romaine Hearts",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "710": {
+      "name": "Checkout Bag Fee",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "711": {
+      "name": "Grocery Tip",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "712": {
+      "name": "Instacart Service Fee",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "714": {
+      "name": "Vegetable Oil",
+      "default_uom_id": 97,
+      "default_uom_name": {
+        "en_US": "35-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "715": {
+      "name": "BBQ sauce",
+      "default_uom_id": 89,
+      "default_uom_name": {
+        "en_US": "100-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "717": {
+      "name": "Eggs",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "718": {
+      "name": "Scheduled Delivery discount",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "719": {
+      "name": "Paper Towel",
+      "default_uom_id": 89,
+      "default_uom_name": {
+        "en_US": "100-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "720": {
+      "name": "Lettuce",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "723": {
+      "name": "Igloo Profile\u202fII 50\u202fQt Chest Cooler",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "724": {
+      "name": "Powder Banana",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "725": {
+      "name": "Uni Cap",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "726": {
+      "name": "Uni Sticker Croffle",
+      "default_uom_id": 88,
+      "default_uom_name": {
+        "en_US": "50-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "727": {
+      "name": "Tea Xiaozhong Black",
+      "default_uom_id": 32,
+      "default_uom_name": {
+        "en_US": "100g-packet"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "728": {
+      "name": "Tea Roasted Pu'er",
+      "default_uom_id": 33,
+      "default_uom_name": {
+        "en_US": "50g*12-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "729": {
+      "name": "Powder Pure Matcha Mocha",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "730": {
+      "name": "Golden Buds Mousse Cake",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "731": {
+      "name": "Jasmine Yogurt Mousse Cake",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "732": {
+      "name": "LaviNa Basque Cheese Cake LaviNa",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "733": {
+      "name": "Devil Fruit Mousse Cake",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "734": {
+      "name": "Soccer Mousse Cake (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "735": {
+      "name": "Matcha Raspberry Mousse Cake",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "736": {
+      "name": "Coconut Mousse Cake",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "737": {
+      "name": "Peach flavor ice cream (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "738": {
+      "name": "Lemon flavor ice cream (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "739": {
+      "name": "Mango flavor ice cream (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "740": {
+      "name": "Oranges",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "741": {
+      "name": "Lemons",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "742": {
+      "name": "Bananas",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "743": {
+      "name": "Grapefruits",
+      "default_uom_id": 15,
+      "default_uom_name": {
+        "en_US": "lb",
+        "zh_CN": "lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "744": {
+      "name": "Tips",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "745": {
+      "name": "Dish Detergent",
+      "default_uom_id": 24,
+      "default_uom_name": {
+        "en_US": "gal (US)",
+        "zh_CN": "gal (US)"
+      },
+      "uom_category_id": 6,
+      "uom_category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "746": {
+      "name": "Glove",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "747": {
+      "name": "Disinfectant Test Strips",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "748": {
+      "name": "PURELL\u00ae 3841-01-CLMS Body Fluid Spill Kits with Clamshell Case",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "749": {
+      "name": "Galaxy Equipment 10' x 10' White Straight Leg Instant Pop Up Canopy Tent",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "750": {
+      "name": "Lavex 16\" Mop and Broom Rack with 6 Hanging Hooks and 5 Tool Clips",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "751": {
+      "name": "Shipping",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "752": {
+      "name": "CAN 6/A10 SWEET KERNEL CORN ",
+      "default_uom_id": 114,
+      "default_uom_name": {
+        "en_US": "6.69-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "753": {
+      "name": "SOUP BASE AMA KARA SHOYU WU 2KG 3016630 ",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "754": {
+      "name": "OIL PLANT BASED BLACK MA-YU SK",
+      "default_uom_id": 116,
+      "default_uom_name": {
+        "en_US": "900g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "755": {
+      "name": "SOUP BASE SEASONED PORK FAT 2LB F ",
+      "default_uom_id": 111,
+      "default_uom_name": {
+        "en_US": "2-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "756": {
+      "name": "SOUP BASE RAMEN SPICY MISO 4.4LB #9 NEW ",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "757": {
+      "name": "SOUP BASE RAMEN TONKOTSU 3206536 NB #1 ",
+      "default_uom_id": 53,
+      "default_uom_name": {
+        "en_US": "2kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "758": {
+      "name": "SPICE RAMEN PEPPER 3.2OZ NEW S&B ",
+      "default_uom_id": 118,
+      "default_uom_name": {
+        "en_US": "90g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "759": {
+      "name": "GARLIC GRATED/OROSHI NINNIKU SK ",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "760": {
+      "name": "SEASONING HI-ME 2.2LB AJI 30148 ",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "761": {
+      "name": "NOODLE RAMEN SHINUCHI REG F ",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "762": {
+      "name": "NORI CUSTOM HALF 100SH SK ",
+      "default_uom_id": 89,
+      "default_uom_name": {
+        "en_US": "100-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "763": {
+      "name": "MENMA BAMBOO SHOOT SEASONED 2.2LB SK ",
+      "default_uom_id": 12,
+      "default_uom_name": {
+        "en_US": "kg",
+        "zh_CN": "kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "764": {
+      "name": "PORK CHASHU BELLY W/SAUCE 22LB SK F ",
+      "default_uom_id": 56,
+      "default_uom_name": {
+        "en_US": "10kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "765": {
+      "name": "FISH CAKE NARUTOMAKI WHITE ICHIMASA F ",
+      "default_uom_id": 119,
+      "default_uom_name": {
+        "en_US": "135g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "766": {
+      "name": "CHICKEN FULLY COOKED KARAAGE QMK F ",
+      "default_uom_id": 110,
+      "default_uom_name": {
+        "en_US": "3-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "768": {
+      "name": "MyLifeUNIT Straw Holder for Counter, Stainless Steel Coffee Stirrers Holder 6.7\" x 4.9\"(2 pack)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "769": {
+      "name": "BETCKEY - 2.25\" x 1.25\" (57 mm x 32 mm) UPC Barcode & Multipurpose Labels Compatible with Zebra & Roll",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "770": {
+      "name": "PayLessHere 14\" D\u00d724\" W\u00d760\" H Wire Shelving Unit Metal Commercial Shelf with 5 Tier Layer Rack Strong Ste el for Restaurant Garage Pantry Kitchen GarageBlack",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "771": {
+      "name": "160 LBS Extra Large Sand Bags for Canopy Legs (Without Sand), Zipper Top Sandbags for Weight Set of 4 (Black)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "772": {
+      "name": "Sliced Almonds",
+      "default_uom_id": 111,
+      "default_uom_name": {
+        "en_US": "2-lb"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "773": {
+      "name": "HF20-S Water Filter Compatible with 3M\u00ae HF20-S HF20-MS HF25-S (2 Pack)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "774": {
+      "name": "MUNBYN Thermal Paper 3 1/8 x 230ft, 10 Rolls Receipt Paper Work for Star Micronics TSP100 TSP143 Epson 80mm",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "775": {
+      "name": "Torani Puremade Sauce, Caramel",
+      "default_uom_id": 55,
+      "default_uom_name": {
+        "en_US": "450g"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "776": {
+      "name": "American Hot Dog Crispy Wrap (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "777": {
+      "name": "Banana Fresh Milk with Vanilla Pudding (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "778": {
+      "name": "Banana Fresh Milk with Vanilla Pudding (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "779": {
+      "name": "Brown Sugar Boba Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "780": {
+      "name": "Brown Sugar Ginger Black Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "781": {
+      "name": "Build your own wrap (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "782": {
+      "name": "Ceylon Black Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "783": {
+      "name": "Ceylon Black Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "784": {
+      "name": "Chicken Katsu Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "785": {
+      "name": "Chocolate Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "786": {
+      "name": "Coconut Latte with Coffee & Osmanthus Jelly (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "787": {
+      "name": "Fried Chicken Steak (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "788": {
+      "name": "Fried Mozzarella Cheese Sticks (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "789": {
+      "name": "Grape Green Tea Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "790": {
+      "name": "Honeydew Yakult (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "791": {
+      "name": "Kiwi Yakult (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "792": {
+      "name": "Lotus Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "793": {
+      "name": "Lychee Jasmine Green Tea Latte (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "794": {
+      "name": "Mango Fresh Milk with Vanilla Pudding (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "795": {
+      "name": "Mango Fresh Milk with Vanilla Pudding (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "796": {
+      "name": "Mango Green Tea Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "797": {
+      "name": "Mango Yogurt Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "798": {
+      "name": "Mango Yogurt with Crystal Boba (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "799": {
+      "name": "Mango Yogurt with Crystal Boba (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "800": {
+      "name": "Matcha Latte with Honey Red Bean (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "801": {
+      "name": "Matcha Latte with Honey Red Bean (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "802": {
+      "name": "Matcha Raspberry (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "803": {
+      "name": "Mixed Berry Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "804": {
+      "name": "Nutella Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "805": {
+      "name": "Oreo Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "806": {
+      "name": "Overloaded Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "807": {
+      "name": "Passion Fruit Jasmine Green Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "808": {
+      "name": "Passionfruit Jasmine Green Tea Yakult (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "809": {
+      "name": "Peach Black Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "810": {
+      "name": "Peach Green Tea Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "811": {
+      "name": "Peach Yogurt with Crystal Boba (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "812": {
+      "name": "Peach Yogurt with Crystal Boba (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "813": {
+      "name": "Pineapple Green Tea Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "814": {
+      "name": "Plain Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "815": {
+      "name": "Premium Jasmine Green Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "816": {
+      "name": "Pu'er Milk Tea with Milk Mochi (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "817": {
+      "name": "Pu'er Tea Latte with Crystal Boba & Caramel Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "818": {
+      "name": "Pu'er Tea Latte with Crystal Boba & Caramel Cheese Foam (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "819": {
+      "name": "Roasted Mountain Oolong Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "820": {
+      "name": "Roasted Mountain Oolong Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "821": {
+      "name": "Rose Latte with Milk Mochi (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "822": {
+      "name": "Rose Lemon Yakult (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "823": {
+      "name": "Rose Milk Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "824": {
+      "name": "Signature Milk Tea with Purple Sticky Rice (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "825": {
+      "name": "Soymilk Black Tea Latte with Soymilk Pudding & Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "827": {
+      "name": "Strawberry Fresh Milk with Vanilla Pudding (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "828": {
+      "name": "Strawberry Green Tea Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "829": {
+      "name": "Lemon Jasmine Green Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "830": {
+      "name": "Strawberry Milk Tea with Crystal Boba (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "831": {
+      "name": "Strawberry Smoothie (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "832": {
+      "name": "Strawberry Yakult with Yogurt Popping Boba (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "833": {
+      "name": "Strawberry Yogurt Slush with Cheese Foam (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "834": {
+      "name": "Strawberry Yogurt with Crystal Boba (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "835": {
+      "name": "Strawberry Yogurt with Crystal Boba (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "836": {
+      "name": "S'more Croffle (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "837": {
+      "name": "Taiwanese Chicken Steak Crispy Wrap (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "838": {
+      "name": "Taro Fresh Milk with Vanilla Pudding (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "839": {
+      "name": "Taro Fresh Milk with Vanilla Pudding (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "840": {
+      "name": "Taro Osmanthus Milk Tea with Crystal Boba (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "841": {
+      "name": "The bucket of Ancient Brown Sugar Milk Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "842": {
+      "name": "Tokyo Tempura Shrimp Crispy Wrap (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "843": {
+      "name": "White Peach Oolong Tea (Large)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "844": {
+      "name": "White Peach Oolong Tea (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "845": {
+      "name": "Syrup Honeydew",
+      "default_uom_id": 37,
+      "default_uom_name": {
+        "en_US": "2.5kg-bucket"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "846": {
+      "name": "Soymilk Black Tea Latte with Soymilk Pudding & Foam (Regular)",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "849": {
+      "name": "Peach Black Tea (Regular) ",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "850": {
+      "name": "Tea Roasted Mountain Oolong",
+      "default_uom_id": 48,
+      "default_uom_name": {
+        "en_US": "10g*100-bag"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "852": {
+      "name": "Hot Dog Bag",
+      "default_uom_id": 40,
+      "default_uom_name": {
+        "en_US": "1000-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "854": {
+      "name": "Raw Sugar",
+      "default_uom_id": 49,
+      "default_uom_name": {
+        "en_US": "1.8kg"
+      },
+      "uom_category_id": 2,
+      "uom_category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "855": {
+      "name": "Tornado Potato Bag",
+      "default_uom_id": 40,
+      "default_uom_name": {
+        "en_US": "1000-pc"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "1893": {
+      "name": "Event Registration",
+      "default_uom_id": 1,
+      "default_uom_name": {
+        "en_US": "Units",
+        "zh_CN": "\u5355\u4f4d"
+      },
+      "uom_category_id": 1,
+      "uom_category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    }
+  },
+  "uoms": {
+    "1": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "2": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "3": {
+      "category_id": 3,
+      "category_name": {
+        "en_US": "Working Time",
+        "zh_CN": "\u5de5\u65f6"
+      }
+    },
+    "4": {
+      "category_id": 3,
+      "category_name": {
+        "en_US": "Working Time",
+        "zh_CN": "\u5de5\u65f6"
+      }
+    },
+    "5": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "6": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "7": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "8": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "9": {
+      "category_id": 5,
+      "category_name": {
+        "en_US": "Surface",
+        "zh_CN": "\u8868\u9762"
+      }
+    },
+    "10": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "11": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "12": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "13": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "14": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "15": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "16": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "17": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "18": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "19": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "20": {
+      "category_id": 4,
+      "category_name": {
+        "en_US": "Length / Distance",
+        "zh_CN": "\u957f\u5ea6\u6216\u8ddd\u79bb"
+      }
+    },
+    "21": {
+      "category_id": 5,
+      "category_name": {
+        "en_US": "Surface",
+        "zh_CN": "\u8868\u9762"
+      }
+    },
+    "22": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "23": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "24": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "25": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "26": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "29": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "30": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "31": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "32": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "33": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "34": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "35": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "36": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "37": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "38": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "39": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "40": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "41": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "42": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "43": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "44": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "45": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "46": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "47": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "48": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "49": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "50": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "51": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "52": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "53": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "54": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "55": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "56": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "57": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "58": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "59": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "60": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "61": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "62": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "63": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "64": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "65": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "66": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "67": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "68": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "69": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "70": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "71": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "72": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "73": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "74": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "75": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "76": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "77": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "78": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "79": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "80": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "81": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "82": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "83": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "84": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "85": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "86": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "87": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "88": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "89": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "90": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "91": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "92": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "93": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "94": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "95": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "96": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "97": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "98": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "99": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "100": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "101": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "102": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "103": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "104": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "105": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "106": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "107": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "108": {
+      "category_id": 7,
+      "category_name": {
+        "en_US": "Unsorted/Imported Units"
+      }
+    },
+    "109": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "110": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "111": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "112": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    },
+    "113": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "114": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "115": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "116": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "117": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "118": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "119": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "120": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "121": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "122": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "123": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "124": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "125": {
+      "category_id": 2,
+      "category_name": {
+        "en_US": "Weight",
+        "zh_CN": "\u91cd\u91cf"
+      }
+    },
+    "126": {
+      "category_id": 1,
+      "category_name": {
+        "en_US": "Unit",
+        "zh_CN": "\u5355\u4f4d"
+      }
+    },
+    "127": {
+      "category_id": 6,
+      "category_name": {
+        "en_US": "Volume",
+        "zh_CN": "\u4f53\u79ef"
+      }
+    }
+  }
+}
