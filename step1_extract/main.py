@@ -191,17 +191,19 @@ def process_files(
         elif receipt_type == 'odoo_based':
             odoo_based_files.append(file_path)
     
-    # Skip Excel files for localgrocery_based vendors (they only use PDF now)
-    # Excel files are only for BBI-based receipts, but exclude BBI_Size.xlsx files (baseline files)
+    # Process Excel files - BBI and Odoo Excel purchase orders
+    # Exclude BBI_Size.xlsx files (baseline files)
     for file_path in excel_files:
         # Skip BBI baseline files (they should not be processed as receipts)
         if 'BBI_Size' in file_path.name:
             logger.debug(f"Skipping BBI baseline file (not a receipt): {file_path.relative_to(input_dir)}")
             continue
-        
+
         receipt_type = detect_group(file_path, input_dir)
         if receipt_type == 'bbi_based':
             bbi_based_files.append(file_path)
+        elif receipt_type == 'odoo_based':
+            odoo_based_files.append(file_path)
         elif receipt_type == 'localgrocery_based':
             logger.warning(f"Skipping Excel file for localgrocery vendor (PDF only now): {file_path.relative_to(input_dir)}")
         else:
@@ -1047,102 +1049,33 @@ def process_files(
             except Exception as e:
                 logger.error(f"Error processing {file_path.name}: {e}", exc_info=True)
     
-    ### Process Odoo-based files (Receipts/Odoo folder - regenerated receipts)
-    # All Odoo receipts are processed using Odoo format rules
-    # But we detect the vendor for saving/display purposes
-    
+    ### Process Odoo-based files (Receipts/Odoo folder - Excel purchase orders)
+    # Odoo purchase orders are now in Excel format instead of PDF
+    # Process Excel files directly to extract purchase order data
+
     odoo_based_data: Dict[str, Dict[str, Any]] = {}
-    
+
     if odoo_based_files:
-        logger.info("Processing Odoo-based receipts (using Odoo format rules)...")
-        
-        # Known vendor names for detection (for saving purposes only)
-        vendor_names_map = {
-            'costco': 'COSTCO',
-            'restaurant depot': 'RD',
-            'rd': 'RD',
-            'jewel': 'JEWEL',
-            "jewel-osco": 'JEWEL',
-            'jewel osco': 'JEWEL',
-            'marianos': 'MARIANO',
-            'mariano': 'MARIANO',
-            "mariano's": 'MARIANO',
-            'aldi': 'ALDI',
-            'parktoshop': 'PARKTOSHOP',
-            'park to shop': 'PARKTOSHOP',
-            'wismettac': 'WISMETTAC',
-            'wismettac asian foods': 'WISMETTAC',
-            'webstaurantstore': 'WEBSTAURANTSTORE',
-            'webstaurant store': 'WEBSTAURANTSTORE',
-            'bbi': 'BBI',
-            'amazon': 'AMAZON',
-            'instacart': 'INSTACART',
-        }
-        
-        from difflib import SequenceMatcher
-        
+        logger.info("Processing Odoo-based Excel purchase orders...")
+
+        # Import the Odoo Excel processor
+        from .odoo_excel_processor import process_odoo_excel
+
         for file_path in odoo_based_files:
             try:
-                logger.info(f"Processing [Odoo]: {file_path.name}")
-                
-                # Extract text from PDF to detect vendor
-                pdf_text = unified_pdf_processor._extract_pdf_text(file_path)
-                if not pdf_text:
-                    logger.warning(f"Could not extract text from {file_path.name}, skipping")
-                    continue
-                
-                # Detect vendor for saving/display purposes (but process as Odoo format)
-                detected_vendor_code = 'ODOO'  # Default
-                detected_vendor_name = 'Odoo'  # Default
-                vendor_match_score = 0.5
-                
-                # Load Odoo rules to extract vendor metadata
-                odoo_rules = unified_pdf_processor._load_vendor_pdf_rules('ODOO')
-                if odoo_rules:
-                    metadata_patterns = odoo_rules.get('metadata_patterns', {})
-                    if metadata_patterns:
-                        extracted_metadata = unified_pdf_processor._extract_metadata_from_patterns(pdf_text, metadata_patterns)
-                        extracted_vendor = extracted_metadata.get('vendor', '').strip()
-                        if extracted_vendor:
-                            # Clean up vendor name (remove "Vendor Ref" etc.)
-                            extracted_vendor_clean = extracted_vendor.replace('Vendor Ref', '').strip()
-                            logger.info(f"  Extracted vendor from metadata: {repr(extracted_vendor_clean)}")
-                            
-                            # Try to match extracted vendor name
-                            extracted_lower = extracted_vendor_clean.lower()
-                            for vendor_name, vendor_code in vendor_names_map.items():
-                                if vendor_name in extracted_lower:
-                                    detected_vendor_code = vendor_code
-                                    detected_vendor_name = extracted_vendor_clean
-                                    vendor_match_score = 0.95
-                                    logger.info(f"  Matched vendor: {vendor_code}")
-                                    break
-                            
-                            # Try fuzzy matching if no exact match
-                            if detected_vendor_code == 'ODOO':
-                                for vendor_name, vendor_code in vendor_names_map.items():
-                                    similarity = SequenceMatcher(None, extracted_lower, vendor_name).ratio()
-                                    if similarity > vendor_match_score and similarity >= 0.6:
-                                        vendor_match_score = similarity
-                                        detected_vendor_code = vendor_code
-                                        detected_vendor_name = extracted_vendor_clean
-                                        logger.info(f"  Fuzzy matched vendor: {vendor_code} (score: {similarity:.2f})")
-                
-                # Check folder name as fallback
-                if detected_vendor_code == 'ODOO':
-                    folder_name_lower = file_path.parent.name.lower() if file_path.parent != Path('.') else ''
-                    for vendor_name, vendor_code in vendor_names_map.items():
-                        if vendor_name in folder_name_lower:
-                            detected_vendor_code = vendor_code
-                            vendor_match_score = 0.85
-                            logger.info(f"  Matched vendor from folder: {vendor_code}")
-                            break
-                
-                # Process using Odoo rules (not vendor-specific rules)
-                if file_path.suffix.lower() == '.pdf':
-                    receipt_data = unified_pdf_processor.process_file(file_path, detected_vendor_code='ODOO')
+                logger.info(f"Processing [Odoo Excel]: {file_path.name}")
+
+                # Process Excel file directly
+                if file_path.suffix.lower() in ['.xlsx', '.xls']:
+                    receipt_data_dict = process_odoo_excel(file_path)
+                    if receipt_data_dict:
+                        # Add to odoo_based_data (merge with any existing data)
+                        odoo_based_data.update(receipt_data_dict)
+                    else:
+                        logger.warning(f"No data extracted from {file_path.name}")
+                        continue
                 else:
-                    logger.warning(f"Unsupported file type for Odoo (PDF only): {file_path.suffix}")
+                    logger.warning(f"Unsupported file type for Odoo Excel: {file_path.suffix}")
                     continue
                 
                 if receipt_data:
