@@ -198,7 +198,7 @@ def process_files(
         if 'BBI_Size' in file_path.name:
             logger.debug(f"Skipping BBI baseline file (not a receipt): {file_path.relative_to(input_dir)}")
             continue
-
+        
         receipt_type = detect_group(file_path, input_dir)
         if receipt_type == 'bbi_based':
             bbi_based_files.append(file_path)
@@ -1052,19 +1052,19 @@ def process_files(
     ### Process Odoo-based files (Receipts/Odoo folder - Excel purchase orders)
     # Odoo purchase orders are now in Excel format instead of PDF
     # Process Excel files directly to extract purchase order data
-
+    
     odoo_based_data: Dict[str, Dict[str, Any]] = {}
-
+    
     if odoo_based_files:
         logger.info("Processing Odoo-based Excel purchase orders...")
-
+        
         # Import the Odoo Excel processor
         from .odoo_excel_processor import process_odoo_excel
-
+        
         for file_path in odoo_based_files:
             try:
                 logger.info(f"Processing [Odoo Excel]: {file_path.name}")
-
+                
                 # Process Excel file directly
                 if file_path.suffix.lower() in ['.xlsx', '.xls']:
                     receipt_data_dict = process_odoo_excel(file_path)
@@ -1073,7 +1073,7 @@ def process_files(
                         odoo_based_data.update(receipt_data_dict)
                     else:
                         logger.warning(f"No data extracted from {file_path.name}")
-                        continue
+                    continue
                 else:
                     logger.warning(f"Unsupported file type for Odoo Excel: {file_path.suffix}")
                     continue
