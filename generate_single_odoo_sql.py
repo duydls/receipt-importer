@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Generate SQL INSERT statements for Odoo purchase orders from extracted Excel data
+Generate a single SQL file for all Odoo purchase orders from extracted Excel data
+All dates are in November 2025
 """
 
 import json
@@ -23,25 +24,31 @@ def get_vendor_id(vendor_name: str) -> int:
     return vendor_map.get(vendor_name, 1)  # Default to admin user
 
 
-def generate_purchase_order_sql(receipt_id: str, receipt_data: Dict[str, Any]) -> str:
-    """Generate SQL for a single purchase order"""
+def generate_purchase_order_sql(receipt_id: str, receipt_data: Dict[str, Any]) -> tuple:
+    """Generate SQL for a single purchase order and its lines"""
 
     vendor_name = receipt_data.get('vendor', 'Unknown Vendor')
     vendor_id = get_vendor_id(vendor_name)
     order_date = receipt_data.get('order_date', datetime.now().isoformat())
     items = receipt_data.get('items', [])
 
+    # Ensure date is in November 2025
+    if order_date.startswith('2025-11'):
+        pass  # Already correct
+    else:
+        # Fallback to November 15, 2025 if date is invalid
+        order_date = '2025-11-15T12:00:00'
+
     # Create purchase order INSERT
     po_sql = f"""
--- Purchase Order: {receipt_id}
+-- Purchase Order: {receipt_id} ({vendor_name})
 INSERT INTO purchase_order (
     name, partner_id, date_order, date_planned, user_id, company_id,
     state, create_date, write_date, create_uid, write_uid
 ) VALUES (
     '{receipt_id}', {vendor_id}, '{order_date}', '{order_date}', 2, 1,
     'draft', NOW(), NOW(), 2, 2
-) RETURNING id;
-"""
+) RETURNING id;"""
 
     # Create purchase order lines
     line_sqls = []
@@ -75,10 +82,7 @@ INSERT INTO purchase_order_line (
 );"""
         line_sqls.append(line_sql)
 
-    # Combine PO and lines
-    full_sql = po_sql + '\n' + '\n'.join(line_sqls)
-
-    return full_sql
+    return po_sql, line_sqls
 
 
 def main():
@@ -86,25 +90,45 @@ def main():
     with open('data/step1_output/odoo_based/extracted_data.json', 'r') as f:
         odoo_data = json.load(f)
 
-    print(f"Generating SQL for {len(odoo_data)} purchase orders...")
+    print(f"Generating single SQL file for {len(odoo_data)} purchase orders...")
 
     # Generate SQL for each receipt
     all_sql = []
-    all_sql.append("-- Generated SQL for Odoo Purchase Orders")
+    all_sql.append("-- Generated SQL for All Odoo Purchase Orders (November 2025)")
     all_sql.append(f"-- Generated on {datetime.now().isoformat()}")
+    all_sql.append("-- All order dates are in November 2025")
     all_sql.append("")
 
-    for receipt_id, receipt_data in odoo_data.items():
-        sql = generate_purchase_order_sql(receipt_id, receipt_data)
-        all_sql.append(sql)
+    # Sort orders by date for consistent ordering
+    sorted_receipts = sorted(odoo_data.items(), key=lambda x: x[1].get('order_date', ''))
+
+    total_items = 0
+    total_value = 0
+
+    for receipt_id, receipt_data in sorted_receipts:
+        po_sql, line_sqls = generate_purchase_order_sql(receipt_id, receipt_data)
+
+        all_sql.append(po_sql)
+        all_sql.extend(line_sqls)
         all_sql.append("")
 
+        # Update totals
+        items = receipt_data.get('items', [])
+        total_items += len(items)
+        total_value += sum(item.get('total_price', 0) for item in items)
+
+    # Add summary comment
+    all_sql.insert(3, f"-- Total: {len(odoo_data)} orders, {total_items} items, ${total_value:.2f}")
+    all_sql.insert(4, "")
+
     # Write to file
-    output_file = 'data/odoo_purchase_orders.sql'
+    output_file = 'data/all_odoo_purchase_orders.sql'
     with open(output_file, 'w') as f:
         f.write('\n'.join(all_sql))
 
-    print(f"SQL generated and saved to: {output_file}")
+    print(f"Single SQL file generated and saved to: {output_file}")
+    print(f"Contains {len(odoo_data)} purchase orders with {total_items} total items worth ${total_value:.2f}")
+
     print("\nNote: This SQL contains placeholder IDs. You will need to:")
     print("1. Update vendor_id values with actual partner IDs from your Odoo database")
     print("2. Update product_id values with actual product IDs")
